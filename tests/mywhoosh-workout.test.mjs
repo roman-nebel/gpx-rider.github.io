@@ -1,7 +1,12 @@
+import { normalizeWorkoutStep } from "../app/workout/workout-step.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { decodeMyWhooshJson } from "../app/workout/mywhoosh-workout.mjs";
-import { previewWorkoutStep } from "../app/workout/workout-preview.mjs";
+import { previewWorkoutStep as previewStep } from "../app/workout/workout-preview.mjs";
+
+function previewWorkoutStep(step, ftp) {
+  return previewStep(normalizeWorkoutStep(step), ftp);
+}
 
 test("keeps the direction of MyWhoosh power ramps and the cadence target", () => {
   const workout = decodeMyWhooshJson(JSON.stringify({
@@ -21,6 +26,7 @@ test("keeps the direction of MyWhoosh power ramps and the cadence target", () =>
   assert.deepEqual(previewWorkoutStep(ramp, null), {
     name: "Cooldown",
     detail: "6 min · Free ride · 85 rpm",
+    notes: undefined,
     needsFtp: true,
   });
   assert.equal(previewWorkoutStep(interval, 200).detail, "5 min 10 s · 160 W · 95 rpm");

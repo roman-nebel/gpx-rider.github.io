@@ -1,8 +1,13 @@
+import { normalizeWorkoutStep } from "../app/workout/workout-step.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fitCrc16 } from "../app/ride/fit.mjs";
 import { decodeFitWorkout } from "../app/workout/fit-workout.mjs";
-import { previewWorkoutStep } from "../app/workout/workout-preview.mjs";
+import { previewWorkoutStep as previewStep } from "../app/workout/workout-preview.mjs";
+
+function previewWorkoutStep(step, ftp) {
+  return previewStep(normalizeWorkoutStep(step), ftp);
+}
 
 function workoutFile({ fileType = 5, repeatFrom = 0 } = {}) {
   // Big-endian Workout Step definitions, a developer field, and an optional
