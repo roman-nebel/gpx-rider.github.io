@@ -228,6 +228,7 @@ export const els = {
   workoutName: document.querySelector("#workoutName"),
   workoutStepCount: document.querySelector("#workoutStepCount"),
   workoutFtpWarning: document.querySelector("#workoutFtpWarning"),
+  workoutChart: document.querySelector("#workoutChart"),
   workoutSteps: document.querySelector("#workoutSteps"),
   workoutError: document.querySelector("#workoutError"),
   clearWorkoutBtn: document.querySelector("#clearWorkoutBtn"),

@@ -3,6 +3,7 @@ import { els, state } from "../core/state.mjs";
 import { readJson, removeStored, writeJson } from "../storage/storage.mjs";
 import { decodeFitWorkout } from "./fit-workout.mjs";
 import { decodeMyWhooshJson, decodeMyWhooshXml } from "./mywhoosh-workout.mjs";
+import { renderWorkoutChart } from "./workout-chart.mjs";
 import { previewWorkoutStep } from "./workout-preview.mjs";
 
 const WORKOUT_STORAGE_KEY = "gpx-rider:selected-workout";
@@ -76,6 +77,7 @@ export function renderWorkout() {
   els.workoutChipName.textContent = workout?.name ?? "";
   els.workoutChip.title = workout?.name ?? "";
   if (!workout) {
+    els.workoutChart.replaceChildren();
     els.workoutSteps.replaceChildren();
     return;
   }
@@ -84,6 +86,8 @@ export function renderWorkout() {
   els.workoutStepCount.textContent = `${workout.steps.length} ${workout.steps.length === 1 ? "step" : "steps"}`;
   const steps = workout.steps.map((step) => previewWorkoutStep(step, state.ftpWatts));
   els.workoutFtpWarning.hidden = Boolean(state.ftpWatts) || !steps.some((step) => step.needsFtp);
+
+  renderWorkoutChart(els.workoutChart, workout.steps, state.ftpWatts);
 
   const items = document.createDocumentFragment();
   steps.forEach((step, index) => {

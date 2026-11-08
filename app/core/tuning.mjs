@@ -241,6 +241,8 @@ export const DEFAULT_HUD_DOCK_COLLAPSED = req("display_hud", "dock_collapsed");
 // Training zones & calories
 export const DEFAULT_RESTING_HEART_RATE_BPM = req("training_zones", "resting_heart_rate_bpm");
 export const DEFAULT_MAX_HEART_RATE_BPM = req("training_zones", "max_heart_rate_bpm");
+export const POWER_ZONE_LIMITS = req("training_zones", "power_zone_limits");
+export const WORKOUT_PROFILE_STEP_LIMIT = req("training_zones", "workout_profile_step_limit");
 export const POWER_ZONE_DEFINITIONS = req("training_zones", "power_zone_definitions");
 export const HEART_RATE_ZONE_DEFINITIONS = req("training_zones", "heart_rate_zone_definitions");
 export const HEART_RATE_MAX_AGE_FORMULA_BASE = req("training_zones", "heart_rate_max_age_formula_base");

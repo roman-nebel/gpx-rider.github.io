@@ -22,6 +22,7 @@ import {
   GRADE_METER_MIN_PERCENT,
   HEART_RATE_ZONE_DEFINITIONS,
   POWER_ZONE_DEFINITIONS,
+  POWER_ZONE_LIMITS,
 } from "../core/tuning.mjs";
 
 // The zone meters stack in the left column, under the clock chip.
@@ -152,13 +153,8 @@ function calculateHeartRateZones(maxHr, restingHr = DEFAULT_RESTING_HEART_RATE_B
 
 function calculatePowerZones(ftp) {
   if (!Number.isFinite(ftp) || ftp <= 0) return null;
-  const boundary = (ratio) => Math.floor(ftp * ratio);
-  const z1Max = boundary(0.55);
-  const z2Max = boundary(0.75);
-  const z3Max = boundary(0.9);
-  const z4Max = boundary(1.05);
-  const z5Max = boundary(1.2);
-  const z6Max = boundary(1.5);
+  const [z1Max, z2Max, z3Max, z4Max, z5Max, z6Max] =
+    POWER_ZONE_LIMITS.map((ratio) => Math.floor(ftp * ratio));
   return [
     { min: 0, max: z1Max, label: `≤${z1Max}W` },
     { min: z1Max + 1, max: z2Max, label: `≤${z2Max}W` },

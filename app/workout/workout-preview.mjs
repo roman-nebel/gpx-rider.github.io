@@ -43,10 +43,14 @@ const REPEAT_CONDITIONS = {
   27: DURATION_TYPES[16],
 };
 
+export function decodeFitPower(value) {
+  return value <= 1000 ? { value, unit: "% FTP" } : { value: value - 1000, unit: "W" };
+}
+
 function decodeValue(value, unit, scale = 1) {
   if (!Number.isFinite(value)) return null;
   if (unit === "W") {
-    return value <= 1000 ? { value, unit: "% FTP" } : { value: value - 1000, unit };
+    return decodeFitPower(value);
   }
   if (unit === "bpm") {
     return value <= 100 ? { value, unit: "% max HR" } : { value: value - 100, unit };
