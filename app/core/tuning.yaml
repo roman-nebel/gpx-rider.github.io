@@ -798,8 +798,10 @@ training_zones:
   max_heart_rate_bpm: 180
   # Upper FTP fractions for power zones Z1 through Z6. Z7 has no ceiling.
   power_zone_limits: [0.55, 0.75, 0.9, 1.05, 1.2, 1.5]
-  # Maximum number of intervals the workout chart expands from FIT repeats.
+  # Maximum number of intervals drawn in the sidebar workout chart.
   workout_profile_step_limit: 2000
+  # Maximum number of rows displayed in the sidebar workout preview.
+  workout_preview_step_limit: 200
   power_zone_definitions:
     - { name: "Active Recovery", color: "#8b949e" }
     - { name: "Endurance", color: "#4f9bff" }

@@ -9,6 +9,10 @@ const BASE = HEIGHT - 1;
 
 export function renderWorkoutChart(container, steps, ftp) {
   const profile = buildWorkoutProfile(steps, ftp);
+  if (!profile) {
+    container.textContent = "This workout has too many steps to display a chart.";
+    return;
+  }
   const charts = profile.units.map((unit, index) => drawPlot(profile, unit, ftp, index));
   const axis = document.createElement("div");
   axis.className = "workout-chart-axis";

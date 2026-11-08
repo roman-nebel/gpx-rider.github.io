@@ -2,6 +2,7 @@
 import { WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 
 export function buildWorkoutProfile(steps, ftp) {
+  if (steps.length > WORKOUT_PROFILE_STEP_LIMIT) return null;
   const expanded = expandTimedSteps(steps);
   const timed = expanded !== null;
   const entries = expanded ?? steps;

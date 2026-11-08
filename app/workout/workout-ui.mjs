@@ -1,4 +1,5 @@
 // Handles the local workout file picker, selected workout, and its sidebar card.
+import { WORKOUT_PREVIEW_STEP_LIMIT, WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 import { els, state } from "../core/state.mjs";
 import { readJson, removeStored, writeJsonCommitted } from "../storage/storage.mjs";
 import { decodeFitWorkout } from "./fit-workout.mjs";
@@ -84,10 +85,16 @@ export function renderWorkout() {
   }
 
   els.workoutName.textContent = workout.name;
-  els.workoutStepCount.textContent = `${workout.steps.length} ${workout.steps.length === 1 ? "step" : "steps"}`;
-  const normalized = workout.steps.map(normalizeWorkoutStep);
-  const steps = normalized.map((step) => previewWorkoutStep(step, state.ftpWatts));
-  els.workoutFtpWarning.hidden = Boolean(state.ftpWatts) || !steps.some((step) => step.needsFtp);
+  const total = workout.steps.length;
+  const previewCount = Math.min(total, WORKOUT_PREVIEW_STEP_LIMIT);
+  els.workoutStepCount.textContent = previewCount < total
+    ? `${total} steps · Showing first ${previewCount}`
+    : `${total} ${total === 1 ? "step" : "steps"}`;
+  const normalizationLimit = Math.max(WORKOUT_PREVIEW_STEP_LIMIT, WORKOUT_PROFILE_STEP_LIMIT + 1);
+  const normalized = workout.steps.slice(0, normalizationLimit).map(normalizeWorkoutStep);
+  const steps = normalized.slice(0, previewCount).map((step) => previewWorkoutStep(step, state.ftpWatts));
+  els.workoutFtpWarning.hidden = Boolean(state.ftpWatts) ||
+    !normalized.some((step) => step.targets.some((target) => target.needsFtp));
 
   renderWorkoutChart(els.workoutChart, normalized, state.ftpWatts);
 

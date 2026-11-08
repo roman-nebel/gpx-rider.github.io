@@ -110,6 +110,7 @@ export function updateRiderProfileFromControls() {
     state.maxHeartRateBpm = Math.min(240, state.restingHeartRateBpm + 1);
   }
 
+  const previousFtp = state.ftpWatts;
   const ftpWatts = Number(els.ftpInput.value);
   state.ftpWatts = Number.isFinite(ftpWatts) && ftpWatts > 0 && ftpWatts <= 1000
     ? Math.round(ftpWatts)
@@ -117,7 +118,7 @@ export function updateRiderProfileFromControls() {
 
   syncRiderProfileControls();
   renderZoneSummaries();
-  renderWorkout();
+  if (state.ftpWatts !== previousFtp) renderWorkout();
   saveSettings();
   updateTrainingMeters(state.route.length ? gradeAt(state.route, state.progressMeters) : NaN);
 }

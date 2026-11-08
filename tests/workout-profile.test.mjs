@@ -1,4 +1,5 @@
 import { normalizeWorkoutStep } from "../app/workout/workout-step.mjs";
+import { WORKOUT_PROFILE_STEP_LIMIT } from "../app/core/tuning.mjs";
 import { previewWorkoutStep } from "../app/workout/workout-preview.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -42,4 +43,20 @@ test("a numbered FIT power zone requires FTP in both the list and chart", () => 
   assert.equal(previewWorkoutStep(step, null).needsFtp, true);
   assert.equal(previewWorkoutStep(step, 200).detail, "1 min · Power Zone 3");
   assert.equal(buildProfile([step], null).intervals[0].power.relative, true);
+});
+
+test("limits chart size for timed and open-ended source workouts", () => {
+  const step = normalizeWorkoutStep({ 1: 0, 2: 60000, 3: 2 });
+  const steps = Array(WORKOUT_PROFILE_STEP_LIMIT + 1).fill(step);
+  assert.equal(buildProfile(steps, 200), null);
+  steps[0] = normalizeWorkoutStep({ 1: 5, 3: 2 });
+  assert.equal(buildProfile(steps, 200), null);
+});
+
+test("keeps step order when repeat expansion exceeds the chart limit", () => {
+  const step = normalizeWorkoutStep({ 1: 0, 2: 60000, 3: 2 });
+  const repeat = normalizeWorkoutStep({ 1: 6, 2: 0, 4: WORKOUT_PROFILE_STEP_LIMIT + 1 });
+  const chart = buildProfile([step, repeat], 200);
+  assert.equal(chart.timed, false);
+  assert.equal(chart.intervals.length, 2);
 });
