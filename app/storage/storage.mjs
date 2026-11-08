@@ -87,6 +87,19 @@ export function writeJson(key, value) {
   }
 }
 
+// For user actions that need confirmation before updating the interface.
+export async function writeJsonCommitted(key, value) {
+  if (!db) return writeJson(key, value);
+  try {
+    await idbRequest((store) => store.put(value, key));
+    cache.set(key, value);
+    return true;
+  } catch (error) {
+    console.warn(`Could not persist ${key}.`, error);
+    return false;
+  }
+}
+
 export function removeStored(key) {
   if (db) {
     cache.delete(key);

@@ -1,6 +1,6 @@
 // Handles the local workout file picker, selected workout, and its sidebar card.
 import { els, state } from "../core/state.mjs";
-import { readJson, removeStored, writeJson } from "../storage/storage.mjs";
+import { readJson, removeStored, writeJsonCommitted } from "../storage/storage.mjs";
 import { decodeFitWorkout } from "./fit-workout.mjs";
 import { decodeMyWhooshJson, decodeMyWhooshXml } from "./mywhoosh-workout.mjs";
 import { renderWorkoutChart } from "./workout-chart.mjs";
@@ -25,10 +25,10 @@ export async function importWorkout(event) {
   try {
     const workout = await readWorkoutFile(file);
     workout.name ||= file.name.replace(/\.(fit|xml|json)$/i, "");
-    state.workout = workout;
-    if (!writeJson(WORKOUT_STORAGE_KEY, workout)) {
-      setWorkoutError("The workout was imported, but this browser could not save it.");
+    if (!await writeJsonCommitted(WORKOUT_STORAGE_KEY, workout)) {
+      throw new Error("This browser could not save the workout.");
     }
+    state.workout = workout;
     renderWorkout();
     els.workoutCard.scrollIntoView({ block: "nearest" });
   } catch (error) {
