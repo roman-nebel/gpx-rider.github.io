@@ -70,6 +70,7 @@ import {
 } from "./settings/settings-ui.mjs";
 import { els, state, updateProgressLabel } from "./core/state.mjs";
 import { initStorage } from "./storage/storage.mjs";
+import { clearWorkout, importWorkout, restoreWorkout } from "./workout/workout-ui.mjs";
 import { registerClimbBannerHud } from "./route/climbs-ui.mjs";
 import { initScreenManager } from "./hud/screen-manager.mjs";
 import {
@@ -136,6 +137,7 @@ async function startApp() {
   registerMinimapHud();
 
   restoreSettings();
+  restoreWorkout();
   restoreRideLog();
   state.powerCaloriesKcal = rideLogSummary().caloriesKcal ?? 0;
   updateRecordingUi();
@@ -187,6 +189,8 @@ function bindEvents() {
     }
   });
   els.gpxFile.addEventListener("change", loadGpxFile);
+  els.workoutFile.addEventListener("change", importWorkout);
+  els.clearWorkoutBtn.addEventListener("click", clearWorkout);
   els.speedInput.addEventListener("input", () => {
     updateSpeedOutput();
     saveRide();

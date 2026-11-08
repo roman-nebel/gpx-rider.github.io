@@ -90,10 +90,13 @@ export function writeJson(key, value) {
 export function removeStored(key) {
   if (db) {
     cache.delete(key);
-    idbRequest((store) => store.delete(key)).catch((error) => {
-      console.warn(`Could not remove ${key}.`, error);
-    });
-    return;
+    return idbRequest((store) => store.delete(key)).then(
+      () => true,
+      (error) => {
+        console.warn(`Could not remove ${key}.`, error);
+        return false;
+      },
+    );
   }
   localStorage.removeItem(key);
 }
