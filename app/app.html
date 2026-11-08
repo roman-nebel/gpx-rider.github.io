@@ -287,22 +287,6 @@
         </section>
 
         <aside class="control-pane">
-          <p id="workoutError" class="panel-card panel-card-hint workout-error" role="alert" hidden></p>
-          <section id="workoutCard" class="panel-card workout-card" aria-label="Workout" hidden>
-            <div class="panel-card-head">
-              <div class="workout-heading">
-                <span class="panel-card-title">Workout</span>
-                <strong id="workoutName"></strong>
-                <p id="workoutStepCount" class="panel-card-hint"></p>
-              </div>
-              <button id="clearWorkoutBtn" type="button" class="btn btn-ghost btn-sm" aria-label="Remove workout">Remove</button>
-            </div>
-            <p id="workoutFtpWarning" class="panel-card-hint workout-warning" role="status" hidden>
-              FTP is missing. Ride steps with a % FTP target at your own effort. Set FTP in the rider profile to see their power targets.
-            </p>
-            <div id="workoutChart" class="workout-chart"></div>
-            <ol id="workoutSteps" class="workout-steps"></ol>
-          </section>
           <div class="stat-grid stat-grid-4">
             <div class="stat-tile">
               <span class="stat-label">Distance</span>
@@ -322,6 +306,23 @@
               <span id="difficultyDetail" class="stat-detail"></span>
             </div>
           </div>
+
+          <p id="workoutError" class="panel-card panel-card-hint workout-error" role="alert" hidden></p>
+          <section id="workoutCard" class="panel-card workout-card" aria-label="Workout" hidden>
+            <div class="panel-card-head">
+              <div class="workout-heading">
+                <span class="panel-card-title">Workout</span>
+                <strong id="workoutName"></strong>
+                <p id="workoutStepCount" class="panel-card-hint"></p>
+              </div>
+              <button id="clearWorkoutBtn" type="button" class="btn btn-ghost btn-sm" aria-label="Remove workout">Remove</button>
+            </div>
+            <p id="workoutFtpWarning" class="panel-card-hint workout-warning" role="status" hidden>
+              FTP is missing. Ride steps with a % FTP target at your own effort. Set FTP in the rider profile to see their power targets.
+            </p>
+            <div id="workoutChart" class="workout-chart"></div>
+            <ol id="workoutSteps" class="workout-steps"></ol>
+          </section>
 
           <div class="panel-card">
             <div class="panel-card-head">
