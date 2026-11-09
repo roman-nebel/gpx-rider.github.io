@@ -67,8 +67,8 @@ export function updateTrainingMeters(grade) {
     max: powerScale.max,
     zones: powerZones,
     definitions: POWER_ZONE_DEFINITIONS,
-    text: Number.isFinite(power) ? `${Math.round(power)} W` : "--",
-    fallbackMeta: ftpWatts ? `FTP ${ftpWatts} W` : "Zones not set",
+    text: Number.isFinite(power) ? String(Math.round(power)) : "--",
+    fallbackMeta: ftpWatts ? `FTP ${ftpWatts}` : "Zones not set",
   });
 
   updateZoneMeter({
@@ -81,8 +81,8 @@ export function updateTrainingMeters(grade) {
     max: heartRateScale.max,
     zones: heartRateZones,
     definitions: HEART_RATE_ZONE_DEFINITIONS,
-    text: Number.isFinite(heartRate) ? `${Math.round(heartRate)} bpm` : "--",
-    fallbackMeta: `Max ${maxHeartRateBpm} bpm`,
+    text: Number.isFinite(heartRate) ? String(Math.round(heartRate)) : "--",
+    fallbackMeta: `Max ${maxHeartRateBpm}`,
   });
 
   const gradeZones = gradeMeterZones();
@@ -95,7 +95,7 @@ export function updateTrainingMeters(grade) {
     min: GRADE_METER_MIN_PERCENT,
     max: GRADE_METER_MAX_PERCENT,
     zones: gradeZones,
-    text: Number.isFinite(gradeValue) ? `${gradeValue.toFixed(1)}%` : "--",
+    text: Number.isFinite(gradeValue) ? gradeValue.toFixed(1) : "--",
     fallbackMeta: "Live road",
     zone: gradeZones.findIndex((zone) => zone.color === gradeColor(gradeValue)),
     color: Number.isFinite(gradeValue) ? gradeColor(gradeValue) : null,
@@ -111,7 +111,7 @@ export function updateTrainingMeters(grade) {
     min: CADENCE_METER_MIN_RPM,
     max: CADENCE_METER_MAX_RPM,
     zones: cadenceZones,
-    text: Number.isFinite(cadence) ? `${Math.round(cadence)} rpm` : "--",
+    text: Number.isFinite(cadence) ? String(Math.round(cadence)) : "--",
     fallbackMeta: "Cadence",
     zone: cadenceZones.findIndex((zone) => zone.color === cadenceColor(cadence)),
     color: Number.isFinite(cadence) ? cadenceColor(cadence) : null,
@@ -131,7 +131,7 @@ export function updateWorkoutMeterTargets(heartRateZones, heartRate) {
   const ramp = powerTarget?.ramp;
   els.zonePowerRamp.hidden = !ramp;
   if (ramp) {
-    const text = ramp.map((watts) => `${Math.round(watts)} W`).join(" → ");
+    const text = ramp.map(Math.round).join(" → ");
     if (els.zonePowerRamp.textContent !== text) els.zonePowerRamp.textContent = text;
   }
   updateMeterTarget(els.zonePowerTarget, els.zonePowerDeviation, state.trainerPowerWatts,
@@ -161,11 +161,11 @@ function updateMeterTarget(targetEl, deviationEl, value, target, tolerance) {
   if (!direction) return;
 
   deviationEl.hidden = false;
-  const arrow = direction === "below" ? "↓" : "↑";
+  const arrow = direction === "below" ? "↑" : "↓";
   if (deviationEl.textContent !== arrow) {
     deviationEl.textContent = arrow;
-    deviationEl.title = direction === "below" ? "Below target" : "Above target";
-    deviationEl.setAttribute("aria-label", `${direction === "below" ? "Below" : "Above"} target`);
+    deviationEl.title = direction === "below" ? "Increase to reach target" : "Decrease to reach target";
+    deviationEl.setAttribute("aria-label", deviationEl.title);
   }
 }
 

@@ -822,6 +822,7 @@ body {
 }
 
 .fs-zone-meter {
+  --zone-value-size: 20px;
   display: grid;
   gap: 6px;
   padding: 10px 12px;
@@ -840,9 +841,13 @@ body {
   color: var(--fs-label);
 }
 
+.fs-zone-unit {
+  text-transform: none;
+}
+
 .fs-zone-meter strong,
 .fs-zone-target {
-  font: 600 20px/1 var(--font-num);
+  font: 600 var(--zone-value-size)/1 var(--font-num);
 }
 
 .fs-zone-meter strong {
@@ -895,7 +900,7 @@ body {
 
 .fs-zone-deviation {
   flex: none;
-  font: 700 12px/1 var(--font-ui);
+  font: 700 var(--zone-value-size)/1 var(--font-ui);
   color: var(--accent);
 }
 
@@ -3286,12 +3291,8 @@ input[type="color"] {
   }
 
   .fs-zone-meter {
+    --zone-value-size: 16px;
     padding: 8px 9px;
-  }
-
-  .fs-zone-target,
-  .fs-zone-meter strong {
-    font-size: 16px;
   }
 
   /* The banner's desktop min-width (420px) overflows a phone; let it span the
