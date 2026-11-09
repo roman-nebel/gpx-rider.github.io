@@ -75,6 +75,7 @@ export const state = {
   minimapPaths: [],
   minimapMarker: null,
   trainerSpeedKph: null,
+  ergRoadSpeedKph: null, // Modeled map speed while pedaling in an ERG workout.
   trainerPowerWatts: null,
   trainerPowerSampleAt: null, // Timestamp of the most recent actual trainer power sample.
   trainerCadenceRpm: null,

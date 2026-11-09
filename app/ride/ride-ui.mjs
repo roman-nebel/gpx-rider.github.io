@@ -11,7 +11,7 @@ import { updateMapCamera } from "../camera/follow-camera.mjs";
 import { updateGalleryMetadataExport } from "../gallery-ui/gallery-export.mjs";
 import { clamp } from "../core/geo.mjs";
 import { updateFullscreenClock } from "../hud/map-hud.mjs";
-import { isMoving } from "./movement.mjs";
+import { currentRideSpeedKph, isMoving } from "./movement.mjs";
 import { renderProfile } from "../route/profile-ui.mjs";
 import { updateRecordingUi } from "./recording-ui.mjs";
 import {
@@ -30,7 +30,7 @@ import {
   updateRiderDot,
 } from "../map/route-render.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
-import { currentCaloriesKcal, currentRideTimerSeconds } from "./telemetry-ui.mjs";
+import { currentCaloriesKcal, currentRideTimerSeconds, updateRideSpeedUi } from "./telemetry-ui.mjs";
 import { updateWorkoutHud } from "../workout/workout-hud.mjs";
 import { queueTrainerGradeSample } from "../trainer/trainer.mjs";
 import { updateTrainingMeters } from "./training-zones.mjs";
@@ -62,6 +62,7 @@ export function updateRideUi(options = {}) {
   if (!options.force && isMoving() && now - state.lastSlowUiAt < SLOW_UI_INTERVAL_MS) return;
   state.lastSlowUiAt = now;
   updateWorkoutHud();
+  updateRideSpeedUi();
 
   const totalDistance = routeTotalDistance(state.route);
   const grade = gradeAt(state.route, state.progressMeters);
@@ -159,14 +160,15 @@ function currentEtaSeconds(totalDistance, totalAscent, totalDescent) {
     return remainingMeters / (Number(els.speedInput.value) / 3.6);
   }
 
+  const speed = currentRideSpeedKph();
   return estimateRemainingSeconds(state.rideEstimator, {
     remainingMeters,
     remainingAscentMeters: Math.max(0, totalAscent - ascentAt(state.route, state.progressMeters)),
     remainingDescentMeters: Math.max(0, totalDescent - descentAt(state.route, state.progressMeters)),
-    // Before enough pedaling history exists: project the trainer speed while
+    // Before enough pedaling history exists: project the current road speed while
     // pedaling, otherwise preview at the simulation slider speed.
-    fallbackSpeedKph: state.pedaling && Number.isFinite(state.trainerSpeedKph)
-      ? state.trainerSpeedKph
+    fallbackSpeedKph: state.pedaling && Number.isFinite(speed)
+      ? speed
       : Number(els.speedInput.value),
   });
 }

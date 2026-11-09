@@ -1,6 +1,7 @@
 // Runs the selected timed workout and hands power targets to the trainer's ERG controller.
 import { els, state } from "../core/state.mjs";
 import { WORKOUT_ERG_POWER_TIMEOUT_MS, WORKOUT_ERG_UPDATE_MS } from "../core/tuning.mjs";
+import { updateRideSpeedUi } from "../ride/telemetry-ui.mjs";
 import { gradeAt } from "../route/route.mjs";
 import {
   queueTrainerTargetPower,
@@ -36,6 +37,7 @@ export function toggleWorkoutErg() {
     return;
   }
 
+  state.ergRoadSpeedKph = null;
   state.workoutErg = { steps, index: 0, elapsed: 0, nextWriteAt: 0 };
   setErgStatus("Ready. Start pedaling to begin the workout.");
   updateWorkoutHud();
@@ -44,6 +46,8 @@ export function toggleWorkoutErg() {
 export function stopWorkoutErg(message = ERG_HINT) {
   if (state.workoutErg) releaseTrainerTargetPower(currentGrade());
   state.workoutErg = null;
+  state.ergRoadSpeedKph = null;
+  updateRideSpeedUi();
   els.workoutErgInput.checked = false;
   setErgStatus(message);
   updateWorkoutHud();

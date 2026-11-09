@@ -10,6 +10,7 @@
 import { closeOverviewModeMenu, syncOverviewControls } from "../camera/camera-ui.mjs";
 import { syncFocusedClimbList } from "../route/climbs-ui.mjs";
 import { advanceDemoTelemetry, stopDemoMode, syncDemoModeUi } from "../demo/demo-mode.mjs";
+import { cyclingSpeedForPower } from "./cycling-speed.mjs";
 import { recordEstimatorTick } from "./eta.mjs";
 import { ensureCameraFlightLoop } from "../camera/follow-camera.mjs";
 import { clamp } from "../core/geo.mjs";
@@ -34,7 +35,7 @@ import {
 } from "../route/route.mjs";
 import { rebuildRouteStyle } from "../map/route-render.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
-import { currentCaloriesKcal, currentHeartRate } from "./telemetry-ui.mjs";
+import { currentCaloriesKcal, currentHeartRate, updateRideSpeedUi } from "./telemetry-ui.mjs";
 import {
   OP_START_OR_RESUME,
   OP_STOP_OR_PAUSE,
@@ -43,6 +44,8 @@ import {
 } from "../trainer/trainer.mjs";
 import {
   CYCLING_GROSS_EFFICIENCY,
+  ERG_ROAD_SPEED,
+  WORKOUT_ERG_POWER_TIMEOUT_MS,
   MAX_TICK_SECONDS,
   PEDALING_START_KPH,
   PEDALING_STOP_KPH,
@@ -107,7 +110,9 @@ export function setPedaling(pedaling) {
     }
     ensureMovementLoop();
   } else {
+    state.ergRoadSpeedKph = null;
     pauseWorkoutErg();
+    updateRideSpeedUi();
     if (!state.simulating) handleMovementStopped();
   }
   syncDemoModeUi();
@@ -214,9 +219,10 @@ function tick(now) {
   state.lastTick = now;
   const currentGrade = gradeAt(state.route, state.progressMeters);
   if (state.demoModeActive) advanceDemoTelemetry(elapsedSeconds, currentGrade, 0, { recordHistory: false });
-  const speedKph = state.pedaling && Number.isFinite(state.trainerSpeedKph)
-    ? state.trainerSpeedKph
-    : Number(els.speedInput.value);
+  updateErgRoadSpeed(now, elapsedSeconds, currentGrade);
+  const rideSpeed = currentRideSpeedKph();
+  const speedKph = state.pedaling && Number.isFinite(rideSpeed)
+    ? rideSpeed : Number(els.speedInput.value);
   const metersPerSecond = speedKph / 3.6;
   const totalDistance = routeTotalDistance(state.route);
 
@@ -243,6 +249,8 @@ function tick(now) {
       state.trainerPowerWatts,
       elapsedSeconds,
       CYCLING_GROSS_EFFICIENCY,
+  ERG_ROAD_SPEED,
+  WORKOUT_ERG_POWER_TIMEOUT_MS,
     );
   }
 
@@ -287,11 +295,34 @@ function tick(now) {
   scheduleTick();
 }
 
+export function currentRideSpeedKph() {
+  if (state.workoutErg && state.pedaling && !state.demoModeActive) return state.ergRoadSpeedKph ?? 0;
+  return state.trainerSpeedKph;
+}
+
+function updateErgRoadSpeed(now, elapsedSeconds, grade) {
+  if (!state.workoutErg || !state.pedaling || state.demoModeActive) {
+    state.ergRoadSpeedKph = null;
+    return;
+  }
+  const sampleAt = state.trainerPowerSampleAt;
+  const power = state.trainerPowerWatts;
+  if (sampleAt === null || now - sampleAt > WORKOUT_ERG_POWER_TIMEOUT_MS || !Number.isFinite(power)) {
+    state.ergRoadSpeedKph = null;
+    return;
+  }
+  const target = cyclingSpeedForPower(power, grade, ERG_ROAD_SPEED);
+  const previous = state.ergRoadSpeedKph ?? target;
+  const weight = 1 - Math.exp(-elapsedSeconds / ERG_ROAD_SPEED.speed_smoothing_tau_seconds);
+  state.ergRoadSpeedKph = previous + (target - previous) * weight;
+}
+
 // Jump the rider to a distance along the route (profile click, climb click).
 export function seekToMeters(meters) {
   if (!state.route.length) return;
   const wasMoving = isMoving();
   state.progressMeters = clamp(meters, 0, routeTotalDistance(state.route));
+  state.ergRoadSpeedKph = null;
   state.lastTick = performance.now();
   // A teleport while parked in the rider camera (clicking the elevation
   // profile) flies the transition arc from the old camera pose to the new

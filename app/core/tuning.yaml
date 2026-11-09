@@ -1110,6 +1110,23 @@ demo_ride:
   low_effort_return_delay_seconds: 120
   heart_rate_noise_bpm: 1
 
+# --- Virtual road speed during ERG -------------------------------------------
+erg_road_speed:
+  # Assumed rider and bike masses when converting measured power into road speed.
+  rider_weight_kg: 85
+  bike_weight_kg: 10
+  # Road tire rolling resistance and upright riding drag area.
+  rolling_resistance_coefficient: 0.005
+  drag_area_square_meters: 0.48
+  # Air density at sea level and fraction of pedal power reaching the wheel.
+  air_density_kg_per_cubic_meter: 1.225
+  drivetrain_efficiency: 0.96
+  # Allow a rider to stall uphill and limit modeled speeds on steep descents.
+  min_speed_kph: 0
+  max_speed_kph: 72
+  # Smooth changes in measured effort and route grade over several seconds.
+  speed_smoothing_tau_seconds: 3
+
 # --- Ride recording ----------------------------------------------------------
 #
 # While moving, a track sample is appended roughly every sample_interval and
