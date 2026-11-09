@@ -1577,6 +1577,20 @@ body {
   stroke: var(--line);
 }
 
+.workout-chart-ftp {
+  stroke: var(--faint);
+  stroke-opacity: 0.65;
+  stroke-dasharray: 4 3;
+}
+
+.workout-chart-ftp-label {
+  fill: var(--muted);
+  opacity: 0.8;
+  stroke: var(--bg);
+  stroke-width: 2px;
+  paint-order: stroke;
+}
+
 .workout-chart-open {
   fill: var(--line);
   stroke: var(--faint);

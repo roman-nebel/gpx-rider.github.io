@@ -1,5 +1,5 @@
 // Draws the workout's power profile in the sidebar.
-import { POWER_ZONE_DEFINITIONS, POWER_ZONE_LIMITS } from "../core/tuning.mjs";
+import { POWER_ZONE_DEFINITIONS, POWER_ZONE_LIMITS, WORKOUT_PROFILE_FTP_CEILING } from "../core/tuning.mjs";
 import { buildWorkoutProfile } from "./workout-profile.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -31,9 +31,10 @@ function drawPlot(profile, unit, ftp, index) {
     viewBox: `0 0 ${WIDTH} ${HEIGHT}`, role: "img",
     "aria-label": unit ? `Workout power profile in ${unit}` : "Workout steps without a power target",
   });
+  const scale = unit === "% FTP" ? 100 : unit === "W" ? ftp : null;
+  const defaultMaxPower = scale ? scale * WORKOUT_PROFILE_FTP_CEILING : 1;
   const maxPower = profile.intervals.reduce((max, { power }) =>
-    power?.unit === unit && unit ? Math.max(max, power.start, power.end) : max, 1);
-  const scale = unit === "% FTP" ? 100 : ftp;
+    power?.unit === unit && unit ? Math.max(max, power.start, power.end) : max, defaultMaxPower);
   const y = (power) => BASE - power / maxPower * (BASE - 6);
   const gradientId = `workout-zone-fill-${index}`;
   const maskId = `workout-hatch-mask-${index}`;
@@ -77,12 +78,27 @@ function drawPlot(profile, unit, ftp, index) {
     }
   }
 
+  if (scale) {
+    const level = y(scale);
+    svg.append(svgElement("path", { d: `M0 ${level}H${WIDTH}`, class: "workout-chart-ftp" }));
+    const reference = svgElement("text", {
+      x: WIDTH - 3, y: level - 3, "text-anchor": "end", class: "workout-chart-ftp-label",
+    });
+    reference.textContent = "FTP";
+    const value = svgElement("text", {
+      x: 3, y: level - 3, class: "workout-chart-ftp-label",
+    });
+    value.textContent = unit === "% FTP" ? "100%" : `${scale} W`;
+    svg.append(value, reference);
+  }
+
   const plot = document.createElement("div");
   plot.className = "workout-chart-plot";
   if (unit) {
     const label = document.createElement("span");
     label.className = "workout-chart-unit";
-    label.textContent = unit;
+    const ceiling = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(maxPower);
+    label.textContent = unit === "% FTP" ? `${ceiling}%` : `${ceiling} W`;
     plot.append(label);
   }
   plot.append(svg);
