@@ -12,8 +12,11 @@ export function registerWorkoutHud() {
 export function syncWorkoutHud(steps, total) {
   const profile = total === steps.length && total > 0 ? buildWorkoutProfile(steps, state.ftpWatts) : null;
   const intervals = profile?.intervals ?? (total ? buildWorkoutProfile(steps.slice(0, 1), state.ftpWatts).intervals : []);
-  const backgrounds = intervals.map(({ power }) => zoneBackground(power));
-  state.workoutHudPreview = total ? { step: steps[0], profile, backgrounds } : null;
+  const fills = intervals.map(({ power }) => ({
+    background: zoneBackground(power),
+    hatched: Boolean(power?.relative && !state.ftpWatts),
+  }));
+  state.workoutHudPreview = total ? { step: steps[0], profile, fills } : null;
   els.workoutHud.hidden = !total;
   els.workoutHudTrack.hidden = !profile;
 
@@ -21,10 +24,10 @@ export function syncWorkoutHud(steps, total) {
   if (profile) {
     for (const [index, interval] of profile.intervals.entries()) {
       const segment = document.createElement("span");
-      const power = interval.power;
-      segment.style.setProperty("--workout-segment-background", backgrounds[index]);
+      const { background, hatched } = fills[index];
+      segment.style.setProperty("--workout-segment-background", background);
       segment.style.flexGrow = interval.end - interval.start;
-      segment.classList.toggle("workout-timeline-hatched", Boolean(power?.relative && !state.ftpWatts));
+      segment.classList.toggle("workout-power-hatched", hatched);
       segments.append(segment);
     }
   }
@@ -53,13 +56,15 @@ export function updateWorkoutHud() {
   els.workoutHudRemaining.hidden = !timedStep;
   if (timedStep) {
     const progress = els.workoutHudStepProgress;
-    const background = state.workoutHudPreview?.backgrounds[index] ?? "var(--faint)";
+    const fill = state.workoutHudPreview?.fills[index];
+    const background = fill?.background ?? "var(--faint)";
     if (track.style.getPropertyValue("--workout-step-background") !== background) {
       track.style.setProperty("--workout-step-background", background);
     }
+    track.classList.toggle("workout-power-hatched", Boolean(fill?.hatched));
     progress.value = elapsed / duration;
     track.style.setProperty("--workout-step-elapsed", `${progress.position * 100}%`);
-    setText(els.workoutHudRemaining, `${formatDuration(Math.ceil(Math.max(0, duration - elapsed)))} left`);
+    setText(els.workoutHudRemaining, formatDuration(Math.ceil(Math.max(0, duration - elapsed))));
   }
 
   const profile = state.workoutHudPreview?.profile;

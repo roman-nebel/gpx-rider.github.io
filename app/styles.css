@@ -1497,8 +1497,9 @@ body {
   clip-path: inset(0 var(--workout-segment-gap) 0 var(--workout-segment-elapsed) round 5px 0 0 5px);
 }
 
-.workout-timeline-segments > .workout-timeline-hatched::before,
-.workout-timeline-segments > .workout-timeline-hatched.workout-timeline-active::after {
+.workout-step-track.workout-power-hatched::before,
+.workout-timeline-segments > .workout-power-hatched::before,
+.workout-timeline-segments > .workout-power-hatched.workout-timeline-active::after {
   mask-image: repeating-linear-gradient(125deg, transparent 0 2px, black 2px 3px);
 }
 

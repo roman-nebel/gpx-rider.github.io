@@ -47,7 +47,8 @@ function powerZone(power, scale) {
 
 // Split each ramp at the elapsed fraction where its target crosses a zone.
 export function workoutZoneBands(power, ftp) {
-  if (!power?.unit) return [{ start: 0, end: 1, color: "var(--faint)" }];
+  if (!power) return [{ start: 0, end: 1, color: "var(--ink)" }];
+  if (!power.unit) return [{ start: 0, end: 1, color: "var(--faint)" }];
   const scale = power.unit === "% FTP" ? 100 : ftp;
   const change = power.end - power.start;
   const crossings = scale && change

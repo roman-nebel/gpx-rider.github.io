@@ -52,8 +52,12 @@ function drawPlot(profile, unit, ftp, index) {
     const right = left + width - Math.min(3.5, width * 0.25);
     if (!power || !power.unit) {
       const d = intervalShape(left, right, BASE - 7, BASE - 7);
-      svg.append(svgElement("path", { d, class: "workout-chart-open" }));
-      if (power) svg.append(svgElement("path", { d, fill: "var(--muted)", mask: `url(#${maskId})` }));
+      if (power) {
+        svg.append(svgElement("path", { d, class: "workout-chart-open" }));
+        svg.append(svgElement("path", { d, fill: "var(--muted)", mask: `url(#${maskId})` }));
+      } else {
+        svg.append(svgElement("path", { d, fill: workoutZoneBands(power, ftp)[0].color }));
+      }
       continue;
     }
     if (power.unit !== unit) continue;
