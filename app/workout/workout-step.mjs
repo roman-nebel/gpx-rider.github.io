@@ -163,15 +163,15 @@ export function workoutMeterTarget(step, unit, { ftp, maxHeartRate, heartRateZon
     return { min: zone.min, max: zone.max ?? maxHeartRate };
   }
   if (!target.bounds.length) return null;
-  if (target.ramp) {
-    const value = workoutTargetWatts(step, ftp, elapsed);
-    return { min: value, max: value };
-  }
   const values = target.bounds.map((bound) => {
     if (bound.unit === "% FTP") return bound.value * ftp / 100;
     if (bound.unit === "% max HR") return bound.value * maxHeartRate / 100;
     return bound.value;
   });
   if (!values.every(Number.isFinite)) return null;
+  if (target.ramp) {
+    const value = workoutTargetWatts(step, ftp, elapsed);
+    return { min: value, max: value, ramp: values };
+  }
   return { min: Math.min(...values), max: Math.max(...values) };
 }

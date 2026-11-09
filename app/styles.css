@@ -840,9 +840,36 @@ body {
   color: var(--fs-label);
 }
 
-.fs-zone-meter strong {
+.fs-zone-meter strong,
+.fs-zone-target {
   font: 600 20px/1 var(--font-num);
+}
+
+.fs-zone-meter strong {
   color: #fff;
+}
+
+.fs-zone-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.fs-zone-meta-row > .fs-zone-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-zone-ramp {
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 9px/1 var(--font-mono);
+  color: var(--muted);
 }
 
 .fs-zone-readings {
@@ -863,7 +890,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 600 12px/1 var(--font-num);
   color: var(--muted);
 }
 
@@ -1429,12 +1455,15 @@ body {
 
 .workout-timeline {
   position: relative;
+  overflow: visible;
   background: transparent;
 }
 
 .workout-timeline-segments {
   display: flex;
   height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 .workout-timeline-segments > span {
@@ -1446,15 +1475,6 @@ body {
 
 .workout-timeline-segments > .workout-timeline-hatched {
   background: repeating-linear-gradient(125deg, transparent 0 2px, var(--workout-segment-color) 2px 3px);
-}
-
-.workout-timeline-cursor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  transform: translateX(-50%);
-  background: white;
 }
 
 .fs-bar-fill {
@@ -3269,10 +3289,7 @@ input[type="color"] {
     padding: 8px 9px;
   }
 
-  .fs-zone-target {
-    font-size: 11px;
-  }
-
+  .fs-zone-target,
   .fs-zone-meter strong {
     font-size: 16px;
   }

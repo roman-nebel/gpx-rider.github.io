@@ -79,3 +79,10 @@ test("workout HUD resolves heart-rate percentages and preserves target ranges", 
   assert.deepEqual(workoutMeterTarget(step, "rpm", context), { min: 85, max: 95 });
   assert.equal(workoutMeterTarget(step, "W", context), null);
 });
+
+test("a ramp meter keeps the ordered endpoints alongside its live target", () => {
+  const step = normalizeWorkoutStep({ durationSeconds: 60, power: [0.8, 0.6] });
+  assert.deepEqual(workoutMeterTarget(step, "W", { ftp: 250, elapsed: 30 }),
+    { min: 175, max: 175, ramp: [200, 150] });
+  assert.equal(workoutMeterTarget(step, "W", { ftp: null, elapsed: 30 }), null);
+});

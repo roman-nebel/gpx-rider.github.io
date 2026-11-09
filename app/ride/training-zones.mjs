@@ -127,8 +127,15 @@ export function updateWorkoutMeterTargets(heartRateZones, heartRate) {
     heartRateZones: step && (heartRateZones ?? currentHeartRateZones()),
     elapsed: state.workoutErg?.elapsed ?? 0,
   };
+  const powerTarget = workoutMeterTarget(step, "W", context);
+  const ramp = powerTarget?.ramp;
+  els.zonePowerRamp.hidden = !ramp;
+  if (ramp) {
+    const text = ramp.map((watts) => `${Math.round(watts)} W`).join(" → ");
+    if (els.zonePowerRamp.textContent !== text) els.zonePowerRamp.textContent = text;
+  }
   updateMeterTarget(els.zonePowerTarget, els.zonePowerDeviation, state.trainerPowerWatts,
-    workoutMeterTarget(step, "W", context), WORKOUT_HUD_TARGET_TOLERANCE.power);
+    powerTarget, WORKOUT_HUD_TARGET_TOLERANCE.power);
   updateMeterTarget(els.zoneCadenceTarget, els.zoneCadenceDeviation, state.trainerCadenceRpm,
     workoutMeterTarget(step, "rpm", context), WORKOUT_HUD_TARGET_TOLERANCE.cadence);
   updateMeterTarget(els.zoneHeartRateTarget, els.zoneHeartRateDeviation, heartRate ?? currentHeartRate(),

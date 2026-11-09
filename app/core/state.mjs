@@ -405,6 +405,7 @@ export const els = {
   workoutHudStepProgress: document.querySelector("#workoutHudStepProgress"),
   workoutHudRemaining: document.querySelector("#workoutHudRemaining"),
   zonePowerDeviation: document.querySelector("#zonePowerDeviation"),
+  zonePowerRamp: document.querySelector("#zonePowerRamp"),
   zonePowerTarget: document.querySelector("#zonePowerTarget"),
   zoneHeartRateDeviation: document.querySelector("#zoneHeartRateDeviation"),
   zoneHeartRateTarget: document.querySelector("#zoneHeartRateTarget"),
