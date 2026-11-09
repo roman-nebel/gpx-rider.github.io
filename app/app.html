@@ -143,13 +143,21 @@
             <div id="fullscreenTrainingMeters" class="fs-training-meters" hidden aria-live="polite">
               <div id="powerMeter" class="fs-zone-meter" data-zone-meter="power">
                 <span class="fs-zone-label">Power</span>
-                <strong id="zonePowerValue">--</strong>
+                <div class="fs-zone-readings">
+                  <strong id="zonePowerValue">--</strong>
+                  <span id="zonePowerDeviation" class="fs-zone-deviation" hidden></span>
+                  <span id="zonePowerTarget" class="fs-zone-target" hidden></span>
+                </div>
                 <span id="zonePowerMeta" class="fs-zone-meta">FTP --</span>
                 <div class="fs-zone-track"><div id="zonePowerFill" class="fs-zone-fill"></div></div>
               </div>
               <div id="heartRateMeter" class="fs-zone-meter" data-zone-meter="heartRate">
                 <span class="fs-zone-label">Heart rate</span>
-                <strong id="zoneHeartRateValue">--</strong>
+                <div class="fs-zone-readings">
+                  <strong id="zoneHeartRateValue">--</strong>
+                  <span id="zoneHeartRateDeviation" class="fs-zone-deviation" hidden></span>
+                  <span id="zoneHeartRateTarget" class="fs-zone-target" hidden></span>
+                </div>
                 <span id="zoneHeartRateMeta" class="fs-zone-meta">Max --</span>
                 <div class="fs-zone-track"><div id="zoneHeartRateFill" class="fs-zone-fill"></div></div>
               </div>
@@ -161,7 +169,11 @@
               </div>
               <div id="cadenceMeter" class="fs-zone-meter" data-zone-meter="cadence">
                 <span class="fs-zone-label">Cadence</span>
-                <strong id="zoneCadenceValue">--</strong>
+                <div class="fs-zone-readings">
+                  <strong id="zoneCadenceValue">--</strong>
+                  <span id="zoneCadenceDeviation" class="fs-zone-deviation" hidden></span>
+                  <span id="zoneCadenceTarget" class="fs-zone-target" hidden></span>
+                </div>
                 <span id="zoneCadenceMeta" class="fs-zone-meta">Cadence</span>
                 <div class="fs-zone-track"><div id="zoneCadenceFill" class="fs-zone-fill"></div></div>
               </div>
@@ -223,6 +235,12 @@
               </div>
             </div>
 
+            <section id="workoutHud" class="fs-clock workout-step-chip" aria-label="Current workout step" hidden>
+              <strong id="workoutHudCurrent"></strong>
+              <progress id="workoutHudStepProgress" max="1" value="0" aria-label="Current step progress"></progress>
+              <span id="workoutHudRemaining" class="fs-clock-elapsed"></span>
+            </section>
+
             <!-- bottom data dock: metric tiles + the road-ahead profile -->
             <div id="fullscreenOverlayBottom" class="fs-dock" hidden>
               <div class="fs-dock-top-tools">
@@ -278,6 +296,16 @@
                     <div class="fs-bar">
                       <div class="fs-bar-head"><span>CLIMBING</span><span id="fsClimbLabel" class="fs-bar-value fs-bar-value-accent">--</span></div>
                       <div class="fs-bar-track"><div id="fsClimbFill" class="fs-bar-fill fs-bar-fill-amber"></div></div>
+                    </div>
+                    <div id="workoutHudTrack" class="fs-bar workout-hud-track" hidden>
+                      <div class="fs-bar-head">
+                        <span>Workout</span>
+                        <span id="workoutHudTime" class="fs-bar-value"></span>
+                      </div>
+                      <div class="fs-bar-track workout-timeline">
+                        <div id="workoutHudChart" class="workout-timeline-segments"></div>
+                        <span id="workoutHudCursor" class="workout-timeline-cursor" aria-hidden="true" hidden></span>
+                      </div>
                     </div>
                   </div>
                 </div>

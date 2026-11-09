@@ -186,6 +186,7 @@ export const state = {
   maxHeartRateBpm: DEFAULT_MAX_HEART_RATE_BPM,
   ftpWatts: null,
   workoutErg: null, // Active, explicitly enabled ERG session for the selected workout.
+  workoutHudPreview: null, // Workout timeline and the first step for preview.
   workout: null, // Selected workout, independent of route and ride recording.
   draggedHudField: null,
   fullscreenClockTimer: null,
@@ -394,6 +395,20 @@ export const els = {
   fsClockElapsed: document.querySelector("#fsClockElapsed"),
   fsClockDistance: document.querySelector("#fsClockDistance"),
   fsClockAscent: document.querySelector("#fsClockAscent"),
+  workoutHud: document.querySelector("#workoutHud"),
+  workoutHudChart: document.querySelector("#workoutHudChart"),
+  workoutHudTrack: document.querySelector("#workoutHudTrack"),
+  workoutHudTime: document.querySelector("#workoutHudTime"),
+  workoutHudCursor: document.querySelector("#workoutHudCursor"),
+  workoutHudCurrent: document.querySelector("#workoutHudCurrent"),
+  workoutHudStepProgress: document.querySelector("#workoutHudStepProgress"),
+  workoutHudRemaining: document.querySelector("#workoutHudRemaining"),
+  zonePowerDeviation: document.querySelector("#zonePowerDeviation"),
+  zonePowerTarget: document.querySelector("#zonePowerTarget"),
+  zoneHeartRateDeviation: document.querySelector("#zoneHeartRateDeviation"),
+  zoneHeartRateTarget: document.querySelector("#zoneHeartRateTarget"),
+  zoneCadenceDeviation: document.querySelector("#zoneCadenceDeviation"),
+  zoneCadenceTarget: document.querySelector("#zoneCadenceTarget"),
   fullscreenTrainingMeters: document.querySelector("#fullscreenTrainingMeters"),
   powerMeter: document.querySelector("#powerMeter"),
   heartRateMeter: document.querySelector("#heartRateMeter"),

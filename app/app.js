@@ -70,6 +70,7 @@ import {
 } from "./settings/settings-ui.mjs";
 import { els, state, updateProgressLabel } from "./core/state.mjs";
 import { initStorage } from "./storage/storage.mjs";
+import { registerWorkoutHud } from "./workout/workout-hud.mjs";
 import { handleWorkoutErgRejection, toggleWorkoutErg } from "./workout/workout-erg.mjs";
 import { clearWorkout, importWorkout, restoreWorkout } from "./workout/workout-ui.mjs";
 import { registerClimbBannerHud } from "./route/climbs-ui.mjs";
@@ -133,6 +134,7 @@ async function startApp() {
   initScreenManager(els.mapViewport);
   initTheaterModeUi();
   registerClimbBannerHud();
+  registerWorkoutHud();
   registerDemoBannerHud();
   registerTrainingMetersHud();
   registerCameraDebugHud();

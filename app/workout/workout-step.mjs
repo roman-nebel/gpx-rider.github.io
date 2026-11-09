@@ -66,7 +66,7 @@ export function normalizeWorkoutStep(step) {
       label: "Power", power: true, needsFtp: true, ramp: step.power.length === 2 && step.power[0] !== step.power[1],
       bounds: step.power.map((fraction) => ({ value: fraction * 100, unit: "% FTP" })),
     }] : [{ label: "Free ride", bounds: [] }];
-    if (step.cadenceRpm) targets.push({ label: "Cadence", bounds: [{ value: step.cadenceRpm, unit: "rpm" }] });
+    if (step.cadenceRpm) targets.push({ label: "Cadence", unit: "rpm", bounds: [{ value: step.cadenceRpm, unit: "rpm" }] });
     return {
       name: step.name, durationSeconds: step.durationSeconds,
       duration: { value: { value: step.durationSeconds, unit: "s" } }, targets,
@@ -111,13 +111,13 @@ function fitTarget(type, zone, low, high) {
     const midpoint = ceiling === undefined ? floor : (floor + ceiling) / 2;
     return {
       label: `${label} ${type === 11 ? zone : `Zone ${zone}`}`,
-      power, needsFtp: knownPowerZone, zone: knownPowerZone ? index : undefined,
+      power, unit, zoneNumber: zone, needsFtp: knownPowerZone, zone: knownPowerZone ? index : undefined,
       bounds: knownPowerZone ? [{ value: midpoint * 100, unit: "% FTP" }] : [],
     };
   }
 
   const bounds = [low, high].map((value) => decodeValue(value, unit, scale)).filter(Boolean);
-  return { label, bounds, power, needsFtp: bounds.some(({ unit }) => unit === "% FTP"), showLabel: !unit || type >= 7 };
+  return { label, bounds, power, unit, needsFtp: bounds.some(({ unit }) => unit === "% FTP"), showLabel: !unit || type >= 7 };
 }
 
 export function expandTimedWorkoutSteps(steps) {
@@ -149,4 +149,29 @@ export function workoutTargetWatts(step, ftp, elapsed) {
     return values[0] + (values[1] - values[0]) * progress;
   }
   return (Math.min(...values) + Math.max(...values)) / 2;
+}
+
+// Resolves the target band for one HUD meter without changing the workout data.
+export function workoutMeterTarget(step, unit, { ftp, maxHeartRate, heartRateZones, elapsed }) {
+  const target = step?.targets.find((entry) =>
+    (entry.unit === unit || (unit === "W" && entry.power)) &&
+    (entry.bounds.length || (unit === "bpm" && entry.zoneNumber)));
+  if (!target || (target.needsFtp && !ftp)) return null;
+  if (unit === "bpm" && target.zoneNumber) {
+    const zone = heartRateZones?.[target.zoneNumber - 1];
+    if (!zone) return null;
+    return { min: zone.min, max: zone.max ?? maxHeartRate };
+  }
+  if (!target.bounds.length) return null;
+  if (target.ramp) {
+    const value = workoutTargetWatts(step, ftp, elapsed);
+    return { min: value, max: value };
+  }
+  const values = target.bounds.map((bound) => {
+    if (bound.unit === "% FTP") return bound.value * ftp / 100;
+    if (bound.unit === "% max HR") return bound.value * maxHeartRate / 100;
+    return bound.value;
+  });
+  if (!values.every(Number.isFinite)) return null;
+  return { min: Math.min(...values), max: Math.max(...values) };
 }

@@ -4,6 +4,7 @@ import { els, state } from "../core/state.mjs";
 import { readJson, removeStored, writeJsonCommitted } from "../storage/storage.mjs";
 import { decodeFitWorkout } from "./fit-workout.mjs";
 import { decodeMyWhooshJson, decodeMyWhooshXml } from "./mywhoosh-workout.mjs";
+import { syncWorkoutHud } from "./workout-hud.mjs";
 import { stopWorkoutErg } from "./workout-erg.mjs";
 import { renderWorkoutChart } from "./workout-chart.mjs";
 import { normalizeWorkoutStep } from "./workout-step.mjs";
@@ -82,6 +83,7 @@ export function renderWorkout() {
   els.workoutChipName.textContent = workout?.name ?? "";
   els.workoutChip.title = workout?.name ?? "";
   if (!workout) {
+    syncWorkoutHud([], 0);
     els.workoutChart.replaceChildren();
     els.workoutSteps.replaceChildren();
     return;
@@ -100,6 +102,7 @@ export function renderWorkout() {
     !normalized.some((step) => step.targets.some((target) => target.needsFtp));
 
   renderWorkoutChart(els.workoutChart, normalized, state.ftpWatts);
+  syncWorkoutHud(normalized, total);
 
   const items = document.createDocumentFragment();
   steps.forEach((step, index) => {

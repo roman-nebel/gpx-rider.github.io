@@ -31,6 +31,7 @@ import {
 } from "../map/route-render.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
 import { currentCaloriesKcal, currentRideTimerSeconds } from "./telemetry-ui.mjs";
+import { updateWorkoutHud } from "../workout/workout-hud.mjs";
 import { queueTrainerGradeSample } from "../trainer/trainer.mjs";
 import { updateTrainingMeters } from "./training-zones.mjs";
 import { SLOW_UI_INTERVAL_MS } from "../core/tuning.mjs";
@@ -60,6 +61,7 @@ export function updateRideUi(options = {}) {
   const now = performance.now();
   if (!options.force && isMoving() && now - state.lastSlowUiAt < SLOW_UI_INTERVAL_MS) return;
   state.lastSlowUiAt = now;
+  updateWorkoutHud();
 
   const totalDistance = routeTotalDistance(state.route);
   const grade = gradeAt(state.route, state.progressMeters);
@@ -114,10 +116,10 @@ export function updateRideUi(options = {}) {
     `${formatDistance(totalDistance, state.distanceUnits, 1)} · ` +
     `${formatAltitude(totalAscent, state.distanceUnits)} ascent`;
   els.fsDistLabel.textContent =
-    `${riddenText} / ${formatDistance(totalDistance, state.distanceUnits, 1)}`;
+    `${riddenText.split(" ")[0]}/${formatDistance(totalDistance, state.distanceUnits, 1)}`;
   els.fsDistFill.style.width = `${clamp(progress, 0, 1) * 100}%`;
   els.fsClimbLabel.textContent =
-    `${ascentText} / ${formatAltitude(totalAscent, state.distanceUnits)}`;
+    `${ascentText.split(" ")[0]}/${formatAltitude(totalAscent, state.distanceUnits)}`;
   els.fsClimbFill.style.width = `${(totalAscent ? clamp(ascentSoFar / totalAscent, 0, 1) : 0) * 100}%`;
   updateFullscreenClock(riddenText, ascentText);
   updateFullscreenClimbBanner(point);

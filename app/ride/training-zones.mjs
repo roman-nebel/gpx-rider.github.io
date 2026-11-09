@@ -23,7 +23,11 @@ import {
   HEART_RATE_ZONE_DEFINITIONS,
   POWER_ZONE_DEFINITIONS,
   POWER_ZONE_LIMITS,
+  WORKOUT_HUD_TARGET_TOLERANCE,
 } from "../core/tuning.mjs";
+
+import { currentWorkoutHudStep } from "../workout/workout-hud.mjs";
+import { workoutMeterTarget } from "../workout/workout-step.mjs";
 
 // The zone meters stack in the left column, under the clock chip.
 export function registerTrainingMetersHud() {
@@ -112,6 +116,50 @@ export function updateTrainingMeters(grade) {
     zone: cadenceZones.findIndex((zone) => zone.color === cadenceColor(cadence)),
     color: Number.isFinite(cadence) ? cadenceColor(cadence) : null,
   });
+  updateWorkoutMeterTargets(heartRateZones, heartRate);
+}
+
+export function updateWorkoutMeterTargets(heartRateZones, heartRate) {
+  const step = currentWorkoutHudStep();
+  const context = {
+    ftp: state.ftpWatts,
+    maxHeartRate: state.maxHeartRateBpm,
+    heartRateZones: step && (heartRateZones ?? currentHeartRateZones()),
+    elapsed: state.workoutErg?.elapsed ?? 0,
+  };
+  updateMeterTarget(els.zonePowerTarget, els.zonePowerDeviation, state.trainerPowerWatts,
+    workoutMeterTarget(step, "W", context), WORKOUT_HUD_TARGET_TOLERANCE.power);
+  updateMeterTarget(els.zoneCadenceTarget, els.zoneCadenceDeviation, state.trainerCadenceRpm,
+    workoutMeterTarget(step, "rpm", context), WORKOUT_HUD_TARGET_TOLERANCE.cadence);
+  updateMeterTarget(els.zoneHeartRateTarget, els.zoneHeartRateDeviation, heartRate ?? currentHeartRate(),
+    workoutMeterTarget(step, "bpm", context), WORKOUT_HUD_TARGET_TOLERANCE.heart_rate);
+}
+
+function updateMeterTarget(targetEl, deviationEl, value, target, tolerance) {
+  targetEl.hidden = !target;
+  deviationEl.hidden = true;
+  if (!target) return;
+
+  const min = Math.round(target.min);
+  const max = Math.round(target.max);
+  const text = min === max ? String(min) : `${min}–${max}`;
+  if (targetEl.textContent !== text) {
+    targetEl.textContent = text;
+    targetEl.title = `Workout target ${text}`;
+    targetEl.setAttribute("aria-label", targetEl.title);
+  }
+  if (!Number.isFinite(value)) return;
+  const direction = value < target.min - tolerance ? "below" :
+    value > target.max + tolerance ? "above" : null;
+  if (!direction) return;
+
+  deviationEl.hidden = false;
+  const arrow = direction === "below" ? "↓" : "↑";
+  if (deviationEl.textContent !== arrow) {
+    deviationEl.textContent = arrow;
+    deviationEl.title = direction === "below" ? "Below target" : "Above target";
+    deviationEl.setAttribute("aria-label", `${direction === "below" ? "Below" : "Above"} target`);
+  }
 }
 
 export function currentHeartRateZones() {

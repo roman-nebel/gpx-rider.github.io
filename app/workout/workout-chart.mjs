@@ -1,6 +1,6 @@
 // Draws the workout's power profile in the sidebar.
 import { POWER_ZONE_DEFINITIONS, POWER_ZONE_LIMITS, WORKOUT_PROFILE_FTP_CEILING } from "../core/tuning.mjs";
-import { buildWorkoutProfile } from "./workout-profile.mjs";
+import { buildWorkoutProfile, powerZone } from "./workout-profile.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const WIDTH = 440;
@@ -117,12 +117,6 @@ function intervalShape(left, right, startY, endY) {
     `Q${right} ${endY} ${right} ${endY + radius}`,
     `V${BASE}Z`,
   ].join(" ");
-}
-
-function powerZone(power, scale) {
-  if (!scale) return null;
-  const zone = POWER_ZONE_LIMITS.findIndex((limit) => power / scale <= limit);
-  return zone === -1 ? POWER_ZONE_LIMITS.length : zone;
 }
 
 function zoneGradient(id, y, maxPower, scale) {

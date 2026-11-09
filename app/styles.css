@@ -509,8 +509,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: var(--hud-control-size);
+  height: var(--hud-control-size);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
   background: rgba(13, 16, 21, 0.55);
@@ -697,8 +697,11 @@ body {
    once instead of per component. */
 
 .map-viewport {
+  container: map-hud / inline-size;
   --hud-inset: 24px;
   --hud-gap: 12px;
+  --hud-control-size: 42px;
+  --hud-banner-width: 420px;
   --hud-bottom-inset-x: 24px;
   --hud-bottom-inset-y: 36px;
   /* Side columns stop above the bottom stack: map's bottom strip (Google
@@ -751,6 +754,17 @@ body {
   max-width: calc(100% - 2 * var(--hud-inset));
   align-items: center;
   gap: 10px;
+}
+
+.hud-region-center:has(.workout-step-chip:not([hidden])) {
+  top: calc(var(--hud-inset) + var(--hud-control-size) + var(--hud-gap));
+}
+
+/* The center chip can share the top row once both side groups clear it. */
+@container map-hud (min-width: 1120px) {
+  .hud-region-center:has(.workout-step-chip:not([hidden])) {
+    top: var(--hud-inset);
+  }
 }
 
 /* One full-width panel/stack; children stretch across it. */
@@ -831,6 +845,77 @@ body {
   color: #fff;
 }
 
+.fs-zone-readings {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.fs-zone-readings strong {
+  flex: none;
+  white-space: nowrap;
+}
+
+.fs-zone-target {
+  margin-inline-start: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 12px/1 var(--font-num);
+  color: var(--muted);
+}
+
+.fs-zone-deviation {
+  flex: none;
+  font: 700 12px/1 var(--font-ui);
+  color: var(--accent);
+}
+
+.workout-step-chip {
+  align-self: stretch;
+  min-width: var(--hud-banner-width);
+  gap: 10px;
+}
+
+.workout-step-chip strong {
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 15px/1 var(--font-ui);
+}
+
+.workout-step-chip progress {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 5px;
+  border: 0;
+  border-radius: 5px;
+  overflow: hidden;
+  appearance: none;
+  background: var(--line-strong);
+  color: var(--accent);
+}
+
+.workout-step-chip progress::-webkit-progress-bar {
+  background: var(--line-strong);
+}
+
+.workout-step-chip progress::-webkit-progress-value {
+  background: var(--accent);
+}
+
+.workout-step-chip progress::-moz-progress-bar {
+  background: var(--accent);
+}
+
+.workout-step-chip .fs-clock-elapsed {
+  flex: none;
+  white-space: nowrap;
+}
+
 .fs-zone-track {
   position: relative;
   height: 5px;
@@ -862,7 +947,7 @@ body {
 /* top-center: climb banner */
 .climb-banner {
   display: block;
-  min-width: 420px;
+  min-width: var(--hud-banner-width);
   padding: 14px 20px 15px;
   border-radius: 16px;
   background: var(--fs-glass-bg);
@@ -1314,6 +1399,62 @@ body {
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.14);
   overflow: hidden;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-track {
+  flex: none;
+  margin-top: auto;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-head span {
+  font-size: 9px;
+  letter-spacing: normal;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-head {
+  gap: 4px;
+}
+
+.workout-timeline {
+  position: relative;
+  background: transparent;
+}
+
+.workout-timeline-segments {
+  display: flex;
+  height: 100%;
+}
+
+.workout-timeline-segments > span {
+  flex-basis: 0;
+  min-width: 0;
+  box-shadow: inset -1px 0 var(--fs-glass-bg);
+  background: var(--workout-segment-color);
+}
+
+.workout-timeline-segments > .workout-timeline-hatched {
+  background: repeating-linear-gradient(125deg, transparent 0 2px, var(--workout-segment-color) 2px 3px);
+}
+
+.workout-timeline-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: white;
 }
 
 .fs-bar-fill {
@@ -3011,6 +3152,10 @@ input[type="color"] {
     height: 56vh;
   }
 
+  .map-pane:has(.workout-step-chip:not([hidden])) {
+    min-height: 600px;
+  }
+
   .control-pane {
     width: 100%;
     border-left: 0;
@@ -3124,15 +3269,23 @@ input[type="color"] {
     padding: 8px 9px;
   }
 
+  .fs-zone-target {
+    font-size: 11px;
+  }
+
   .fs-zone-meter strong {
     font-size: 16px;
   }
 
   /* The banner's desktop min-width (420px) overflows a phone; let it span the
      viewport width instead and drop the centring transform. */
+  .workout-step-chip,
   .climb-banner {
     width: 100%;
     min-width: 0;
+  }
+
+  .climb-banner {
     padding: 12px 14px 13px;
   }
 

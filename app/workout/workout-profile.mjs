@@ -1,5 +1,5 @@
 // Builds the workout chart's time axis and power intervals from imported steps.
-import { WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
+import { POWER_ZONE_LIMITS, WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 import { expandTimedWorkoutSteps } from "./workout-step.mjs";
 
 export function buildWorkoutProfile(steps, ftp) {
@@ -36,4 +36,11 @@ function stepPower(step, ftp) {
     low: target.ramp ? undefined : Math.min(...bounds),
     unit, relative, zone: target.zone,
   };
+}
+
+
+export function powerZone(power, scale) {
+  if (!scale) return null;
+  const zone = POWER_ZONE_LIMITS.findIndex((limit) => power / scale <= limit);
+  return zone === -1 ? POWER_ZONE_LIMITS.length : zone;
 }

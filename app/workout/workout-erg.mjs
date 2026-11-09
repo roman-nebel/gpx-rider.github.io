@@ -7,6 +7,7 @@ import {
   releaseTrainerTargetPower,
   trainerSupportsTargetPower,
 } from "../trainer/trainer.mjs";
+import { updateWorkoutHud } from "./workout-hud.mjs";
 import { expandTimedWorkoutSteps, normalizeWorkoutStep, workoutTargetWatts } from "./workout-step.mjs";
 
 const ERG_HINT = "Let the trainer adjust resistance to match each step.";
@@ -37,6 +38,7 @@ export function toggleWorkoutErg() {
 
   state.workoutErg = { steps, index: 0, elapsed: 0, nextWriteAt: 0 };
   setErgStatus("Ready. Start pedaling to begin the workout.");
+  updateWorkoutHud();
 }
 
 export function stopWorkoutErg(message = ERG_HINT) {
@@ -44,6 +46,7 @@ export function stopWorkoutErg(message = ERG_HINT) {
   state.workoutErg = null;
   els.workoutErgInput.checked = false;
   setErgStatus(message);
+  updateWorkoutHud();
 }
 
 export function pauseWorkoutErg() {

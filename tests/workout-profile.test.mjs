@@ -1,4 +1,4 @@
-import { normalizeWorkoutStep, workoutTargetWatts } from "../app/workout/workout-step.mjs";
+import { normalizeWorkoutStep, workoutMeterTarget, workoutTargetWatts } from "../app/workout/workout-step.mjs";
 import { WORKOUT_PROFILE_STEP_LIMIT } from "../app/core/tuning.mjs";
 import { previewWorkoutStep } from "../app/workout/workout-preview.mjs";
 import assert from "node:assert/strict";
@@ -69,4 +69,13 @@ test("ERG interpolates ramps and uses the midpoint of a FIT target range", () =>
   assert.equal(workoutTargetWatts(ramp, null, 60), null);
   assert.equal(workoutTargetWatts(range, null, 0), 200);
   assert.equal(workoutTargetWatts(free, 200, 0), null);
+});
+
+
+test("workout HUD resolves heart-rate percentages and preserves target ranges", () => {
+  const step = normalizeWorkoutStep({ 1: 0, 2: 60000, 3: 1, 5: 70, 6: 80, 19: 3, 21: 85, 22: 95 });
+  const context = { maxHeartRate: 180 };
+  assert.deepEqual(workoutMeterTarget(step, "bpm", context), { min: 126, max: 144 });
+  assert.deepEqual(workoutMeterTarget(step, "rpm", context), { min: 85, max: 95 });
+  assert.equal(workoutMeterTarget(step, "W", context), null);
 });
