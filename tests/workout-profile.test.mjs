@@ -3,7 +3,7 @@ import { WORKOUT_PROFILE_STEP_LIMIT } from "../app/core/tuning.mjs";
 import { previewWorkoutStep } from "../app/workout/workout-preview.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildWorkoutProfile as buildProfile } from "../app/workout/workout-profile.mjs";
+import { buildWorkoutProfile as buildProfile, workoutZoneBands } from "../app/workout/workout-profile.mjs";
 
 function buildWorkoutProfile(steps, ftp) {
   return buildProfile(steps.map(normalizeWorkoutStep), ftp);
@@ -85,4 +85,13 @@ test("a ramp meter keeps the ordered endpoints alongside its live target", () =>
   assert.deepEqual(workoutMeterTarget(step, "W", { ftp: 250, elapsed: 30 }),
     { min: 175, max: 175, ramp: [200, 150] });
   assert.equal(workoutMeterTarget(step, "W", { ftp: null, elapsed: 30 }), null);
+});
+
+
+test("ramps cross power zones at the same point on either chart, in either direction", () => {
+  const rise = workoutZoneBands({ start: 50, end: 100, unit: "% FTP" }, null);
+  const fall = workoutZoneBands({ start: 250, end: 125, unit: "W" }, 250);
+  assert.deepEqual(rise.map(({ end }) => Math.round(end * 100)), [10, 50, 80, 100]);
+  assert.deepEqual(fall.map(({ end }) => Math.round(end * 100)), [20, 50, 90, 100]);
+  assert.deepEqual(fall.map(({ color }) => color), rise.map(({ color }) => color).reverse());
 });

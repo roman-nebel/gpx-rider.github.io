@@ -799,7 +799,7 @@ training_zones:
   # Upper FTP fractions for power zones Z1 through Z6. Z7 has no ceiling.
   power_zone_limits: [0.55, 0.75, 0.9, 1.05, 1.2, 1.5]
   # Default top of the workout chart as a multiple of FTP. Higher targets expand the scale.
-  workout_profile_ftp_ceiling: 2
+  workout_profile_ftp_ceiling: 1.5
   # Maximum number of intervals drawn in the sidebar workout chart.
   workout_profile_step_limit: 2000
   # Maximum number of rows displayed in the sidebar workout preview.

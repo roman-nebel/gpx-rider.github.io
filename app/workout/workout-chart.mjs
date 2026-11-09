@@ -1,6 +1,6 @@
 // Draws the workout's power profile in the sidebar.
-import { POWER_ZONE_DEFINITIONS, POWER_ZONE_LIMITS, WORKOUT_PROFILE_FTP_CEILING } from "../core/tuning.mjs";
-import { buildWorkoutProfile, powerZone } from "./workout-profile.mjs";
+import { WORKOUT_PROFILE_FTP_CEILING } from "../core/tuning.mjs";
+import { buildWorkoutProfile, workoutZoneBands } from "./workout-profile.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const WIDTH = 440;
@@ -36,10 +36,8 @@ function drawPlot(profile, unit, ftp, index) {
   const maxPower = profile.intervals.reduce((max, { power }) =>
     power?.unit === unit && unit ? Math.max(max, power.start, power.end) : max, defaultMaxPower);
   const y = (power) => BASE - power / maxPower * (BASE - 6);
-  const gradientId = `workout-zone-fill-${index}`;
   const maskId = `workout-hatch-mask-${index}`;
   const defs = svgElement("defs");
-  if (scale) defs.append(zoneGradient(gradientId, y, maxPower, scale));
   defs.append(hatchMask(maskId));
   svg.append(defs);
 
@@ -48,10 +46,10 @@ function drawPlot(profile, unit, ftp, index) {
     svg.append(svgElement("path", { d: `M0 ${level}H${WIDTH}`, class: "workout-chart-grid" }));
   }
 
-  for (const { start, end, power } of profile.intervals) {
+  for (const [intervalIndex, { start, end, power }] of profile.intervals.entries()) {
     const left = start / profile.extent * WIDTH;
     const width = (end - start) / profile.extent * WIDTH;
-    const right = left + width - Math.min(1.4, width * 0.2);
+    const right = left + width - Math.min(3.5, width * 0.25);
     if (!power || !power.unit) {
       const d = intervalShape(left, right, BASE - 7, BASE - 7);
       svg.append(svgElement("path", { d, class: "workout-chart-open" }));
@@ -62,9 +60,13 @@ function drawPlot(profile, unit, ftp, index) {
 
     const startY = Math.min(BASE - 1, y(power.start));
     const endY = Math.min(BASE - 1, y(power.end));
-    const ramp = power.start !== power.end;
-    const zone = power.zone ?? powerZone((power.start + power.end) / 2, scale);
-    const fill = ramp && scale ? `url(#${gradientId})` : POWER_ZONE_DEFINITIONS[zone]?.color ?? "var(--blue-soft)";
+    const bands = workoutZoneBands(power, ftp);
+    let fill = bands[0].color;
+    if (bands.length > 1) {
+      const id = `workout-zone-fill-${index}-${intervalIndex}`;
+      defs.append(zoneGradient(id, bands));
+      fill = `url(#${id})`;
+    }
     const shape = { d: intervalShape(left, right, startY, endY), fill, class: "workout-chart-interval" };
     if (power.relative && !ftp) {
       svg.append(svgElement("path", { ...shape, "fill-opacity": 0.1 }));
@@ -107,7 +109,7 @@ function drawPlot(profile, unit, ftp, index) {
 
 function intervalShape(left, right, startY, endY) {
   const width = right - left;
-  const radius = Math.min(2.5, width / 2, BASE - startY, BASE - endY);
+  const radius = Math.min(4.5, width / 2, BASE - startY, BASE - endY);
   const slope = (endY - startY) / width;
   const topInset = radius / Math.hypot(1, slope);
   return [
@@ -119,17 +121,14 @@ function intervalShape(left, right, startY, endY) {
   ].join(" ");
 }
 
-function zoneGradient(id, y, maxPower, scale) {
+function zoneGradient(id, bands) {
   const gradient = svgElement("linearGradient", {
-    id, gradientUnits: "userSpaceOnUse", x1: 0, x2: 0, y1: BASE, y2: y(maxPower),
+    id, x1: "0%", x2: "100%", y1: "0%", y2: "0%",
   });
-  let start = 0;
-  POWER_ZONE_DEFINITIONS.forEach(({ color }, index) => {
-    const end = Math.min(1, (POWER_ZONE_LIMITS[index] ?? Infinity) * scale / maxPower);
+  for (const { start, end, color } of bands) {
     gradient.append(svgElement("stop", { offset: start, "stop-color": color }),
       svgElement("stop", { offset: end, "stop-color": color }));
-    start = end;
-  });
+  }
   return gradient;
 }
 

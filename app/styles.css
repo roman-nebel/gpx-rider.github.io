@@ -680,6 +680,7 @@ body {
   --fs-glass-bg: rgba(13, 16, 21, 0.3);
   --fs-glass-border: rgba(255, 255, 255, 0.14);
   --fs-label: rgba(255, 255, 255, 0.5);
+  --hud-track-bg: rgba(255, 255, 255, 0.14);
   --fs-dock-inset: 12px;
   --fs-dock-gap: 10px;
 }
@@ -918,28 +919,29 @@ body {
   font: 600 15px/1 var(--font-ui);
 }
 
-.workout-step-chip progress {
+.workout-step-track {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
   height: 5px;
-  border: 0;
   border-radius: 5px;
   overflow: hidden;
-  appearance: none;
-  background: var(--line-strong);
-  color: var(--accent);
+  background: var(--hud-track-bg);
 }
 
-.workout-step-chip progress::-webkit-progress-bar {
-  background: var(--line-strong);
+.workout-step-track::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--workout-step-background, var(--faint));
+  clip-path: inset(0 0 0 var(--workout-step-elapsed, 0%) round 5px 0 0 5px);
 }
 
-.workout-step-chip progress::-webkit-progress-value {
-  background: var(--accent);
-}
-
-.workout-step-chip progress::-moz-progress-bar {
-  background: var(--accent);
+.workout-step-track progress {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
 }
 
 .workout-step-chip .fs-clock-elapsed {
@@ -952,7 +954,7 @@ body {
   height: 5px;
   overflow: visible;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--hud-track-bg);
 }
 
 .fs-zone-fill {
@@ -1428,7 +1430,7 @@ body {
 .fs-bar-track {
   height: 6px;
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--hud-track-bg);
   overflow: hidden;
 }
 
@@ -1472,14 +1474,38 @@ body {
 }
 
 .workout-timeline-segments > span {
+  --workout-segment-gap: min(2px, 25%);
+  position: relative;
   flex-basis: 0;
   min-width: 0;
-  box-shadow: inset -1px 0 var(--fs-glass-bg);
-  background: var(--workout-segment-color);
 }
 
-.workout-timeline-segments > .workout-timeline-hatched {
-  background: repeating-linear-gradient(125deg, transparent 0 2px, var(--workout-segment-color) 2px 3px);
+.workout-timeline-segments > span:last-child {
+  --workout-segment-gap: 0px;
+}
+
+.workout-timeline-segments > span::before,
+.workout-timeline-segments > .workout-timeline-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 var(--workout-segment-gap) 0 0);
+  background: var(--workout-segment-background);
+}
+
+.workout-timeline-segments > .workout-timeline-active::after {
+  clip-path: inset(0 var(--workout-segment-gap) 0 var(--workout-segment-elapsed) round 5px 0 0 5px);
+}
+
+.workout-timeline-segments > .workout-timeline-hatched::before,
+.workout-timeline-segments > .workout-timeline-hatched.workout-timeline-active::after {
+  mask-image: repeating-linear-gradient(125deg, transparent 0 2px, black 2px 3px);
+}
+
+.workout-timeline-segments > .workout-timeline-active::before,
+.workout-timeline-segments > span:has(~ .workout-timeline-active)::before {
+  background: var(--hud-track-bg);
+  mask-image: none;
 }
 
 .fs-bar-fill {
