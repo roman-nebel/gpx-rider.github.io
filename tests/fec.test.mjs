@@ -7,6 +7,7 @@ import {
   buildAntFrame,
   decodeFecPage,
   encodeTrackResistancePage,
+  encodeTargetPowerPage,
   parseAntFrame,
   xorChecksum,
 } from "../app/trainer/fec.mjs";
@@ -114,4 +115,9 @@ test("decodeFecPage returns null telemetry fields when the trainer flags invalid
 test("decodeFecPage ignores pages this app doesn't read", () => {
   assert.equal(decodeFecPage(new Uint8Array([0x50, 0, 0, 0, 0, 0, 0, 0])), null);
   assert.equal(decodeFecPage(new Uint8Array([0x10, 0, 0])), null); // too short
+});
+
+test("encodes an FE-C target in quarter watts on page 49", () => {
+  assert.deepEqual([...encodeTargetPowerPage(250.25)], [0x31, 255, 255, 255, 255, 255, 0xe9, 0x03]);
+  assert.deepEqual([...encodeTargetPowerPage(2000).slice(6)], [0xa0, 0x0f]);
 });

@@ -1,4 +1,4 @@
-import { normalizeWorkoutStep } from "../app/workout/workout-step.mjs";
+import { normalizeWorkoutStep, workoutTargetWatts } from "../app/workout/workout-step.mjs";
 import { WORKOUT_PROFILE_STEP_LIMIT } from "../app/core/tuning.mjs";
 import { previewWorkoutStep } from "../app/workout/workout-preview.mjs";
 import assert from "node:assert/strict";
@@ -59,4 +59,14 @@ test("keeps step order when repeat expansion exceeds the chart limit", () => {
   const chart = buildProfile([step, repeat], 200);
   assert.equal(chart.timed, false);
   assert.equal(chart.intervals.length, 2);
+});
+
+test("ERG interpolates ramps and uses the midpoint of a FIT target range", () => {
+  const ramp = normalizeWorkoutStep({ durationSeconds: 120, power: [0.9, 0.5] });
+  const range = normalizeWorkoutStep({ 1: 0, 2: 60000, 3: 4, 5: 1180, 6: 1220 });
+  const free = normalizeWorkoutStep({ durationSeconds: 60, power: null });
+  assert.equal(workoutTargetWatts(ramp, 200, 60), 140);
+  assert.equal(workoutTargetWatts(ramp, null, 60), null);
+  assert.equal(workoutTargetWatts(range, null, 0), 200);
+  assert.equal(workoutTargetWatts(free, 200, 0), null);
 });

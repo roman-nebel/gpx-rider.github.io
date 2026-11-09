@@ -70,6 +70,7 @@ import {
 } from "./settings/settings-ui.mjs";
 import { els, state, updateProgressLabel } from "./core/state.mjs";
 import { initStorage } from "./storage/storage.mjs";
+import { handleWorkoutErgRejection, toggleWorkoutErg } from "./workout/workout-erg.mjs";
 import { clearWorkout, importWorkout, restoreWorkout } from "./workout/workout-ui.mjs";
 import { registerClimbBannerHud } from "./route/climbs-ui.mjs";
 import { initScreenManager } from "./hud/screen-manager.mjs";
@@ -107,6 +108,7 @@ async function startApp() {
 
   initTrainer({
     onTelemetry: handleTrainerTelemetry,
+    onPowerRejected: handleWorkoutErgRejection,
     onStatus: handleTrainerStatus,
     onMessage: updateProgressLabel,
   });
@@ -189,6 +191,7 @@ function bindEvents() {
     }
   });
   els.gpxFile.addEventListener("change", loadGpxFile);
+  els.workoutErgInput.addEventListener("change", toggleWorkoutErg);
   els.workoutFile.addEventListener("change", importWorkout);
   els.clearWorkoutBtn.addEventListener("click", clearWorkout);
   els.speedInput.addEventListener("input", () => {

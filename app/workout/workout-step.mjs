@@ -1,5 +1,5 @@
 // Adapts persisted FIT and MyWhoosh steps to the same preview model.
-import { POWER_ZONE_LIMITS } from "../core/tuning.mjs";
+import { POWER_ZONE_LIMITS, WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 
 const INTENSITIES = ["Active", "Rest", "Warmup", "Cooldown", "Recovery", "Interval", "Other"];
 const TARGETS = [
@@ -118,4 +118,35 @@ function fitTarget(type, zone, low, high) {
 
   const bounds = [low, high].map((value) => decodeValue(value, unit, scale)).filter(Boolean);
   return { label, bounds, power, needsFtp: bounds.some(({ unit }) => unit === "% FTP"), showLabel: !unit || type >= 7 };
+}
+
+export function expandTimedWorkoutSteps(steps) {
+  if (steps.length > WORKOUT_PROFILE_STEP_LIMIT) return null;
+  const expanded = [];
+  const offsets = [];
+  for (const step of steps) {
+    offsets.push(expanded.length);
+    if (step.repeatCount !== undefined) {
+      const block = expanded.slice(offsets[step.repeatFrom]);
+      const copies = step.repeatCount - 1;
+      if (expanded.length + block.length * copies > WORKOUT_PROFILE_STEP_LIMIT) return null;
+      for (let copy = 0; copy < copies; copy += 1) expanded.push(...block);
+    } else {
+      if (!(step.durationSeconds > 0)) return null;
+      expanded.push(step);
+    }
+  }
+  return expanded;
+}
+
+// ERG needs a single target. Use the midpoint of a FIT power range.
+export function workoutTargetWatts(step, ftp, elapsed) {
+  const target = step.targets.find((entry) => entry.power && entry.bounds.length);
+  if (!target || (target.needsFtp && !ftp)) return null;
+  const values = target.bounds.map(({ value, unit }) => unit === "% FTP" ? value * ftp / 100 : value);
+  if (target.ramp) {
+    const progress = Math.min(1, Math.max(0, elapsed / step.durationSeconds));
+    return values[0] + (values[1] - values[0]) * progress;
+  }
+  return (Math.min(...values) + Math.max(...values)) / 2;
 }

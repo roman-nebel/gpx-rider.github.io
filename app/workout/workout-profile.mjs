@@ -1,9 +1,10 @@
 // Builds the workout chart's time axis and power intervals from imported steps.
 import { WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
+import { expandTimedWorkoutSteps } from "./workout-step.mjs";
 
 export function buildWorkoutProfile(steps, ftp) {
   if (steps.length > WORKOUT_PROFILE_STEP_LIMIT) return null;
-  const expanded = expandTimedSteps(steps);
+  const expanded = expandTimedWorkoutSteps(steps);
   const timed = expanded !== null;
   const entries = expanded ?? steps;
   let position = 0;
@@ -15,24 +16,6 @@ export function buildWorkoutProfile(steps, ftp) {
   });
   const units = [...new Set(intervals.flatMap(({ power }) => power?.unit ? [power.unit] : []))];
   return { intervals, extent: position, timed, units: units.length ? units : [null] };
-}
-
-function expandTimedSteps(steps) {
-  const expanded = [];
-  const offsets = [];
-  for (const step of steps) {
-    offsets.push(expanded.length);
-    if (step.repeatCount !== undefined) {
-      const block = expanded.slice(offsets[step.repeatFrom]);
-      const copies = step.repeatCount - 1;
-      if (expanded.length + block.length * copies > WORKOUT_PROFILE_STEP_LIMIT) return null;
-      for (let copy = 0; copy < copies; copy += 1) expanded.push(...block);
-    } else {
-      if (!(step.durationSeconds > 0)) return null;
-      expanded.push(step);
-    }
-  }
-  return expanded;
 }
 
 function stepPower(step, ftp) {

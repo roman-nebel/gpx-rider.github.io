@@ -804,6 +804,10 @@ training_zones:
   workout_profile_step_limit: 2000
   # Maximum number of rows displayed in the sidebar workout preview.
   workout_preview_step_limit: 200
+  # Minimum spacing between ERG target updates, including ramp updates.
+  workout_erg_update_ms: 1000
+  # Release ERG and pause the workout when trainer power stops updating.
+  workout_erg_power_timeout_ms: 3000
   power_zone_definitions:
     - { name: "Active Recovery", color: "#8b949e" }
     - { name: "Endurance", color: "#4f9bff" }

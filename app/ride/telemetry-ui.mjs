@@ -9,6 +9,7 @@ import { setPedaling, updatePedalingFromSpeed } from "./movement.mjs";
 import { rideLogSummary } from "./recorder.mjs";
 import { gradeAt } from "../route/route.mjs";
 import { els, state } from "../core/state.mjs";
+import { stopWorkoutErg } from "../workout/workout-erg.mjs";
 import { isTrainerConnected } from "../trainer/trainer.mjs";
 import { updateTrainingMeters } from "./training-zones.mjs";
 import { HEART_RATE_REFRESH_MS } from "../core/tuning.mjs";
@@ -24,6 +25,8 @@ export function handleTrainerTelemetry(telemetry) {
   if (!telemetry) {
     state.trainerSpeedKph = null;
     state.trainerPowerWatts = null;
+    state.trainerPowerSampleAt = null;
+    if (state.workoutErg) stopWorkoutErg("Trainer disconnected.");
     state.trainerCadenceRpm = null;
     state.trainerHeartRateBpm = null;
     setPedaling(false);
@@ -33,7 +36,10 @@ export function handleTrainerTelemetry(telemetry) {
   }
 
   if (telemetry.speedKph !== null) state.trainerSpeedKph = telemetry.speedKph;
-  if (telemetry.powerWatts !== null) state.trainerPowerWatts = telemetry.powerWatts;
+  if (telemetry.powerWatts !== null) {
+    state.trainerPowerWatts = telemetry.powerWatts;
+    if (telemetry.powerSampleFresh !== false) state.trainerPowerSampleAt = performance.now();
+  }
   if (telemetry.cadenceRpm !== null) state.trainerCadenceRpm = telemetry.cadenceRpm;
   if (telemetry.totalCaloriesKcal !== null) state.trainerCaloriesKcal = telemetry.totalCaloriesKcal;
   state.trainerHeartRateBpm = telemetry.heartRateBpm;

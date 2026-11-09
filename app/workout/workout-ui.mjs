@@ -4,6 +4,7 @@ import { els, state } from "../core/state.mjs";
 import { readJson, removeStored, writeJsonCommitted } from "../storage/storage.mjs";
 import { decodeFitWorkout } from "./fit-workout.mjs";
 import { decodeMyWhooshJson, decodeMyWhooshXml } from "./mywhoosh-workout.mjs";
+import { stopWorkoutErg } from "./workout-erg.mjs";
 import { renderWorkoutChart } from "./workout-chart.mjs";
 import { normalizeWorkoutStep } from "./workout-step.mjs";
 import { previewWorkoutStep } from "./workout-preview.mjs";
@@ -30,6 +31,7 @@ export async function importWorkout(event) {
     if (!await writeJsonCommitted(WORKOUT_STORAGE_KEY, workout)) {
       throw new Error("This browser could not save the workout.");
     }
+    stopWorkoutErg();
     state.workout = workout;
     renderWorkout();
     els.workoutCard.scrollIntoView({ block: "nearest" });
@@ -60,6 +62,7 @@ export async function clearWorkout() {
       setWorkoutError("This browser could not remove the saved workout.");
       return;
     }
+    stopWorkoutErg();
     state.workout = null;
     setWorkoutError("");
     renderWorkout();

@@ -49,6 +49,8 @@ import {
 } from "../core/tuning.mjs";
 import { activeCaloriesFromPower } from "../core/units.mjs";
 
+import { pauseWorkoutErg, stopWorkoutErg, updateWorkoutErg } from "../workout/workout-erg.mjs";
+
 export function isMoving() {
   return state.simulating || state.pedaling;
 }
@@ -104,8 +106,9 @@ export function setPedaling(pedaling) {
       updateProgressLabel("Pedaling detected — simulation stopped, following trainer speed.");
     }
     ensureMovementLoop();
-  } else if (!state.simulating) {
-    handleMovementStopped();
+  } else {
+    pauseWorkoutErg();
+    if (!state.simulating) handleMovementStopped();
   }
   syncDemoModeUi();
 }
@@ -182,6 +185,7 @@ function handleMovementStopped() {
 }
 
 export function resetRide() {
+  if (state.workoutErg) stopWorkoutErg();
   state.simulating = false;
   state.progressMeters = 0;
   state.lastTick = performance.now();
@@ -256,10 +260,12 @@ function tick(now) {
     });
   }
 
+  updateWorkoutErg(now, elapsedSeconds);
   updateRideUi();
   saveRideThrottled();
 
   if (state.progressMeters >= totalDistance) {
+    if (state.workoutErg) stopWorkoutErg("Route finished.");
     state.simulating = false;
     if (state.demoModeActive) {
       stopDemoMode({

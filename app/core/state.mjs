@@ -76,6 +76,7 @@ export const state = {
   minimapMarker: null,
   trainerSpeedKph: null,
   trainerPowerWatts: null,
+  trainerPowerSampleAt: null, // Timestamp of the most recent actual trainer power sample.
   trainerCadenceRpm: null,
   trainerCaloriesKcal: null,
   powerCaloriesKcal: 0,
@@ -184,6 +185,7 @@ export const state = {
   restingHeartRateBpm: DEFAULT_RESTING_HEART_RATE_BPM,
   maxHeartRateBpm: DEFAULT_MAX_HEART_RATE_BPM,
   ftpWatts: null,
+  workoutErg: null, // Active, explicitly enabled ERG session for the selected workout.
   workout: null, // Selected workout, independent of route and ride recording.
   draggedHudField: null,
   fullscreenClockTimer: null,
@@ -227,6 +229,8 @@ export const els = {
   workoutCard: document.querySelector("#workoutCard"),
   workoutName: document.querySelector("#workoutName"),
   workoutStepCount: document.querySelector("#workoutStepCount"),
+  workoutErgInput: document.querySelector("#workoutErgInput"),
+  workoutErgStatus: document.querySelector("#workoutErgStatus"),
   workoutFtpWarning: document.querySelector("#workoutFtpWarning"),
   workoutChart: document.querySelector("#workoutChart"),
   workoutSteps: document.querySelector("#workoutSteps"),

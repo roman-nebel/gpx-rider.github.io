@@ -320,6 +320,16 @@
             <p id="workoutFtpWarning" class="panel-card-hint workout-warning" role="status" hidden>
               FTP is missing. Ride steps with a % FTP target at your own effort. Set FTP in the rider profile to see their power targets.
             </p>
+            <div class="setting-row">
+              <div class="setting-row-text">
+                <span id="workoutErgLabel" class="setting-row-label">Hold target power (ERG)</span>
+                <span id="workoutErgStatus" class="setting-row-hint" role="status">Let the trainer adjust resistance to match each step.</span>
+              </div>
+              <label class="switch">
+                <input id="workoutErgInput" type="checkbox" aria-labelledby="workoutErgLabel" aria-describedby="workoutErgStatus">
+                <span class="switch-track"><span class="switch-knob"></span></span>
+              </label>
+            </div>
             <div id="workoutChart" class="workout-chart"></div>
             <ol id="workoutSteps" class="workout-steps"></ol>
           </section>
