@@ -26,7 +26,9 @@ export function toggleWorkoutErg() {
     stopWorkoutErg("Connect a trainer that supports target power.");
     return;
   }
-  const steps = expandTimedWorkoutSteps(state.workout.steps.map(normalizeWorkoutStep));
+  const steps = expandTimedWorkoutSteps(state.workout.steps.map((step, sourceIndex) => ({
+    ...normalizeWorkoutStep(step), sourceIndex,
+  })));
   if (!steps) {
     stopWorkoutErg("ERG requires timed steps and a supported number of repeats.");
     return;
@@ -65,13 +67,19 @@ export function handleWorkoutErgRejection(message) {
   if (state.workoutErg) stopWorkoutErg(`Trainer could not set target power. ${message}`);
 }
 
-export function updateWorkoutErg(now, elapsedSeconds) {
+export function recordingWorkoutSession(now) {
   const session = state.workoutErg;
-  if (!session) return;
   const sampleAt = state.trainerPowerSampleAt;
-  if (!state.pedaling || state.demoModeActive || sampleAt === null ||
+  if (!session || !state.pedaling || state.demoModeActive || sampleAt === null ||
       now - sampleAt > WORKOUT_ERG_POWER_TIMEOUT_MS || state.trainerPowerWatts <= 0 ||
-      state.trainerCadenceRpm === 0) {
+      state.trainerCadenceRpm === 0) return null;
+  return session;
+}
+
+export function updateWorkoutErg(now, elapsedSeconds) {
+  if (!state.workoutErg) return;
+  const session = recordingWorkoutSession(now);
+  if (!session) {
     pauseWorkoutErg();
     return;
   }

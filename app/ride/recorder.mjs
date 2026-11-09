@@ -20,6 +20,12 @@ function emptyLog() {
     timerSeconds: 0,
     distanceMeters: 0,
     samples: [],
+    workout: null,
+    workoutLaps: [],
+    selectedWorkout: null,
+    matchesWorkout: false,
+    workoutSession: null,
+    workoutStep: null,
     lastSampleAtMs: 0,
     lastPersistAtMs: 0,
     persistBroken: false,
@@ -34,6 +40,8 @@ export function restoreRideLog() {
   log.timerSeconds = Number(saved.timerSeconds) || 0;
   log.distanceMeters = Number(saved.distanceMeters) || 0;
   log.samples = saved.samples.filter(Array.isArray);
+  log.workout = saved.workout ?? null;
+  log.workoutLaps = saved.workoutLaps ?? [];
 }
 
 export function recordRideTick({
@@ -46,13 +54,16 @@ export function recordRideTick({
   caloriesKcal,
   routeProgressMeters,
   cadenceRpm,
+  workout,
+  workoutSession,
 }) {
   const now = Date.now();
   if (log.startedAtMs === null) log.startedAtMs = now;
+  const lapChanged = recordWorkoutBoundary(workout, workoutSession, now - elapsedSeconds * 1000);
   log.timerSeconds += Math.max(0, elapsedSeconds);
   log.distanceMeters += Math.max(0, metersAdvanced);
 
-  if (now - log.lastSampleAtMs < RIDE_SAMPLE_INTERVAL_MS) return;
+  if (!lapChanged && now - log.lastSampleAtMs < RIDE_SAMPLE_INTERVAL_MS) return;
   log.lastSampleAtMs = now;
 
   log.samples.push([
@@ -69,7 +80,32 @@ export function recordRideTick({
     Number.isFinite(cadenceRpm) ? Math.round(cadenceRpm) : null,
   ]);
 
-  if (now - log.lastPersistAtMs >= RIDE_PERSIST_INTERVAL_MS) persistRideLog();
+  if (lapChanged || now - log.lastPersistAtMs >= RIDE_PERSIST_INTERVAL_MS) persistRideLog();
+}
+
+function recordWorkoutBoundary(workout, session, startMs) {
+  if (workout !== log.selectedWorkout) {
+    log.selectedWorkout = workout;
+    // FIT Activity has room for one plan. Keep the one that owns recorded laps.
+    if (workout && !log.workoutLaps.length) log.workout = workout;
+    log.matchesWorkout = Boolean(workout) && (log.workout === workout ||
+      JSON.stringify(log.workout) === JSON.stringify(workout));
+  }
+  const activeSession = log.matchesWorkout ? session ?? null : null;
+  const step = activeSession?.index ?? null;
+  if (step === log.workoutStep && activeSession === log.workoutSession &&
+      (step !== null || log.workoutLaps.at(-1)?.stepIndex == null)) return false;
+
+  log.workoutSession = activeSession;
+  log.workoutStep = step;
+  log.workoutLaps.push({
+    stepIndex: activeSession?.steps[step]?.sourceIndex ?? null,
+    startMs: Math.max(log.startedAtMs, startMs),
+    timerSeconds: log.timerSeconds,
+    distanceMeters: log.distanceMeters,
+    caloriesKcal: log.timerSeconds === 0 ? 0 : log.samples.at(-1)?.[8] ?? null,
+  });
+  return true;
 }
 
 export function persistRideLog() {
@@ -81,9 +117,11 @@ export function persistRideLog() {
 
   const persisted = writeJson(RIDE_LOG_STORAGE_KEY, {
     startedAtMs: log.startedAtMs,
-    timerSeconds: Math.round(log.timerSeconds),
-    distanceMeters: Math.round(log.distanceMeters),
+    timerSeconds: log.timerSeconds,
+    distanceMeters: log.distanceMeters,
     samples: log.samples,
+    workout: log.workout,
+    workoutLaps: log.workoutLaps,
   });
   if (persisted) {
     log.persistBroken = false;
@@ -138,6 +176,13 @@ export function rideLogSamples() {
 
 export function hasRideData() {
   return log.samples.length > 0;
+}
+
+export function rideLogWorkout(selectedWorkout) {
+  return {
+    workout: log.workoutLaps.length ? log.workout : selectedWorkout ?? log.workout,
+    workoutLaps: log.workoutLaps,
+  };
 }
 
 export function clearRideLog() {

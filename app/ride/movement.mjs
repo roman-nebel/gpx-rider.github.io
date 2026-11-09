@@ -52,7 +52,7 @@ import {
 } from "../core/tuning.mjs";
 import { activeCaloriesFromPower } from "../core/units.mjs";
 
-import { pauseWorkoutErg, stopWorkoutErg, updateWorkoutErg } from "../workout/workout-erg.mjs";
+import { pauseWorkoutErg, recordingWorkoutSession, stopWorkoutErg, updateWorkoutErg } from "../workout/workout-erg.mjs";
 
 export function isMoving() {
   return state.simulating || state.pedaling;
@@ -265,6 +265,8 @@ function tick(now) {
       caloriesKcal: currentCaloriesKcal(),
       routeProgressMeters: state.progressMeters,
       cadenceRpm: state.trainerCadenceRpm,
+      workout: state.workout,
+      workoutSession: recordingWorkoutSession(now),
     });
   }
 

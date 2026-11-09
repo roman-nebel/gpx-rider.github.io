@@ -9,6 +9,7 @@ import {
   persistRideLog,
   rideLogSamples,
   rideLogSummary,
+  rideLogWorkout,
 } from "./recorder.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
 import { formatDistance, formatDuration, formatEnergy } from "../core/units.mjs";
@@ -44,6 +45,7 @@ export function downloadFitFile() {
   try {
     bytes = encodeFitActivity({
       samples,
+      ...rideLogWorkout(state.workout),
       summary: {
         startTimeMs: summary.startedAtMs,
         totalElapsedSeconds: summary.elapsedSeconds,
