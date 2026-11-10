@@ -27,6 +27,7 @@ import { persistRideLog, recordRideTick } from "./recorder.mjs";
 import { updateRecordingUi } from "./recording-ui.mjs";
 import { updateRideUi } from "./ride-ui.mjs";
 import {
+  advanceAlongRoad,
   ascentAt,
   descentAt,
   gradeAt,
@@ -227,10 +228,11 @@ function tick(now) {
   const totalDistance = routeTotalDistance(state.route);
 
   const previousProgress = state.progressMeters;
-  const metersAdvanced = metersPerSecond * elapsedSeconds;
-  state.progressMeters = Math.min(totalDistance, state.progressMeters + metersAdvanced);
+  const step = advanceAlongRoad(state.route, previousProgress, metersPerSecond * elapsedSeconds);
+  const { metersAdvanced } = step;
+  state.progressMeters = step.progress;
   if (state.demoModeActive) {
-    advanceDemoTelemetry(0, gradeAt(state.route, state.progressMeters), state.progressMeters - previousProgress);
+    advanceDemoTelemetry(0, gradeAt(state.route, state.progressMeters), metersAdvanced);
   }
 
   // Feed the ETA pace history only from real pedaling — simulated movement
@@ -238,7 +240,7 @@ function tick(now) {
   if (state.pedaling) {
     recordEstimatorTick(state.rideEstimator, {
       elapsedSeconds,
-      distanceMeters: state.progressMeters - previousProgress,
+      distanceMeters: metersAdvanced,
       ascentMeters: ascentAt(state.route, state.progressMeters) - ascentAt(state.route, previousProgress),
       descentMeters: descentAt(state.route, state.progressMeters) - descentAt(state.route, previousProgress),
     });
@@ -257,7 +259,7 @@ function tick(now) {
   if (state.pedaling && !state.demoModeActive) {
     recordRideTick({
       elapsedSeconds,
-      metersAdvanced: state.progressMeters - previousProgress,
+      metersAdvanced,
       point: interpolateRoutePoint(state.route, state.progressMeters),
       speedKph,
       powerWatts: state.trainerPowerWatts,

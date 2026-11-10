@@ -18,6 +18,7 @@ import {
   enrichRoute,
   parseGpx,
   routeTotalAscent,
+  roadDistanceAt,
   routeTotalDistance,
 } from "./route.mjs";
 import { renderRoute } from "../map/route-render.mjs";
@@ -115,7 +116,7 @@ export function updateRouteOverview() {
     return;
   }
 
-  const totalDistance = routeTotalDistance(state.route);
+  const totalDistance = roadDistanceAt(state.route, routeTotalDistance(state.route));
   const totalAscent = routeTotalAscent(state.route);
   const classification = classifyRoute(totalDistance, totalAscent);
   if (classification) {
