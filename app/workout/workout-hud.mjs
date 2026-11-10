@@ -10,6 +10,7 @@ export function registerWorkoutHud() {
 }
 
 export function syncWorkoutHud(steps, total) {
+  if (state.workoutResult?.workout !== state.workout) state.workoutResult = null;
   const profile = total === steps.length && total > 0 ? buildWorkoutProfile(steps, state.ftpWatts) : null;
   const intervals = profile?.intervals ?? (total ? buildWorkoutProfile(steps.slice(0, 1), state.ftpWatts).intervals : []);
   const fills = intervals.map(({ power }) => ({
@@ -37,11 +38,32 @@ export function syncWorkoutHud(steps, total) {
 }
 
 export function currentWorkoutHudStep() {
+  if (state.workoutResult) return null;
   const session = state.workoutErg;
   return session ? session.steps[session.index] : state.workoutHudPreview?.step;
 }
 
 export function updateWorkoutHud() {
+  const result = state.workoutResult;
+  const summary = els.workoutHudSummary;
+  const profile = state.workoutHudPreview?.profile;
+  els.workoutHudChart.classList.toggle("workout-timeline-complete", Boolean(result));
+  if (result) {
+    if (summary.hidden) {
+      renderWorkoutSummary(summary, result);
+      updateWorkoutMeterTargets();
+    }
+    summary.hidden = false;
+    els.workoutHudStepTrack.hidden = true;
+    els.workoutHudRemaining.hidden = true;
+    setText(els.workoutHudCurrent, "Workout complete");
+    if (profile?.timed) {
+      const time = formatDuration(profile.extent);
+      setText(els.workoutHudTime, `${time}/${time}`);
+    }
+    return;
+  }
+  summary.hidden = true;
   const step = currentWorkoutHudStep();
   if (!step) return;
 
@@ -67,7 +89,6 @@ export function updateWorkoutHud() {
     setText(els.workoutHudRemaining, formatDuration(Math.ceil(Math.max(0, duration - elapsed))));
   }
 
-  const profile = state.workoutHudPreview?.profile;
   if (!profile) return;
   const interval = profile.intervals[index];
   const position = (interval?.start ?? 0) + (profile.timed ? elapsed : 0);
@@ -85,6 +106,26 @@ export function updateWorkoutHud() {
   setText(els.workoutHudTime, profile.timed
     ? `${formatDuration(Math.floor(position))}/${formatDuration(profile.extent)}`
     : `Step ${index + 1} / ${profile.intervals.length}`);
+}
+
+function renderWorkoutSummary(container, result) {
+  const measurements = [
+    ["On target", result.onTarget, "%"],
+    ["Avg power", result.power, " W"],
+    result.cadence !== null ? ["Avg cadence", result.cadence, " rpm"] : ["Avg HR", result.heartRate, " bpm"],
+  ];
+  const items = document.createDocumentFragment();
+  for (const [label, value, unit] of measurements) {
+    if (value === null) continue;
+    const item = document.createElement("div");
+    const term = document.createElement("dt");
+    const detail = document.createElement("dd");
+    term.textContent = label;
+    detail.textContent = `${value}${unit}`;
+    item.append(term, detail);
+    items.append(item);
+  }
+  container.replaceChildren(items);
 }
 
 function zoneBackground(power) {

@@ -949,6 +949,25 @@ body {
   white-space: nowrap;
 }
 
+.workout-step-summary {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.workout-step-summary dt {
+  color: var(--muted);
+  font: 600 9px/1 var(--font-ui);
+}
+
+.workout-step-summary dd {
+  margin: 0;
+  font: 600 12px/1.1 var(--font-num);
+}
+
 .fs-zone-track {
   position: relative;
   height: 5px;
@@ -1504,9 +1523,14 @@ body {
 }
 
 .workout-timeline-segments > .workout-timeline-active::before,
-.workout-timeline-segments > span:has(~ .workout-timeline-active)::before {
+.workout-timeline-segments > span:has(~ .workout-timeline-active)::before,
+.workout-timeline-complete > span::before {
   background: var(--hud-track-bg);
   mask-image: none;
+}
+
+.workout-timeline-complete > .workout-timeline-active::after {
+  content: none;
 }
 
 .fs-bar-fill {

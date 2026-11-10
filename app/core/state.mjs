@@ -187,6 +187,7 @@ export const state = {
   maxHeartRateBpm: DEFAULT_MAX_HEART_RATE_BPM,
   ftpWatts: null,
   workoutErg: null, // Active, explicitly enabled ERG session for the selected workout.
+  workoutResult: null, // Completed workout and its frozen summary for the HUD.
   workoutHudPreview: null, // Workout timeline and the first step for preview.
   workout: null, // Selected workout, independent of route and ride recording.
   draggedHudField: null,
@@ -401,6 +402,7 @@ export const els = {
   workoutHudTrack: document.querySelector("#workoutHudTrack"),
   workoutHudTime: document.querySelector("#workoutHudTime"),
   workoutHudCurrent: document.querySelector("#workoutHudCurrent"),
+  workoutHudSummary: document.querySelector("#workoutHudSummary"),
   workoutHudStepTrack: document.querySelector("#workoutHudStepTrack"),
   workoutHudStepProgress: document.querySelector("#workoutHudStepProgress"),
   workoutHudRemaining: document.querySelector("#workoutHudRemaining"),

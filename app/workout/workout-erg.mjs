@@ -1,7 +1,7 @@
 // Runs the selected timed workout and hands power targets to the trainer's ERG controller.
 import { els, state } from "../core/state.mjs";
 import { WORKOUT_ERG_POWER_TIMEOUT_MS, WORKOUT_ERG_UPDATE_MS } from "../core/tuning.mjs";
-import { updateRideSpeedUi } from "../ride/telemetry-ui.mjs";
+import { currentHeartRate, updateRideSpeedUi } from "../ride/telemetry-ui.mjs";
 import { gradeAt } from "../route/route.mjs";
 import {
   queueTrainerTargetPower,
@@ -9,6 +9,7 @@ import {
   trainerSupportsTargetPower,
 } from "../trainer/trainer.mjs";
 import { updateWorkoutHud } from "./workout-hud.mjs";
+import { createWorkoutSummary, finishWorkoutSummary, sampleWorkoutSummary } from "./workout-summary.mjs";
 import { expandTimedWorkoutSteps, normalizeWorkoutStep, workoutTargetWatts } from "./workout-step.mjs";
 
 const ERG_HINT = "Let the trainer adjust resistance to match each step.";
@@ -40,7 +41,8 @@ export function toggleWorkoutErg() {
   }
 
   state.ergRoadSpeedKph = null;
-  state.workoutErg = { steps, index: 0, elapsed: 0, nextWriteAt: 0 };
+  state.workoutResult = null;
+  state.workoutErg = { steps, index: 0, elapsed: 0, nextWriteAt: 0, summary: createWorkoutSummary() };
   setErgStatus("Ready. Start pedaling to begin the workout.");
   updateWorkoutHud();
 }
@@ -84,17 +86,29 @@ export function updateWorkoutErg(now, elapsedSeconds) {
     return;
   }
 
-  session.elapsed += elapsedSeconds;
+  const telemetry = {
+    power: state.trainerPowerWatts,
+    heartRate: currentHeartRate(),
+    cadence: state.trainerCadenceRpm,
+    ftp: state.ftpWatts,
+  };
+  let remaining = elapsedSeconds;
   let step = session.steps[session.index];
-  while (session.elapsed >= step.durationSeconds) {
-    session.elapsed -= step.durationSeconds;
+  while (remaining >= step.durationSeconds - session.elapsed) {
+    const seconds = step.durationSeconds - session.elapsed;
+    sampleWorkoutSummary(session.summary, step, session.elapsed, seconds, telemetry);
+    remaining -= seconds;
+    session.elapsed = 0;
     step = session.steps[++session.index];
     session.nextWriteAt = 0;
     if (!step) {
+      state.workoutResult = { workout: state.workout, ...finishWorkoutSummary(session.summary, session.steps) };
       stopWorkoutErg("Workout complete.");
       return;
     }
   }
+  sampleWorkoutSummary(session.summary, step, session.elapsed, remaining, telemetry);
+  session.elapsed += remaining;
 
   if (now < session.nextWriteAt) return;
   session.nextWriteAt = now + WORKOUT_ERG_UPDATE_MS;
