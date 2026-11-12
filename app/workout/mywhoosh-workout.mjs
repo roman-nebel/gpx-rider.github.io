@@ -1,4 +1,5 @@
 // Reads MyWhoosh workout exports and preserves power targets as fractions of FTP.
+import { WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 
 const XML_STEP_NAMES = new Map([
   ["Warmup", "Warmup"], ["Cooldown", "Cooldown"], ["Ramp", "Ramp"],
@@ -20,15 +21,31 @@ export function decodeMyWhooshXml(text) {
     throw new Error("Choose a cycling workout XML file.");
   }
 
-  const steps = Array.from(workout.children, (step) => {
+  const steps = [];
+  for (const step of workout.children) {
+    if (step.localName === "IntervalsT") {
+      const repeats = Number(step.getAttribute("Repeat"));
+      if (!Number.isSafeInteger(repeats) || repeats < 1 ||
+          steps.length + 2 * repeats > WORKOUT_PROFILE_STEP_LIMIT) {
+        throw new Error("The XML workout contains an invalid or excessive repeat count.");
+      }
+      const effort = makeStep("Interval", step.getAttribute("OnDuration"),
+        step.getAttribute("Cadence"), [step.getAttribute("OnPower")]);
+      const recovery = makeStep("Interval", step.getAttribute("OffDuration"),
+        null, [step.getAttribute("OffPower")]);
+      for (let repeat = 0; repeat < repeats; repeat += 1) {
+        steps.push({ ...effort }, { ...recovery });
+      }
+      continue;
+    }
     const name = XML_STEP_NAMES.get(step.localName);
     if (!name) throw new Error(`Unsupported XML workout step: ${step.localName}.`);
     const power = step.hasAttribute("Power") ? [step.getAttribute("Power")] : [
       step.getAttribute("PowerLow"),
       step.getAttribute("PowerHigh"),
     ];
-    return makeStep(name, step.getAttribute("Duration"), step.getAttribute("Cadence"), power);
-  });
+    steps.push(makeStep(name, step.getAttribute("Duration"), step.getAttribute("Cadence"), power));
+  }
   return { name: root.querySelector(":scope > name")?.textContent.trim() ?? "", steps };
 }
 
