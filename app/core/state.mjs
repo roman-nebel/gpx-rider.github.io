@@ -406,6 +406,13 @@ export const els = {
   workoutHudStepTrack: document.querySelector("#workoutHudStepTrack"),
   workoutHudStepProgress: document.querySelector("#workoutHudStepProgress"),
   workoutHudRemaining: document.querySelector("#workoutHudRemaining"),
+  workoutHudNext: document.querySelector("#workoutHudNext"),
+  workoutHudNextName: document.querySelector("#workoutHudNextName"),
+  workoutHudNextDuration: document.querySelector("#workoutHudNextDuration"),
+  workoutHudNextPower: document.querySelector("#workoutHudNextPower"),
+  workoutHudNextCadence: document.querySelector("#workoutHudNextCadence"),
+  workoutHudNextHeartRate: document.querySelector("#workoutHudNextHeartRate"),
+  workoutHudNextSpeed: document.querySelector("#workoutHudNextSpeed"),
   zonePowerDeviation: document.querySelector("#zonePowerDeviation"),
   zonePowerRamp: document.querySelector("#zonePowerRamp"),
   zonePowerTarget: document.querySelector("#zonePowerTarget"),
@@ -470,6 +477,7 @@ export const els = {
   recHeartRateStat: document.querySelector("#recHeartRateStat"),
   recCaloriesStat: document.querySelector("#recCaloriesStat"),
   downloadFitBtn: document.querySelector("#downloadFitBtn"),
+  downloadWorkoutFitBtn: document.querySelector("#downloadWorkoutFitBtn"),
   clearRideDataBtn: document.querySelector("#clearRideDataBtn"),
 };
 

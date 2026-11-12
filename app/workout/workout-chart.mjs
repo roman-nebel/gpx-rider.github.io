@@ -36,9 +36,19 @@ function drawPlot(profile, unit, ftp, index) {
   const maxPower = profile.intervals.reduce((max, { power }) =>
     power?.unit === unit && unit ? Math.max(max, power.start, power.end) : max, defaultMaxPower);
   const y = (power) => BASE - power / maxPower * (BASE - 6);
+  const freePowerTop = y(scale ?? maxPower / WORKOUT_PROFILE_FTP_CEILING);
+  const freePowerId = `workout-free-power-${index}`;
   const maskId = `workout-hatch-mask-${index}`;
   const defs = svgElement("defs");
   defs.append(hatchMask(maskId));
+  if (profile.intervals.some(({ power }) => !power)) {
+    const gradient = svgElement("linearGradient", { id: freePowerId, x1: "0%", x2: "0%", y1: "100%", y2: "0%" });
+    gradient.append(
+      svgElement("stop", { offset: 0, "stop-color": "white" }),
+      svgElement("stop", { offset: 1, "stop-color": "white", "stop-opacity": 0 }),
+    );
+    defs.append(gradient);
+  }
   svg.append(defs);
 
   for (const position of [0.25, 0.5, 0.75, 1]) {
@@ -50,14 +60,17 @@ function drawPlot(profile, unit, ftp, index) {
     const left = start / profile.extent * WIDTH;
     const width = (end - start) / profile.extent * WIDTH;
     const right = left + width - Math.min(3.5, width * 0.25);
-    if (!power || !power.unit) {
+    if (!power) {
+      svg.append(svgElement("rect", {
+        x: left, y: freePowerTop, width: right - left, height: BASE - freePowerTop,
+        fill: `url(#${freePowerId})`,
+      }));
+      continue;
+    }
+    if (!power.unit) {
       const d = intervalShape(left, right, BASE - 7, BASE - 7);
-      if (power) {
-        svg.append(svgElement("path", { d, class: "workout-chart-open" }));
-        svg.append(svgElement("path", { d, fill: "var(--muted)", mask: `url(#${maskId})` }));
-      } else {
-        svg.append(svgElement("path", { d, fill: workoutZoneBands(power, ftp)[0].color }));
-      }
+      svg.append(svgElement("path", { d, class: "workout-chart-open" }));
+      svg.append(svgElement("path", { d, fill: "var(--muted)", mask: `url(#${maskId})` }));
       continue;
     }
     if (power.unit !== unit) continue;

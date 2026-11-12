@@ -131,7 +131,7 @@ export function updateWorkoutMeterTargets(heartRateZones, heartRate) {
   const ramp = powerTarget?.ramp;
   els.zonePowerRamp.hidden = !ramp;
   if (ramp) {
-    const text = ramp.map(Math.round).join(" → ");
+    const text = ramp.map(Math.round).join("→");
     if (els.zonePowerRamp.textContent !== text) els.zonePowerRamp.textContent = text;
   }
   updateMeterTarget(els.zonePowerTarget, els.zonePowerDeviation, state.trainerPowerWatts,

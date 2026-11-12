@@ -1,4 +1,9 @@
-// Formats normalized workout steps for the sidebar list.
+// Formats normalized workout steps for display.
+import { formatDuration } from "../core/units.mjs";
+
+const COMPACT_TARGET_UNITS = ["W", "rpm", "bpm"];
+const NUMERIC_TARGET_UNITS = [...COMPACT_TARGET_UNITS, "% max HR"];
+
 function formatValue({ value, unit }) {
   if (unit === "s") {
     const milliseconds = Math.round(value * 1000);
@@ -9,22 +14,50 @@ function formatValue({ value, unit }) {
   return unit ? `${value} ${unit}` : String(value);
 }
 
-function describeTarget(target, ftpWatts) {
+function describeTarget(target, ftpWatts, { compact = false, maxHeartRate } = {}) {
   if (target.needsFtp && !ftpWatts) return "Free ride";
   if (!target.bounds.length || target.zone !== undefined) return target.label;
-  const values = target.bounds.map((bound) => bound.unit === "% FTP"
-    ? formatValue({ value: Math.round(bound.value * ftpWatts / 100), unit: "W" })
-    : formatValue(bound));
-  const range = target.ramp ? values.join(" → ") : [...new Set(values)].join("–");
+  const bounds = target.bounds.map((bound) => {
+    if (bound.unit === "% FTP") return { value: bound.value * ftpWatts / 100, unit: "W" };
+    if (bound.unit === "% max HR" && maxHeartRate > 0) {
+      return { value: bound.value * maxHeartRate / 100, unit: "bpm" };
+    }
+    return bound;
+  });
+  const values = bounds.map(({ value, unit }) => {
+    const rounded = NUMERIC_TARGET_UNITS.includes(unit) ? Math.round(value) : value;
+    return compact && COMPACT_TARGET_UNITS.includes(unit)
+      ? String(rounded) : formatValue({ value: rounded, unit });
+  });
+  const range = target.ramp ? values.join("→") : [...new Set(values)].join("–");
   return target.showLabel ? `${target.label} ${range}` : range;
 }
 
-export function previewWorkoutStep(step, ftpWatts) {
+function describeDuration(step) {
   const { label, value } = step.duration;
-  const duration = [label, value && formatValue(value)].filter(Boolean).join(" ");
+  return [label, value && formatValue(value)].filter(Boolean).join(" ");
+}
+
+export function previewNextWorkoutStep(step, ftpWatts) {
+  const power = step.targets.find((target) =>
+    target.power && target.bounds.length && (!target.needsFtp || ftpWatts));
+  const hasTarget = (unit) => step.targets.some((target) =>
+    target.unit === unit && (target.bounds.length || target.zoneNumber));
+  return {
+    duration: Number.isFinite(step.durationSeconds)
+      ? formatDuration(step.durationSeconds, "padded-clock") : describeDuration(step),
+    power: power ? describeTarget(power, ftpWatts, { compact: true }) : "",
+    cadence: hasTarget("rpm"),
+    heartRate: hasTarget("bpm"),
+    speed: hasTarget("m/s"),
+  };
+}
+
+export function previewWorkoutStep(step, ftpWatts, maxHeartRate) {
   return {
     name: step.name,
-    detail: [duration, ...step.targets.map((target) => describeTarget(target, ftpWatts))].join(" · "),
+    detail: [describeDuration(step), ...step.targets.map((target) => describeTarget(target, ftpWatts, { maxHeartRate }))]
+      .filter(Boolean).join(" · "),
     notes: step.notes,
     needsFtp: step.targets.some((target) => target.needsFtp),
   };

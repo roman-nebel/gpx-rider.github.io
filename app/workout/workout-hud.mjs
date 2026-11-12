@@ -1,15 +1,17 @@
-// Owns the dock workout timeline and the current-step chip at the top of the map.
+// Owns the dock workout timeline and the workout step widgets at the top of the map.
 import { els, state } from "../core/state.mjs";
+import { WORKOUT_HUD_NEXT_STEP_SECONDS } from "../core/tuning.mjs";
 import { formatDuration } from "../core/units.mjs";
 import { registerHudComponent } from "../hud/screen-manager.mjs";
 import { updateWorkoutMeterTargets } from "../ride/training-zones.mjs";
+import { previewNextWorkoutStep } from "./workout-preview.mjs";
 import { buildWorkoutProfile, workoutZoneBands } from "./workout-profile.mjs";
 
 export function registerWorkoutHud() {
   registerHudComponent({ id: "workout-step", region: "center", weight: 5, element: els.workoutHud });
 }
 
-export function syncWorkoutHud(steps, total) {
+export function syncWorkoutHud(steps, total, previewSession) {
   if (state.workoutResult?.workout !== state.workout) state.workoutResult = null;
   const profile = total === steps.length && total > 0 ? buildWorkoutProfile(steps, state.ftpWatts) : null;
   const intervals = profile?.intervals ?? (total ? buildWorkoutProfile(steps.slice(0, 1), state.ftpWatts).intervals : []);
@@ -17,7 +19,7 @@ export function syncWorkoutHud(steps, total) {
     background: zoneBackground(power),
     hatched: Boolean(power?.relative && !state.ftpWatts),
   }));
-  state.workoutHudPreview = total ? { step: steps[0], profile, fills } : null;
+  state.workoutHudPreview = total ? { step: steps[0], profile, fills, previewSession } : null;
   els.workoutHud.hidden = !total;
   els.workoutHudTrack.hidden = !profile;
 
@@ -45,8 +47,11 @@ export function currentWorkoutHudStep() {
 
 export function updateWorkoutHud() {
   const result = state.workoutResult;
+  const session = state.workoutErg ?? state.workoutHudPreview?.previewSession;
+  updateNextWorkoutStep(session);
   const summary = els.workoutHudSummary;
   const profile = state.workoutHudPreview?.profile;
+  els.workoutHud.classList.toggle("is-complete", Boolean(result));
   els.workoutHudChart.classList.toggle("workout-timeline-complete", Boolean(result));
   if (result) {
     if (summary.hidden) {
@@ -64,10 +69,9 @@ export function updateWorkoutHud() {
     return;
   }
   summary.hidden = true;
-  const step = currentWorkoutHudStep();
+  const step = session?.steps[session.index] ?? currentWorkoutHudStep();
   if (!step) return;
 
-  const session = state.workoutErg;
   const index = session?.index ?? 0;
   const elapsed = session?.elapsed ?? 0;
   const duration = step.durationSeconds;
@@ -86,7 +90,7 @@ export function updateWorkoutHud() {
     track.classList.toggle("workout-power-hatched", Boolean(fill?.hatched));
     progress.value = elapsed / duration;
     track.style.setProperty("--workout-step-elapsed", `${progress.position * 100}%`);
-    setText(els.workoutHudRemaining, formatDuration(Math.ceil(Math.max(0, duration - elapsed))));
+    setText(els.workoutHudRemaining, formatDuration(Math.ceil(Math.max(0, duration - elapsed)), "padded-clock"));
   }
 
   if (!profile) return;
@@ -106,6 +110,23 @@ export function updateWorkoutHud() {
   setText(els.workoutHudTime, profile.timed
     ? `${formatDuration(Math.floor(position))}/${formatDuration(profile.extent)}`
     : `Step ${index + 1} / ${profile.intervals.length}`);
+}
+
+function updateNextWorkoutStep(session) {
+  const next = session?.steps[session.index + 1];
+  const remaining = session ? session.steps[session.index]?.durationSeconds - session.elapsed : Infinity;
+  const showNext = Boolean(next) && remaining <= WORKOUT_HUD_NEXT_STEP_SECONDS;
+  els.workoutHudNext.hidden = !showNext;
+  if (!showNext) return;
+
+  setText(els.workoutHudNextName, next.name);
+  const preview = previewNextWorkoutStep(next, state.ftpWatts);
+  setText(els.workoutHudNextDuration, preview.duration);
+  setText(els.workoutHudNextPower, preview.power);
+  els.workoutHudNextPower.parentElement.hidden = !preview.power;
+  els.workoutHudNextHeartRate.hidden = !preview.heartRate;
+  els.workoutHudNextCadence.hidden = !preview.cadence;
+  els.workoutHudNextSpeed.hidden = !preview.speed;
 }
 
 function renderWorkoutSummary(container, result) {
@@ -129,6 +150,7 @@ function renderWorkoutSummary(container, result) {
 }
 
 function zoneBackground(power) {
+  if (!power) return "var(--workout-free-power-gradient)";
   const bands = workoutZoneBands(power, state.ftpWatts);
   if (bands.length === 1) return bands[0].color;
   const stops = bands.map(({ start, end, color }) => `${color} ${start * 100}% ${end * 100}%`);

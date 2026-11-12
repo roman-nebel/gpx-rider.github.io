@@ -703,6 +703,7 @@ body {
   --hud-gap: 12px;
   --hud-control-size: 42px;
   --hud-banner-width: 420px;
+  --workout-free-power-gradient: linear-gradient(to top, white, transparent);
   --hud-bottom-inset-x: 24px;
   --hud-bottom-inset-y: 36px;
   /* Side columns stop above the bottom stack: map's bottom strip (Google
@@ -906,9 +907,29 @@ body {
 }
 
 .workout-step-chip {
-  align-self: stretch;
-  min-width: var(--hud-banner-width);
+  width: min(var(--hud-banner-width), calc(100cqw - 2 * var(--hud-inset)));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
   gap: 10px;
+}
+
+.workout-current-row {
+  align-items: center;
+}
+
+.workout-current-main {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.workout-current-row,
+.workout-next-step,
+.workout-next-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
 }
 
 .workout-step-chip strong {
@@ -916,7 +937,127 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 600 15px/1 var(--font-ui);
+}
+
+.workout-step-text {
+  font: 600 14px/1 var(--font-ui);
+}
+
+.workout-step-metrics {
+  color: var(--ink-bright);
+  font: 600 clamp(11px, 3.3cqw, 14px)/1.3 var(--font-num);
+  white-space: nowrap;
+}
+
+.workout-step-chip.is-complete strong {
+  max-width: 100%;
+  font-size: 15px;
+}
+
+.workout-next-step {
+  row-gap: 2px;
+}
+
+.workout-next-label {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font: 600 11px/1 var(--font-ui);
+}
+
+.workout-next-row {
+  align-items: baseline;
+}
+
+.workout-next-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workout-next-row strong {
+  max-width: none;
+  min-width: 0;
+}
+
+.workout-next-icon {
+  --workout-next-icon-size: 15px;
+  flex: none;
+  align-self: center;
+  width: 15px;
+  height: 15px;
+  background: currentColor;
+  mask: var(--workout-next-icon) center / var(--workout-next-icon-size) no-repeat;
+}
+
+.workout-next-cadence {
+  --workout-next-icon: url("./assets/mdi/bike-pedal.svg");
+  --workout-next-icon-size: 18px;
+}
+
+.workout-next-heart-rate {
+  --workout-next-icon: url("./assets/mdi/heart.svg");
+  --workout-next-icon-size: 14px;
+}
+
+.workout-next-bolt {
+  --workout-next-icon: url("./assets/mdi/lightning-bolt.svg");
+}
+
+.workout-next-speed {
+  --workout-next-icon: url("./assets/mdi/speedometer.svg");
+}
+
+.workout-next-detail {
+  display: flex;
+  align-self: center;
+  align-items: baseline;
+  gap: clamp(4px, 1.7cqw, 10px);
+  min-width: 0;
+}
+
+.workout-next-detail:has(.workout-next-power:not([hidden])) {
+  align-self: baseline;
+}
+
+.workout-next-power {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  min-width: 0;
+}
+
+.workout-next-power > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@container map-hud (max-width: 420px) {
+  .workout-next-main {
+    gap: 5px;
+  }
+
+  .workout-step-text {
+    font-size: 12px;
+  }
+
+  .workout-step-metrics {
+    font-size: clamp(10px, 2.9cqw, 12px);
+  }
+
+  .workout-next-detail {
+    gap: 4px;
+  }
+
+  .workout-next-power {
+    gap: 1px;
+  }
+
+  .workout-next-icon {
+    width: 13px;
+    height: 13px;
+  }
 }
 
 .workout-step-track {
@@ -944,28 +1085,29 @@ body {
   opacity: 0;
 }
 
-.workout-step-chip .fs-clock-elapsed {
-  flex: none;
-  white-space: nowrap;
+.workout-step-remaining {
+  grid-column: 2;
+  justify-self: end;
 }
 
 .workout-step-summary {
   display: flex;
-  flex: 1;
+  grid-column: 1 / -1;
   justify-content: space-between;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   margin: 0;
   white-space: nowrap;
 }
 
 .workout-step-summary dt {
   color: var(--muted);
-  font: 600 9px/1 var(--font-ui);
+  font: 600 11px/1 var(--font-ui);
 }
 
 .workout-step-summary dd {
-  margin: 0;
-  font: 600 12px/1.1 var(--font-num);
+  margin: 3px 0 0;
+  font: 600 18px/1.1 var(--font-num);
 }
 
 .fs-zone-track {
@@ -2397,6 +2539,14 @@ progress.ascent-progress::-moz-progress-bar {
   flex: 1;
 }
 
+.fit-export-actions {
+  flex-wrap: wrap;
+}
+
+.fit-export-actions .btn {
+  flex-basis: auto;
+}
+
 /* ---- simulation ------------------------------------------------------------------ */
 
 .speed-control {
@@ -3348,7 +3498,6 @@ input[type="color"] {
 
   /* The banner's desktop min-width (420px) overflows a phone; let it span the
      viewport width instead and drop the centring transform. */
-  .workout-step-chip,
   .climb-banner {
     width: 100%;
     min-width: 0;

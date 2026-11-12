@@ -2,6 +2,7 @@
 import { els, state } from "../core/state.mjs";
 import { WORKOUT_ERG_POWER_TIMEOUT_MS, WORKOUT_ERG_UPDATE_MS } from "../core/tuning.mjs";
 import { currentHeartRate, updateRideSpeedUi } from "../ride/telemetry-ui.mjs";
+import { closeRecordedWorkout } from "../ride/recorder.mjs";
 import { gradeAt } from "../route/route.mjs";
 import {
   queueTrainerTargetPower,
@@ -48,6 +49,7 @@ export function toggleWorkoutErg() {
 }
 
 export function stopWorkoutErg(message = ERG_HINT) {
+  closeRecordedWorkout(state.workoutErg);
   if (state.workoutErg) releaseTrainerTargetPower(currentGrade());
   state.workoutErg = null;
   state.ergRoadSpeedKph = null;

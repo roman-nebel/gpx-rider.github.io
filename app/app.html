@@ -239,12 +239,34 @@
             </div>
 
             <section id="workoutHud" class="fs-clock workout-step-chip" aria-label="Workout" hidden>
-              <strong id="workoutHudCurrent"></strong>
-              <div id="workoutHudStepTrack" class="workout-step-track">
-                <progress id="workoutHudStepProgress" max="1" value="0" aria-label="Current step progress"></progress>
+              <div class="workout-current-row">
+                <div class="workout-current-main">
+                  <strong id="workoutHudCurrent" class="workout-step-text"></strong>
+                  <div id="workoutHudStepTrack" class="workout-step-track">
+                    <progress id="workoutHudStepProgress" max="1" value="0" aria-label="Current step progress"></progress>
+                  </div>
+                </div>
+                <span id="workoutHudRemaining" class="workout-step-metrics workout-step-remaining"></span>
               </div>
-              <span id="workoutHudRemaining" class="fs-clock-elapsed"></span>
               <dl id="workoutHudSummary" class="workout-step-summary" hidden></dl>
+              <section id="workoutHudNext" class="workout-next-step" aria-label="Next workout step" hidden>
+                <span class="workout-next-label">Up next</span>
+                <div class="workout-next-row">
+                  <div class="workout-next-main">
+                    <strong id="workoutHudNextName" class="workout-step-text"></strong>
+                    <div class="workout-step-metrics workout-next-detail">
+                      <span id="workoutHudNextHeartRate" class="workout-next-icon workout-next-heart-rate" role="img" aria-label="Heart rate target" title="Heart rate target" hidden></span>
+                      <span id="workoutHudNextCadence" class="workout-next-icon workout-next-cadence" role="img" aria-label="Cadence target" title="Cadence target" hidden></span>
+                      <span id="workoutHudNextSpeed" class="workout-next-icon workout-next-speed" role="img" aria-label="Speed target" title="Speed target" hidden></span>
+                      <span class="workout-next-power" hidden>
+                        <span class="workout-next-icon workout-next-bolt" role="img" aria-label="Power target" title="Power target"></span>
+                        <span id="workoutHudNextPower"></span>
+                      </span>
+                    </div>
+                  </div>
+                  <span id="workoutHudNextDuration" class="workout-step-metrics workout-step-remaining"></span>
+                </div>
+              </section>
             </section>
 
             <!-- bottom data dock: metric tiles + the road-ahead profile -->
@@ -519,8 +541,9 @@
               <div><dt>heart rate</dt><dd id="recHeartRateStat">--</dd></div>
               <div><dt>energy</dt><dd id="recCaloriesStat">--</dd></div>
             </dl>
-            <div class="button-row">
-              <button id="downloadFitBtn" type="button" class="btn btn-accent" disabled>Download .FIT</button>
+            <div class="button-row fit-export-actions">
+              <button id="downloadFitBtn" type="button" class="btn btn-accent" disabled>Full ride .FIT</button>
+              <button id="downloadWorkoutFitBtn" type="button" class="btn btn-outline-blue" disabled>Workout only .FIT</button>
               <button id="clearRideDataBtn" type="button" class="btn btn-outline-danger" disabled>Reset buffer</button>
             </div>
           </div>

@@ -10,9 +10,11 @@ import {
   rideLogSamples,
   rideLogSummary,
   rideLogWorkout,
+  rideLogWorkoutFitRange,
 } from "./recorder.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
 import { formatDistance, formatDuration, formatEnergy } from "../core/units.mjs";
+import { sliceWorkoutFit } from "./workout-fit-slice.mjs";
 
 export function updateRecordingUi() {
   // The bucket only grows while the rider is actually moving — mirror that
@@ -28,10 +30,24 @@ export function updateRecordingUi() {
     : "--";
   els.recCaloriesStat.textContent = formatEnergy(summary.caloriesKcal ?? NaN, state.energyUnits);
   els.downloadFitBtn.disabled = summary.sampleCount < 2;
+  els.downloadWorkoutFitBtn.disabled = !rideLogWorkoutFitRange();
   els.clearRideDataBtn.disabled = summary.sampleCount === 0;
 }
 
 export function downloadFitFile() {
+  downloadFit(false);
+}
+
+export function downloadWorkoutFitFile() {
+  downloadFit(true);
+}
+
+function downloadFit(workoutOnly) {
+  const range = rideLogWorkoutFitRange();
+  if (workoutOnly && !range) {
+    updateProgressLabel("Not enough recorded workout data to download a FIT file.");
+    return;
+  }
   const samples = rideLogSamples();
   if (samples.length < 2) {
     updateProgressLabel("Not enough recorded ride data yet — ride a little first.");
@@ -42,25 +58,30 @@ export function downloadFitFile() {
   const summary = rideLogSummary();
 
   let bytes;
+  let startTimeMs;
   try {
-    bytes = encodeFitActivity({
+    const activity = {
       samples,
       ...rideLogWorkout(state.workout),
       summary: {
         startTimeMs: summary.startedAtMs,
+        endTimeMs: summary.endTimeMs,
         totalElapsedSeconds: summary.elapsedSeconds,
         totalTimerSeconds: summary.timerSeconds,
         totalDistanceMeters: summary.distanceMeters,
         totalCalories: summary.caloriesKcal,
       },
-    });
+    };
+    const output = workoutOnly ? sliceWorkoutFit(activity, range) : activity;
+    startTimeMs = output.summary.startTimeMs;
+    bytes = encodeFitActivity(output);
   } catch (error) {
     console.error("Could not encode the FIT file.", error);
     updateProgressLabel("Could not build the FIT file from the recorded data.");
     return;
   }
 
-  const started = new Date(summary.startedAtMs);
+  const started = new Date(startTimeMs);
   const stamp = [
     started.getFullYear(),
     String(started.getMonth() + 1).padStart(2, "0"),
@@ -74,13 +95,14 @@ export function downloadFitFile() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `gpx-rider-virtual-ride-${stamp}.fit`;
+  link.download = `gpx-rider-${workoutOnly ? "workout" : "virtual-ride"}-${stamp}.fit`;
   document.body.append(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
 
-  // Give the browser a beat to hand the file off before asking.
+  // Keep both downloads available until the rider explicitly resets the buffer.
+  if (range) return;
   window.setTimeout(() => {
     if (window.confirm("FIT file downloaded. Clear the collected ride data to start fresh?")) {
       clearRideLog();

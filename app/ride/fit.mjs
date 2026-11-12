@@ -3,7 +3,7 @@
 // samples: [{ t (unix seconds), lat, lng, ele (m), distance (m),
 //             speedKph, powerWatts, heartRateBpm, cadenceRpm }] — nullable
 //             fields allowed.
-// summary: { startTimeMs, totalElapsedSeconds, totalTimerSeconds,
+// summary: { startTimeMs, endTimeMs (optional), totalElapsedSeconds, totalTimerSeconds,
 //            totalDistanceMeters, totalCalories (kcal, nullable) }
 
 import { APP_NAME } from "../core/tuning.mjs";
@@ -286,7 +286,8 @@ export function encodeFitActivity({ samples, summary, workout, workoutLaps = [] 
   if (!samples?.length) throw new Error("No ride samples to encode.");
 
   const startFit = toFitTimestamp(summary.startTimeMs / 1000);
-  const endFit = toFitTimestamp(samples.at(-1).t);
+  const endTimeMs = summary.endTimeMs ?? samples.at(-1).t * 1000;
+  const endFit = toFitTimestamp(endTimeMs / 1000);
   const writer = new ByteWriter();
 
   writeDefinition(writer, 0, GLOBAL_MSG.fileId, FILE_ID_FIELDS);
@@ -319,7 +320,7 @@ export function encodeFitActivity({ samples, summary, workout, workoutLaps = [] 
   const calories = Number.isFinite(summary.totalCalories) ? Math.round(summary.totalCalories) : null;
 
   const lapCount = workout?.steps?.length && workoutLaps.length
-    ? writeWorkoutLaps(writer, workoutLaps, summary, samples.at(-1).t) : 0;
+    ? writeWorkoutLaps(writer, workoutLaps, summary, endTimeMs / 1000) : 0;
   if (!lapCount) {
     writeDefinition(writer, 3, GLOBAL_MSG.lap, LAP_FIELDS);
     writeData(writer, 3, LAP_FIELDS, [
@@ -338,7 +339,7 @@ export function encodeFitActivity({ samples, summary, workout, workoutLaps = [] 
   writeDefinition(writer, 5, GLOBAL_MSG.activity, ACTIVITY_FIELDS);
   writeData(writer, 5, ACTIVITY_FIELDS, [
     endFit, timerMs, 1, ACTIVITY_TYPE_MANUAL, EVENT_ACTIVITY, EVENT_TYPE_STOP,
-    toFitLocalTimestamp(endFit, samples.at(-1).t * 1000),
+    toFitLocalTimestamp(endFit, endTimeMs),
   ]);
 
   const dataBytes = writer.bytes;

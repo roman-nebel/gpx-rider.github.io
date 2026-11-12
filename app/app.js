@@ -53,7 +53,7 @@ import {
   handleProfilePointerUp,
 } from "./route/profile-ui.mjs";
 import { persistRideLog, restoreRideLog, rideLogSummary } from "./ride/recorder.mjs";
-import { confirmClearRideData, downloadFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
+import { confirmClearRideData, downloadFitFile, downloadWorkoutFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
 import { loadGpxFile, loadGpxFromUrl } from "./route/route-load.mjs";
 import {
   openSettings,
@@ -256,6 +256,7 @@ function bindEvents() {
   els.startBtn.addEventListener("click", toggleSimulation);
   els.resetBtn.addEventListener("click", resetRide);
   els.downloadFitBtn.addEventListener("click", downloadFitFile);
+  els.downloadWorkoutFitBtn.addEventListener("click", downloadWorkoutFitFile);
   els.clearRideDataBtn.addEventListener("click", confirmClearRideData);
   els.profile.addEventListener("mousemove", handleProfileHover);
   els.profile.addEventListener("mouseleave", handleProfileLeave);

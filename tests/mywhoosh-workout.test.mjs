@@ -22,7 +22,7 @@ test("keeps the direction of MyWhoosh power ramps and the cadence target", () =>
   assert.equal(workout.name, "Tempo");
   const [ramp, interval] = workout.steps;
   assert.deepEqual(ramp.power, [0.55, 0.45]);
-  assert.equal(previewWorkoutStep(ramp, 200).detail, "6 min · 110 W → 90 W · 85 rpm");
+  assert.equal(previewWorkoutStep(ramp, 200).detail, "6 min · 110 W→90 W · 85 rpm");
   assert.deepEqual(previewWorkoutStep(ramp, null), {
     name: "Cooldown",
     detail: "6 min · Free ride · 85 rpm",

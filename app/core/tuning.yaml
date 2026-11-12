@@ -810,6 +810,8 @@ training_zones:
   workout_erg_power_timeout_ms: 3000
   # Ignore smaller target deviations in the HUD, in watts, rpm, and bpm.
   workout_hud_target_tolerance: { power: 10, cadence: 5, heart_rate: 5 }
+  # Show the next workout step when the active step has this many seconds left.
+  workout_hud_next_step_seconds: 30
   power_zone_definitions:
     - { name: "Active Recovery", color: "#8b949e" }
     - { name: "Endurance", color: "#4f9bff" }
