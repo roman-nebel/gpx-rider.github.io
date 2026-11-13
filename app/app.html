@@ -601,13 +601,6 @@
             </div>
           </div>
 
-          <div class="help-note">
-            <span class="help-note-mark">?</span>
-            <div>No route file of your own? Plan any route for free at
-              <a href="https://mapy.com" target="_blank" rel="noopener">mapy.com</a>
-              and export it as GPX — a route is just a series of points and elevations, no account needed.</div>
-          </div>
-
           <div class="panel-card demo-card">
             <div class="demo-card-top">
               <div>
@@ -1058,22 +1051,21 @@
     </dialog>
 
     <dialog id="galleryDialog" class="gallery-dialog" aria-labelledby="galleryTitle">
-      <header class="gallery-head">
+      <header class="gallery-head route-gallery-head">
         <div class="gallery-head-title">
           <h2 id="galleryTitle" class="gallery-title">Route gallery</h2>
           <span id="galleryCount" class="gallery-count" hidden></span>
         </div>
-        <div class="gallery-head-actions">
-          <label class="file-picker btn btn-blue">
-            <input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml">
-            Import route
-          </label>
-          <form method="dialog">
-            <button type="submit" class="icon-btn" title="Close gallery" aria-label="Close route gallery">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
-            </button>
-          </form>
-        </div>
+        <p class="gallery-import-hint">No route file of your own? Plan any route for free at <a href="https://mapy.com/" target="_blank" rel="noopener">mapy.com</a> and export it as GPX file.</p>
+        <label class="file-picker btn btn-blue">
+          <input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" autofocus>
+          Import route
+        </label>
+        <form method="dialog">
+          <button type="submit" class="icon-btn" title="Close gallery" aria-label="Close route gallery">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+          </button>
+        </form>
       </header>
       <div class="gallery-scroll">
         <p id="routeImportError" class="gallery-import-error" role="alert" hidden></p>

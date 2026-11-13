@@ -2627,33 +2627,6 @@ input[type="range"] {
   accent-color: var(--accent);
 }
 
-/* ---- help note -------------------------------------------------------------------- */
-
-.help-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-  flex: none;
-  margin-top: auto;
-  padding: 13px 15px;
-  border: 1px dashed rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  font: 400 12px/1.55 var(--font-ui);
-  color: var(--muted);
-}
-
-.help-note-mark {
-  margin-top: 1px;
-  font: 700 12px/1 var(--font-mono);
-  color: var(--blue-soft);
-}
-
-.help-note a {
-  color: var(--ink);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
-}
-
 /* ---- settings dialog (5a): category rail + panel ----------------------------------- */
 
 .settings-dialog {
@@ -3119,6 +3092,22 @@ input[type="color"] {
   gap: 14px;
 }
 
+.route-gallery-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.gallery-import-hint {
+  justify-self: end;
+  margin: 0;
+  color: var(--muted);
+  font: 400 12px/1.5 var(--font-ui);
+}
+
+.gallery-import-hint a {
+  color: var(--blue-soft);
+}
+
 .gallery-title {
   margin: 0;
   font: 500 30px/1 var(--font-serif);
@@ -3140,7 +3129,7 @@ input[type="color"] {
   margin-inline-start: auto;
 }
 
-.gallery-head-actions .icon-btn {
+.gallery-head .icon-btn {
   width: 42px;
   height: 42px;
   border-radius: 12px;
@@ -3526,6 +3515,19 @@ input[type="color"] {
 
   .gallery-head-actions {
     gap: 6px;
+  }
+
+  .route-gallery-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .route-gallery-head form {
+    grid-area: 1 / 2;
+    justify-self: end;
+  }
+
+  .gallery-import-hint {
+    justify-self: start;
   }
 
   .gallery-scroll {
