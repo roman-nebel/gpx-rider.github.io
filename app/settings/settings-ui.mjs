@@ -97,6 +97,7 @@ export function updateSpeedOutput() {
 }
 
 export function updateRiderProfileFromControls() {
+  const previousMaxHeartRate = state.maxHeartRateBpm;
   const restingHeartRate = Number(els.restingHeartRateInput.value);
   state.restingHeartRateBpm = Number.isFinite(restingHeartRate) && restingHeartRate >= 30 && restingHeartRate <= 140
     ? Math.round(restingHeartRate)
@@ -118,7 +119,7 @@ export function updateRiderProfileFromControls() {
 
   syncRiderProfileControls();
   renderZoneSummaries();
-  if (state.ftpWatts !== previousFtp) renderWorkout();
+  if (state.ftpWatts !== previousFtp || state.maxHeartRateBpm !== previousMaxHeartRate) renderWorkout();
   saveSettings();
   updateTrainingMeters(state.route.length ? gradeAt(state.route, state.progressMeters) : NaN);
 }

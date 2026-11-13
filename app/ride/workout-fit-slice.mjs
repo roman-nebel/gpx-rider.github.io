@@ -4,10 +4,10 @@ export function workoutFitRange(boundaries, sampleCount, findLegacySample) {
   const runStart = boundaries.findLastIndex(({ startsRun }) => startsRun);
   const first = runStart >= 0 ? runStart : boundaries.findIndex(({ stepIndex }) => Number.isInteger(stepIndex));
   if (first < 0) return null;
-  const runEnd = boundaries.findIndex(({ endsRun }, index) => index > first && endsRun);
-  const last = runEnd >= 0 ? runEnd - 1 : runStart >= 0 ? boundaries.length - 1
-    : boundaries.findLastIndex(({ stepIndex }) => Number.isInteger(stepIndex));
   const start = boundaries[first];
+  const runEnd = boundaries.findIndex(({ endsRun }, index) => index > first && endsRun);
+  const last = runEnd >= 0 ? runEnd - 1 : start.workoutStartMs != null ? boundaries.length - 1
+    : boundaries.findLastIndex(({ stepIndex }) => Number.isInteger(stepIndex));
   const end = boundaries[last + 1];
   const startIndex = start.sampleIndex ?? findLegacySample(start);
   const endIndex = end ? end.sampleIndex ?? findLegacySample(end) : sampleCount;

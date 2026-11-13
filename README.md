@@ -38,6 +38,7 @@ It is built for people who want to:
 - **Route intelligence** — calculate distance, noise-filtered ascent and descent, grade, difficulty, terrain classification, sustained climbs, and smart ETA directly from the GPX data.
 - **Climb and segment focus** — inspect detected climbs or drag across the elevation profile to select any custom route segment.
 - **Adaptive ride HUD** — use the same standard ride screen in windowed and fullscreen views, with sensor meters appearing only when their data is available.
+- **Structured workouts** — import FIT Workout files or MyWhoosh XML and JSON, preview the plan, and follow timed power targets with a compatible trainer.
 - **Cinematic camera system** — switch among follow, first-person, static, orbit, fly-by, fly-over, and satellite views with physically flown transitions between the route overview and rider.
 - **FIT export** — record rides locally and download standards-compliant `.fit` files classified as virtual cycling activities.
 - **Simulation and demo modes** — preview a route at a chosen speed, or drive the complete UI with synthetic trainer and heart-rate data.
@@ -54,9 +55,17 @@ It is built for people who want to:
 3. Select **Connect** beside the smart trainer and choose an FTMS-compatible or Tacx FE-C device.
 4. Optionally connect a Bluetooth heart-rate strap the same way.
 5. Start pedaling. Trainer speed moves the rider along the route, while the current GPX grade is sent back to the trainer.
-6. Use **Download .FIT** whenever you want to export the recorded ride.
+6. Use **Full ride .FIT** to export the recorded ride.
 
 Not on the bike? Use the Simulation card's **Start** button to preview the route at a fixed speed. Real pedaling automatically stops a running simulation and takes priority.
+
+## Structured workouts
+
+Use **Import workout** to select a FIT Workout or a MyWhoosh XML or JSON file. Set your FTP in the rider profile to resolve percentage-based power targets. The selected workout is saved in this browser.
+
+With a route loaded and an ERG-capable trainer connected, select **Start** in the workout HUD. You can also enable **Start workout when pedaling** in the Workout card. Both start paths show a three-second countdown. Pause, resume, or end from the HUD or the Workout card. Pausing freezes the workout timer while the ride recorder continues collecting data during pedaling.
+
+After ending the workout, use **Workout only .FIT** to export the latest recorded run, including movement while the workout was paused. **Full ride .FIT** exports the entire ride buffer. Both downloads are disabled during the countdown, active workout, and pause.
 
 ## Route intelligence
 

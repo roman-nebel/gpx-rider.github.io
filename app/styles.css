@@ -1011,6 +1011,9 @@ body {
 
 .workout-next-detail {
   display: flex;
+  flex-shrink: 0;
+  max-width: 100%;
+  margin-inline-start: auto;
   align-self: center;
   align-items: baseline;
   gap: clamp(4px, 1.7cqw, 10px);

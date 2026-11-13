@@ -192,7 +192,7 @@ export const state = {
   workoutAutoStart: DEFAULT_WORKOUT_AUTO_START,
   workoutAutoStartAttempted: false, // One automatic start per workout selection.
   workoutResult: null, // Completed workout and its frozen summary for the HUD.
-  workoutHudPreview: null, // Workout timeline and the first step for preview.
+  workoutHudPreview: null, // Workout timeline and its zone fills.
   workout: null, // Selected workout, independent of route and ride recording.
   draggedHudField: null,
   fullscreenClockTimer: null,

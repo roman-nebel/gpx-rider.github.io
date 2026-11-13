@@ -49,7 +49,7 @@ export function restoreRideLog() {
   log.lastTickAtMs = saved.lastTickAtMs ?? (lastSample ? lastSample[0] * 1000 : null);
   log.lastTickCalories = Object.hasOwn(saved, "lastTickCalories") ? saved.lastTickCalories : lastSample?.[8] ?? null;
   const lastRunBoundary = log.workoutLaps.findLast(({ startsRun, endsRun }) => startsRun || endsRun);
-  if (lastRunBoundary?.startsRun && log.lastTickAtMs !== null) {
+  if (lastRunBoundary?.startsRun && lastRunBoundary.workoutStartMs != null && log.lastTickAtMs !== null) {
     appendWorkoutBoundary(null, log.lastTickAtMs, { endsRun: true });
   }
 }
@@ -219,9 +219,9 @@ export function hasRideData() {
   return log.samples.length > 0;
 }
 
-export function rideLogWorkout(selectedWorkout) {
+export function rideLogWorkout() {
   return {
-    workout: log.workoutLaps.length ? log.workout : selectedWorkout ?? log.workout,
+    workout: log.workout,
     workoutLaps: log.workoutLaps,
   };
 }

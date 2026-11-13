@@ -73,3 +73,11 @@ test("workout-only export keeps a trailing pause through the explicit end of the
   assert.equal(slice.summary.endTimeMs, 6000);
   assert.equal(slice.summary.totalTimerSeconds, 4);
 });
+
+test("older run markers still exclude riding after the last linked lap", () => {
+  const boundaries = [
+    { stepIndex: 0, startsRun: true, sampleIndex: 2 },
+    { stepIndex: null, sampleIndex: 5 },
+  ];
+  assert.deepEqual(workoutFitRange(boundaries, 10), { first: 0, last: 0, startIndex: 2, endIndex: 5 });
+});

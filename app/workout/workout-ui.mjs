@@ -17,19 +17,6 @@ export function restoreWorkout() {
   els.workoutAutoStartInput.checked = state.workoutAutoStart;
   state.workout = readJson(WORKOUT_STORAGE_KEY);
   renderWorkout();
-  if (location.hostname === "127.0.0.1" && new URLSearchParams(location.search).has("next-step-preview")) {
-    // Temporary HUD example. Keep the selected workout and trainer session intact.
-    const steps = [
-      { 0: "Sweet spot", 1: 0, 2: 480000, 3: 4, 5: 1220, 6: 1220 },
-      { 0: "Recovery", 1: 0, 2: 180000, 3: 4, 5: 1130, 6: 1110, 19: 3, 21: 85, 22: 95 },
-    ].map(normalizeWorkoutStep);
-    steps[1].targets[0].ramp = true;
-    steps[1].targets.push(
-      { label: "Heart rate", unit: "bpm", bounds: [{ value: 120, unit: "bpm" }, { value: 135, unit: "bpm" }] },
-      { label: "Speed", unit: "m/s", bounds: [{ value: 8.333, unit: "m/s" }, { value: 10, unit: "m/s" }] },
-    );
-    syncWorkoutHud(steps, steps.length, { steps, index: 0, elapsed: 456 });
-  }
 }
 
 export function updateWorkoutAutoStart() {

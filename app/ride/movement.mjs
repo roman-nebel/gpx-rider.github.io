@@ -254,8 +254,6 @@ function tick(now) {
       state.trainerPowerWatts,
       elapsedSeconds,
       CYCLING_GROSS_EFFICIENCY,
-  ERG_ROAD_SPEED,
-  WORKOUT_ERG_POWER_TIMEOUT_MS,
     );
   }
 

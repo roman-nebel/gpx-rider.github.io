@@ -67,7 +67,7 @@ function downloadFit(workoutOnly) {
   try {
     const activity = {
       samples,
-      ...rideLogWorkout(state.workout),
+      ...rideLogWorkout(),
       summary: {
         startTimeMs: summary.startedAtMs,
         endTimeMs: summary.endTimeMs,

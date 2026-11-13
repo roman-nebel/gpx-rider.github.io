@@ -11,7 +11,7 @@ export function registerWorkoutHud() {
   registerHudComponent({ id: "workout-step", region: "center", weight: 5, element: els.workoutHud });
 }
 
-export function syncWorkoutHud(steps, total, previewSession) {
+export function syncWorkoutHud(steps, total) {
   if (state.workoutResult?.workout !== state.workout) state.workoutResult = null;
   const profile = total === steps.length && total > 0 ? buildWorkoutProfile(steps, state.ftpWatts) : null;
   const intervals = profile?.intervals ?? (total ? buildWorkoutProfile(steps.slice(0, 1), state.ftpWatts).intervals : []);
@@ -19,7 +19,7 @@ export function syncWorkoutHud(steps, total, previewSession) {
     background: zoneBackground(power),
     hatched: Boolean(power?.relative && !state.ftpWatts),
   }));
-  state.workoutHudPreview = total ? { profile, fills, previewSession } : null;
+  state.workoutHudPreview = total ? { profile, fills } : null;
   els.workoutHud.hidden = !total;
   els.workoutHudTrack.hidden = !profile;
 
@@ -47,7 +47,7 @@ export function currentWorkoutHudStep() {
 
 export function updateWorkoutHud() {
   const result = state.workoutResult;
-  const session = state.workoutErg ?? state.workoutHudPreview?.previewSession;
+  const session = state.workoutErg;
   updateWorkoutControls();
   updateNextWorkoutStep(session);
   els.workoutHudMiniChart.hidden = Boolean(result || session);
