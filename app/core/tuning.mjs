@@ -245,6 +245,7 @@ export const POWER_ZONE_LIMITS = req("training_zones", "power_zone_limits");
 export const WORKOUT_PREVIEW_STEP_LIMIT = req("training_zones", "workout_preview_step_limit");
 export const WORKOUT_HUD_TARGET_TOLERANCE = req("training_zones", "workout_hud_target_tolerance");
 export const WORKOUT_HUD_NEXT_STEP_SECONDS = req("training_zones", "workout_hud_next_step_seconds");
+export const WORKOUT_START_COUNTDOWN_SECONDS = req("training_zones", "workout_start_countdown_seconds");
 export const ERG_ROAD_SPEED = req("erg_road_speed");
 export const WORKOUT_ERG_UPDATE_MS = req("training_zones", "workout_erg_update_ms");
 export const WORKOUT_ERG_POWER_TIMEOUT_MS = req("training_zones", "workout_erg_power_timeout_ms");

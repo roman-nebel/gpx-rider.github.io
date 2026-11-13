@@ -187,6 +187,7 @@ export const state = {
   maxHeartRateBpm: DEFAULT_MAX_HEART_RATE_BPM,
   ftpWatts: null,
   workoutErg: null, // Active, explicitly enabled ERG session for the selected workout.
+  workoutCountdown: null, // Pending workout start and its countdown timer.
   workoutResult: null, // Completed workout and its frozen summary for the HUD.
   workoutHudPreview: null, // Workout timeline and the first step for preview.
   workout: null, // Selected workout, independent of route and ride recording.
@@ -234,6 +235,9 @@ export const els = {
   workoutStepCount: document.querySelector("#workoutStepCount"),
   workoutErgInput: document.querySelector("#workoutErgInput"),
   workoutErgStatus: document.querySelector("#workoutErgStatus"),
+  workoutCardActions: document.querySelector("#workoutCardActions"),
+  pauseWorkoutBtn: document.querySelector("#pauseWorkoutBtn"),
+  endWorkoutBtn: document.querySelector("#endWorkoutBtn"),
   workoutFtpWarning: document.querySelector("#workoutFtpWarning"),
   workoutChart: document.querySelector("#workoutChart"),
   workoutSteps: document.querySelector("#workoutSteps"),
@@ -406,6 +410,11 @@ export const els = {
   workoutHudStepTrack: document.querySelector("#workoutHudStepTrack"),
   workoutHudStepProgress: document.querySelector("#workoutHudStepProgress"),
   workoutHudRemaining: document.querySelector("#workoutHudRemaining"),
+  workoutHudMiniChart: document.querySelector("#workoutHudMiniChart"),
+  workoutHudPlayBtn: document.querySelector("#workoutHudPlayBtn"),
+  workoutHudEndBtn: document.querySelector("#workoutHudEndBtn"),
+  workoutHudCountdown: document.querySelector("#workoutHudCountdown"),
+  workoutHudStartError: document.querySelector("#workoutHudStartError"),
   workoutHudNext: document.querySelector("#workoutHudNext"),
   workoutHudNextName: document.querySelector("#workoutHudNextName"),
   workoutHudNextDuration: document.querySelector("#workoutHudNextDuration"),

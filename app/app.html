@@ -245,9 +245,22 @@
                   <div id="workoutHudStepTrack" class="workout-step-track">
                     <progress id="workoutHudStepProgress" max="1" value="0" aria-label="Current step progress"></progress>
                   </div>
+                  <div id="workoutHudMiniChart" class="workout-step-track workout-mini-chart" aria-hidden="true" hidden></div>
                 </div>
                 <span id="workoutHudRemaining" class="workout-step-metrics workout-step-remaining"></span>
+                <div class="workout-hud-actions">
+                  <button id="workoutHudPlayBtn" type="button" class="btn btn-accent workout-hud-action" aria-label="Start workout" title="Start workout">
+                    <span class="workout-start-label">Start</span>
+                    <svg class="workout-play-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
+                    <svg class="workout-pause-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 2h3v8H2zm5 0h3v8H7z"></path></svg>
+                    <span id="workoutHudCountdown" class="workout-step-metrics" aria-hidden="true" hidden></span>
+                  </button>
+                  <button id="workoutHudEndBtn" type="button" class="icon-btn workout-hud-action" aria-label="End workout" title="End workout" hidden>
+                    <svg viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
+                  </button>
+                </div>
               </div>
+              <p id="workoutHudStartError" class="workout-hud-start-error" role="alert" hidden></p>
               <dl id="workoutHudSummary" class="workout-step-summary" hidden></dl>
               <section id="workoutHudNext" class="workout-next-step" aria-label="Next workout step" hidden>
                 <span class="workout-next-label">Up next</span>
@@ -384,6 +397,10 @@
                 <input id="workoutErgInput" type="checkbox" aria-labelledby="workoutErgLabel" aria-describedby="workoutErgStatus">
                 <span class="switch-track"><span class="switch-knob"></span></span>
               </label>
+            </div>
+            <div id="workoutCardActions" class="workout-card-actions" hidden>
+              <button id="pauseWorkoutBtn" type="button" class="btn btn-ghost btn-sm" hidden>Pause</button>
+              <button id="endWorkoutBtn" type="button" class="btn btn-ghost btn-sm" hidden>End workout</button>
             </div>
             <div id="workoutChart" class="workout-chart"></div>
             <ol id="workoutSteps" class="workout-steps"></ol>

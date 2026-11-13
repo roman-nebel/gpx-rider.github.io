@@ -19,7 +19,7 @@ export function syncWorkoutHud(steps, total, previewSession) {
     background: zoneBackground(power),
     hatched: Boolean(power?.relative && !state.ftpWatts),
   }));
-  state.workoutHudPreview = total ? { step: steps[0], profile, fills, previewSession } : null;
+  state.workoutHudPreview = total ? { profile, fills, previewSession } : null;
   els.workoutHud.hidden = !total;
   els.workoutHudTrack.hidden = !profile;
 
@@ -35,20 +35,22 @@ export function syncWorkoutHud(steps, total, previewSession) {
     }
   }
   els.workoutHudChart.replaceChildren(segments);
+  els.workoutHudMiniChart.style.backgroundImage = miniChartBackground(profile);
   updateWorkoutHud();
   updateWorkoutMeterTargets();
 }
 
 export function currentWorkoutHudStep() {
-  if (state.workoutResult) return null;
   const session = state.workoutErg;
-  return session ? session.steps[session.index] : state.workoutHudPreview?.step;
+  return session && !session.paused ? session.steps[session.index] : null;
 }
 
 export function updateWorkoutHud() {
   const result = state.workoutResult;
   const session = state.workoutErg ?? state.workoutHudPreview?.previewSession;
+  updateWorkoutControls();
   updateNextWorkoutStep(session);
+  els.workoutHudMiniChart.hidden = Boolean(result || session);
   const summary = els.workoutHudSummary;
   const profile = state.workoutHudPreview?.profile;
   els.workoutHud.classList.toggle("is-complete", Boolean(result));
@@ -69,13 +71,12 @@ export function updateWorkoutHud() {
     return;
   }
   summary.hidden = true;
-  const step = session?.steps[session.index] ?? currentWorkoutHudStep();
-  if (!step) return;
+  const step = session?.steps[session.index];
 
   const index = session?.index ?? 0;
   const elapsed = session?.elapsed ?? 0;
-  const duration = step.durationSeconds;
-  setText(els.workoutHudCurrent, step.name);
+  const duration = step?.durationSeconds;
+  setText(els.workoutHudCurrent, step?.name ?? state.workout?.name ?? "");
   const timedStep = Number.isFinite(duration) && duration > 0;
   const track = els.workoutHudStepTrack;
   track.hidden = !timedStep;
@@ -110,6 +111,49 @@ export function updateWorkoutHud() {
   setText(els.workoutHudTime, profile.timed
     ? `${formatDuration(Math.floor(position))}/${formatDuration(profile.extent)}`
     : `Step ${index + 1} / ${profile.intervals.length}`);
+}
+
+function updateWorkoutControls() {
+  const session = state.workoutErg;
+  const countdown = state.workoutCountdown;
+  const play = els.workoutHudPlayBtn;
+  const action = session?.paused ? "Resume workout" : session ? "Pause workout"
+    : state.workoutResult ? "Restart workout" : "Start workout";
+  const playState = countdown ? "countdown" : !session ? "start" : session.paused ? "play" : "pause";
+  if (play.dataset.state !== playState) play.dataset.state = playState;
+  const label = countdown ? `Starting in ${countdown.seconds} seconds` : action;
+  setButtonLabel(play, label);
+  play.disabled = Boolean(countdown);
+  els.workoutHudCountdown.hidden = !countdown;
+  if (countdown) setText(els.workoutHudCountdown, String(countdown.seconds));
+
+  const endLabel = countdown ? "Cancel start" : "End workout";
+  setButtonLabel(els.workoutHudEndBtn, endLabel);
+  els.workoutHudEndBtn.hidden = !(session || countdown);
+  els.workoutCardActions.hidden = els.workoutHudEndBtn.hidden;
+  els.pauseWorkoutBtn.hidden = !session;
+  setText(els.pauseWorkoutBtn, session?.paused ? "Resume" : "Pause");
+  els.endWorkoutBtn.hidden = els.workoutHudEndBtn.hidden;
+  setText(els.endWorkoutBtn, endLabel);
+}
+
+function setButtonLabel(button, label) {
+  if (button.title === label) return;
+  button.title = label;
+  button.setAttribute("aria-label", label);
+}
+
+function miniChartBackground(profile) {
+  if (!profile?.extent) return "";
+  const stops = profile.intervals.flatMap(({ start, end, power }) => {
+    const width = end - start;
+    return workoutZoneBands(power, state.ftpWatts).map((band) => {
+      const left = (start + width * band.start) / profile.extent * 100;
+      const right = (start + width * band.end) / profile.extent * 100;
+      return `${band.color} ${left}% ${right}%`;
+    });
+  });
+  return `linear-gradient(to right, ${stops.join(", ")})`;
 }
 
 function updateNextWorkoutStep(session) {

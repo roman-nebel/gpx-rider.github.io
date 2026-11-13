@@ -55,7 +55,7 @@ export function applyGpxText(text, { overrideName = null, fallbackName = null, g
     return;
   }
 
-  if (state.workoutErg) stopWorkoutErg();
+  if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
   stopDemoMode({ silent: true });
   clearDemoHistory();
   state.route = enrichRoute(route);

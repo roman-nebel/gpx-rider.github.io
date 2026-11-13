@@ -909,7 +909,7 @@ body {
 .workout-step-chip {
   width: min(var(--hud-banner-width), calc(100cqw - 2 * var(--hud-inset)));
   display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
   gap: 10px;
 }
 
@@ -1088,6 +1088,56 @@ body {
 .workout-step-remaining {
   grid-column: 2;
   justify-self: end;
+}
+
+.workout-hud-actions {
+  display: flex;
+  grid-column: 3;
+  gap: 4px;
+}
+
+.workout-hud-start-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--accent);
+  font: 600 11px/1.3 var(--font-ui);
+}
+
+.workout-hud-action {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  min-height: 0;
+  border-radius: 8px;
+  padding: 0;
+}
+
+#workoutHudCountdown {
+  color: inherit;
+}
+
+.workout-hud-action svg {
+  width: 12px;
+  height: 12px;
+}
+
+.workout-hud-action[data-state="start"] {
+  width: auto;
+  padding-inline: 8px;
+}
+
+.workout-hud-action:not([data-state="start"]) .workout-start-label,
+.workout-hud-action:not([data-state="play"]) .workout-play-icon,
+.workout-hud-action:not([data-state="pause"]) .workout-pause-icon {
+  display: none;
+}
+
+.workout-mini-chart {
+  height: 8px;
+}
+
+.workout-mini-chart::before {
+  content: none;
 }
 
 .workout-step-summary {
@@ -1883,6 +1933,12 @@ body {
 .workout-card {
   display: grid;
   gap: 10px;
+}
+
+.workout-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .workout-heading {

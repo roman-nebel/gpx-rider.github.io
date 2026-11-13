@@ -53,7 +53,9 @@ import {
 } from "../core/tuning.mjs";
 import { activeCaloriesFromPower } from "../core/units.mjs";
 
-import { pauseWorkoutErg, recordingWorkoutSession, stopWorkoutErg, updateWorkoutErg } from "../workout/workout-erg.mjs";
+import {
+  pauseWorkoutErg, recordingWorkoutSession, stopWorkoutErg, updateWorkoutErg,
+} from "../workout/workout-erg.mjs";
 
 export function isMoving() {
   return state.simulating || state.pedaling;
@@ -191,7 +193,7 @@ function handleMovementStopped() {
 }
 
 export function resetRide() {
-  if (state.workoutErg) stopWorkoutErg();
+  if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
   state.simulating = false;
   state.progressMeters = 0;
   state.lastTick = performance.now();
@@ -300,12 +302,14 @@ function tick(now) {
 }
 
 export function currentRideSpeedKph() {
-  if (state.workoutErg && state.pedaling && !state.demoModeActive) return state.ergRoadSpeedKph ?? 0;
+  if (state.workoutErg && !state.workoutErg.paused && state.pedaling && !state.demoModeActive) {
+    return state.ergRoadSpeedKph ?? 0;
+  }
   return state.trainerSpeedKph;
 }
 
 function updateErgRoadSpeed(now, elapsedSeconds, grade) {
-  if (!state.workoutErg || !state.pedaling || state.demoModeActive) {
+  if (!state.workoutErg || state.workoutErg.paused || !state.pedaling || state.demoModeActive) {
     state.ergRoadSpeedKph = null;
     return;
   }

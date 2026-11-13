@@ -26,7 +26,7 @@ export function handleTrainerTelemetry(telemetry) {
     state.trainerSpeedKph = null;
     state.trainerPowerWatts = null;
     state.trainerPowerSampleAt = null;
-    if (state.workoutErg) stopWorkoutErg("Trainer disconnected.");
+    if (state.workoutErg || state.workoutCountdown) stopWorkoutErg("Trainer disconnected.");
     state.trainerCadenceRpm = null;
     state.trainerHeartRateBpm = null;
     setPedaling(false);
