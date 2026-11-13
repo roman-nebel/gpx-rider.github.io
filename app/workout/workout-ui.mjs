@@ -10,9 +10,14 @@ import { syncWorkoutHud } from "./workout-hud.mjs";
 import { stopWorkoutErg } from "./workout-erg.mjs";
 import { renderWorkoutChart } from "./workout-chart.mjs";
 import { normalizeWorkoutStep } from "./workout-step.mjs";
-import { previewWorkoutStep } from "./workout-preview.mjs";
+import { previewNextWorkoutStep, previewWorkoutStep } from "./workout-preview.mjs";
 
 const WORKOUT_STORAGE_KEY = "gpx-rider:selected-workout";
+const STEP_TARGET_ICONS = [
+  ["heartRate", "heart-rate"],
+  ["cadence", "cadence"],
+  ["speed", "speed"],
+];
 
 export function restoreWorkout() {
   els.workoutAutoStartInput.checked = state.workoutAutoStart;
@@ -113,8 +118,6 @@ export function renderWorkout() {
     : `(${total})`;
   const normalizationLimit = Math.max(WORKOUT_PREVIEW_STEP_LIMIT, WORKOUT_PROFILE_STEP_LIMIT + 1);
   const normalized = workout.steps.slice(0, normalizationLimit).map(normalizeWorkoutStep);
-  const steps = normalized.slice(0, previewCount).map((step) =>
-    previewWorkoutStep(step, state.ftpWatts, state.maxHeartRateBpm));
   els.workoutFtpWarning.hidden = Boolean(state.ftpWatts) ||
     !normalized.some((step) => step.targets.some((target) => target.needsFtp));
 
@@ -122,18 +125,18 @@ export function renderWorkout() {
   syncWorkoutHud(normalized, total);
 
   const items = document.createDocumentFragment();
-  steps.forEach((step, index) => {
+  normalized.slice(0, previewCount).forEach((step, index) => {
     const item = document.createElement("li");
-    const name = document.createElement("span");
-    name.className = "workout-step-name";
-    name.textContent = step.name;
-    const detail = document.createElement("span");
-    detail.className = "workout-step-detail";
+    const heading = document.createElement("span");
+    heading.className = "workout-step-heading";
     const stepNumber = document.createElement("span");
     stepNumber.className = "workout-step-number";
     stepNumber.textContent = `${index + 1}.`;
-    detail.append(stepNumber, document.createTextNode(` ${step.detail}`));
-    item.append(detail, name);
+    const name = document.createElement("span");
+    name.className = "workout-step-name";
+    name.textContent = step.name;
+    heading.append(stepNumber, name);
+    item.append(heading, buildStepMetrics(step));
     if (step.notes) {
       const notes = document.createElement("span");
       notes.className = "workout-step-notes";
@@ -143,6 +146,44 @@ export function renderWorkout() {
     items.append(item);
   });
   els.workoutSteps.replaceChildren(items);
+}
+
+function buildStepMetrics(step) {
+  const { detail } = previewWorkoutStep(step, state.ftpWatts, state.maxHeartRateBpm);
+  const preview = previewNextWorkoutStep(step, state.ftpWatts);
+  const metrics = document.createElement("span");
+  metrics.className = "workout-step-list-metrics";
+  metrics.setAttribute("role", "group");
+  metrics.setAttribute("aria-label", detail);
+  metrics.title = detail;
+
+  for (const [target, icon] of STEP_TARGET_ICONS) {
+    if (preview[target]) metrics.append(buildTargetIcon(icon));
+  }
+  if (preview.power) {
+    const power = document.createElement("span");
+    power.className = "workout-next-power";
+    power.setAttribute("aria-hidden", "true");
+    const value = document.createElement("span");
+    value.textContent = preview.power;
+    power.append(buildTargetIcon("bolt"), value);
+    metrics.append(power);
+  }
+  const duration = document.createElement("span");
+  duration.className = "workout-step-list-duration";
+  duration.setAttribute("aria-hidden", "true");
+  const time = document.createElement("span");
+  time.textContent = preview.duration;
+  duration.append(buildTargetIcon("clock"), time);
+  metrics.append(duration);
+  return metrics;
+}
+
+function buildTargetIcon(icon) {
+  const element = document.createElement("span");
+  element.className = `workout-next-icon workout-next-${icon}`;
+  element.setAttribute("aria-hidden", "true");
+  return element;
 }
 
 function setWorkoutError(message) {
