@@ -49,11 +49,20 @@ function startWorkoutErg() {
   }
 
   if (state.workoutErg) stopWorkoutErg();
+  state.workoutAutoStartAttempted = true;
   els.workoutHudStartError.hidden = true;
   state.workoutResult = null;
   els.workoutErgInput.checked = true;
   state.workoutCountdown = { deadline: performance.now() + WORKOUT_START_COUNTDOWN_SECONDS * 1000, steps };
   updateCountdown();
+}
+
+export function autoStartWorkout() {
+  if (!state.workoutAutoStart || state.workoutAutoStartAttempted || !state.workout ||
+      state.workoutErg || state.workoutCountdown || state.demoModeActive || state.route.length < 2 ||
+      state.progressMeters >= routeTotalDistance(state.route) || !trainerSupportsTargetPower()) return;
+  state.workoutAutoStartAttempted = true;
+  startWorkoutErg();
 }
 
 function updateCountdown() {

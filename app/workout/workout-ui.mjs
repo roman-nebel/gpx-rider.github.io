@@ -2,6 +2,7 @@
 import { WORKOUT_PREVIEW_STEP_LIMIT, WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 import { els, state } from "../core/state.mjs";
 import { readJson, removeStored, writeJsonCommitted } from "../storage/storage.mjs";
+import { saveSettings } from "../storage/persistence.mjs";
 import { decodeFitWorkout } from "./fit-workout.mjs";
 import { decodeMyWhooshJson, decodeMyWhooshXml } from "./mywhoosh-workout.mjs";
 import { syncWorkoutHud } from "./workout-hud.mjs";
@@ -13,6 +14,7 @@ import { previewWorkoutStep } from "./workout-preview.mjs";
 const WORKOUT_STORAGE_KEY = "gpx-rider:selected-workout";
 
 export function restoreWorkout() {
+  els.workoutAutoStartInput.checked = state.workoutAutoStart;
   state.workout = readJson(WORKOUT_STORAGE_KEY);
   renderWorkout();
   if (location.hostname === "127.0.0.1" && new URLSearchParams(location.search).has("next-step-preview")) {
@@ -28,6 +30,12 @@ export function restoreWorkout() {
     );
     syncWorkoutHud(steps, steps.length, { steps, index: 0, elapsed: 456 });
   }
+}
+
+export function updateWorkoutAutoStart() {
+  state.workoutAutoStart = els.workoutAutoStartInput.checked;
+  state.workoutAutoStartAttempted = Boolean(state.workoutErg || state.workoutCountdown || state.workoutResult);
+  saveSettings();
 }
 
 export async function importWorkout(event) {
@@ -47,6 +55,7 @@ export async function importWorkout(event) {
     }
     stopWorkoutErg();
     state.workout = workout;
+    state.workoutAutoStartAttempted = false;
     renderWorkout();
     els.workoutCard.scrollIntoView({ block: "nearest" });
   } catch (error) {
@@ -78,6 +87,7 @@ export async function clearWorkout() {
     }
     stopWorkoutErg();
     state.workout = null;
+    state.workoutAutoStartAttempted = false;
     setWorkoutError("");
     renderWorkout();
   } catch {

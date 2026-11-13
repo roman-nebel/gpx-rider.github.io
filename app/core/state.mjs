@@ -6,6 +6,7 @@
 
 import { createRideEstimator } from "../ride/eta.mjs";
 import {
+  DEFAULT_WORKOUT_AUTO_START,
   DEFAULT_BEACON_COLOR,
   DEFAULT_BEACON_DIAMETER_METERS,
   DEFAULT_BEACON_ENABLED,
@@ -188,6 +189,8 @@ export const state = {
   ftpWatts: null,
   workoutErg: null, // Active, explicitly enabled ERG session for the selected workout.
   workoutCountdown: null, // Pending workout start and its countdown timer.
+  workoutAutoStart: DEFAULT_WORKOUT_AUTO_START,
+  workoutAutoStartAttempted: false, // One automatic start per workout selection.
   workoutResult: null, // Completed workout and its frozen summary for the HUD.
   workoutHudPreview: null, // Workout timeline and the first step for preview.
   workout: null, // Selected workout, independent of route and ride recording.
@@ -234,6 +237,7 @@ export const els = {
   workoutName: document.querySelector("#workoutName"),
   workoutStepCount: document.querySelector("#workoutStepCount"),
   workoutErgInput: document.querySelector("#workoutErgInput"),
+  workoutAutoStartInput: document.querySelector("#workoutAutoStartInput"),
   workoutErgStatus: document.querySelector("#workoutErgStatus"),
   workoutCardActions: document.querySelector("#workoutCardActions"),
   pauseWorkoutBtn: document.querySelector("#pauseWorkoutBtn"),

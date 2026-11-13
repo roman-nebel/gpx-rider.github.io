@@ -54,7 +54,7 @@ import {
 import { activeCaloriesFromPower } from "../core/units.mjs";
 
 import {
-  pauseWorkoutErg, recordingWorkoutSession, stopWorkoutErg, updateWorkoutErg,
+  autoStartWorkout, pauseWorkoutErg, recordingWorkoutSession, stopWorkoutErg, updateWorkoutErg,
 } from "../workout/workout-erg.mjs";
 
 export function isMoving() {
@@ -111,6 +111,7 @@ export function setPedaling(pedaling) {
       updateStartButton();
       updateProgressLabel("Pedaling detected — simulation stopped, following trainer speed.");
     }
+    autoStartWorkout();
     ensureMovementLoop();
   } else {
     state.ergRoadSpeedKph = null;

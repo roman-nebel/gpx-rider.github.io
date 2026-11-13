@@ -814,6 +814,8 @@ training_zones:
   workout_hud_next_step_seconds: 30
   # Countdown before a workout starts or restarts.
   workout_start_countdown_seconds: 3
+  # Start the selected workout on the first pedal movement when enabled.
+  workout_auto_start: false
   power_zone_definitions:
     - { name: "Active Recovery", color: "#8b949e" }
     - { name: "Endurance", color: "#4f9bff" }

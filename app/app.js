@@ -74,7 +74,7 @@ import { registerWorkoutHud } from "./workout/workout-hud.mjs";
 import {
   endWorkout, handleWorkoutErgRejection, toggleWorkoutErg, toggleWorkoutPause, useWorkoutHudPlay,
 } from "./workout/workout-erg.mjs";
-import { clearWorkout, importWorkout, restoreWorkout } from "./workout/workout-ui.mjs";
+import { clearWorkout, importWorkout, restoreWorkout, updateWorkoutAutoStart } from "./workout/workout-ui.mjs";
 import { registerClimbBannerHud } from "./route/climbs-ui.mjs";
 import { initScreenManager } from "./hud/screen-manager.mjs";
 import {
@@ -196,6 +196,7 @@ function bindEvents() {
   });
   els.gpxFile.addEventListener("change", loadGpxFile);
   els.workoutErgInput.addEventListener("change", toggleWorkoutErg);
+  els.workoutAutoStartInput.addEventListener("change", updateWorkoutAutoStart);
   els.pauseWorkoutBtn.addEventListener("click", toggleWorkoutPause);
   els.endWorkoutBtn.addEventListener("click", endWorkout);
   els.workoutHudPlayBtn.addEventListener("click", useWorkoutHudPlay);
