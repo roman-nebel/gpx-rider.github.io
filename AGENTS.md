@@ -329,8 +329,7 @@ in place).
     (to-top / to-go / current / peak / grade-left, plus two unlabelled
     progress bars — blue = distance, amber = ascent, matching the dock bars)
     while on it. Both variants carry a "climb N of M" ordinal (the climb's
-    `findIndex` position + `state.climbs.length`), mirroring the setup page's
-    live climb status. Max grade and the mini-profile bars are cached on the climb
+    `findIndex` position + `state.climbs.length`), matching the order in the sidebar climb list. Max grade and the mini-profile bars are cached on the climb
     object (climbs are re-detected each route load, so the cache can't
     go stale). If the user drag-selects a custom profile segment while riding,
     this same banner surface switches to the selected segment stats (start, end,
@@ -378,15 +377,10 @@ in place).
   noise. All thresholds live in the `climb_detection` section of `tuning.yaml`
   (via `tuning.mjs`) — `scripts/climb_tester.py` is a standalone CLI that reads
   the exact same section for verbose step-by-step diagnostics against a GPX
-  file; it does not affect the shipped app. `updateClimbStatus` (`climbs-ui.mjs`,
-  called from `updateRideUi` on the same slow-UI cadence as the other live
-  stats) looks up `state.progressMeters` against `state.climbs` each tick: if
-  progress falls inside a climb's `[startDistanceMeters, endDistanceMeters]`
-  it reports that climb's remaining distance/ascent/grade and highlights it
-  in the climbs list; otherwise it reports the next upcoming climb and the
-  distance to it. It never re-detects climbs itself — the tolerance already
-  baked into `detectClimbs`'s boundaries is what keeps this from flickering
-  on GPX noise.
+  file; it does not affect the shipped app. `highlightCurrentClimb`
+  (`climbs-ui.mjs`, called from `updateRideUi`) highlights the detected climb
+  that contains the rider's current position. The map banner shows live
+  progress through that climb or the distance to the next one.
 - **Custom profile segments.** A click on the elevation profile still seeks the
   rider. A horizontal drag across the profile selects an arbitrary route
   segment, using `PROFILE_SEGMENT_SELECTION_*` thresholds in `tuning.mjs` to

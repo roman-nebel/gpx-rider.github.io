@@ -109,8 +109,8 @@ export function renderWorkout() {
   const total = workout.steps.length;
   const previewCount = Math.min(total, WORKOUT_PREVIEW_STEP_LIMIT);
   els.workoutStepCount.textContent = previewCount < total
-    ? `${total} steps · Showing first ${previewCount}`
-    : `${total} ${total === 1 ? "step" : "steps"}`;
+    ? `(${total}, showing first ${previewCount})`
+    : `(${total})`;
   const normalizationLimit = Math.max(WORKOUT_PREVIEW_STEP_LIMIT, WORKOUT_PROFILE_STEP_LIMIT + 1);
   const normalized = workout.steps.slice(0, normalizationLimit).map(normalizeWorkoutStep);
   const steps = normalized.slice(0, previewCount).map((step) =>

@@ -128,6 +128,7 @@ export function updateRouteOverview() {
     state.climbs = [];
     els.climbsSection.hidden = true;
     els.difficultyStat.textContent = "--";
+    els.difficultyInfo.hidden = true;
     els.difficultyDetail.textContent = "";
     return;
   }
@@ -135,6 +136,7 @@ export function updateRouteOverview() {
   const totalDistance = roadDistanceAt(state.route, routeTotalDistance(state.route));
   const totalAscent = routeTotalAscent(state.route);
   const classification = classifyRoute(totalDistance, totalAscent);
+  els.difficultyInfo.hidden = !classification;
   if (classification) {
     els.difficultyStat.textContent = classification.difficulty;
     els.difficultyDetail.textContent =

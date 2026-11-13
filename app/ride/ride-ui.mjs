@@ -5,7 +5,7 @@
 
 import { updateCameraSettingsLabels } from "../camera/camera-ui.mjs";
 import { isFirstPersonCameraView } from "../camera/camera-ui.mjs";
-import { updateClimbStatus, updateFullscreenClimbBanner } from "../route/climbs-ui.mjs";
+import { highlightCurrentClimb, updateFullscreenClimbBanner } from "../route/climbs-ui.mjs";
 import { estimateRemainingSeconds } from "./eta.mjs";
 import { updateMapCamera } from "../camera/follow-camera.mjs";
 import { updateGalleryMetadataExport } from "../gallery-ui/gallery-export.mjs";
@@ -98,7 +98,7 @@ export function updateRideUi(options = {}) {
     `${formatDistance(riddenDistance, state.distanceUnits)} of ${formatDistance(totalDistance, state.distanceUnits)}`,
   );
   updateAscentProgress(ascentSoFar, totalAscent);
-  updateClimbStatus(point);
+  highlightCurrentClimb();
   renderProfile(horizontalDistance ? state.progressMeters / horizontalDistance : 0);
   updateMinimapPosition(point);
   updateCameraSettingsLabels();
@@ -117,6 +117,7 @@ export function updateRideUi(options = {}) {
   // Fullscreen dock extras: the road-ahead readouts and the two progress bars
   // that sit beside the profile, plus the clock chip and climb banner.
   els.fsRoadRouteName.textContent = state.routeName || "Route";
+  els.fsRoadRouteName.title = state.routeName || "";
   els.fsRoadRouteProps.textContent =
     `${formatDistance(totalDistance, state.distanceUnits, 1)} · ` +
     `${formatAltitude(totalAscent, state.distanceUnits)} ascent`;
