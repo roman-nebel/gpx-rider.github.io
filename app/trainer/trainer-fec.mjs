@@ -16,6 +16,7 @@ import {
   buildAntFrame,
   decodeFecPage,
   encodeTrackResistancePage,
+  encodeTargetPowerPage,
   FEC_PAGE_GENERAL,
   FEC_PAGE_TRAINER,
   parseAntFrame,
@@ -105,6 +106,7 @@ function handleFecNotification(event) {
   callbacks.onTelemetry({
     speedKph: fec.telemetry.speedKph,
     powerWatts: fec.telemetry.powerWatts,
+    powerSampleFresh: decoded.page === FEC_PAGE_TRAINER,
     cadenceRpm: fec.telemetry.cadenceRpm,
     totalCaloriesKcal: null, // FE-C carries no accumulated calories; the app derives it from power
     heartRateBpm: fec.telemetry.heartRateBpm,
@@ -114,16 +116,16 @@ function handleFecNotification(event) {
 // Send a Track Resistance (grade) command. Mirrors the FTMS backend's guards:
 // dedupe identical grades and never let a slow write build a backlog. Returns
 // true when the trainer is connected and the write was attempted.
-export async function sendFecGrade(gradePercent) {
+export async function sendFecGrade(gradePercent, { force = false } = {}) {
   if (!fec.write) return false;
-  if (fec.gradeWriteInFlight) {
+  if (fec.gradeWriteInFlight && !force) {
     console.debug(`[trainer-fec] grade ${gradePercent.toFixed(1)}% dropped, previous write still in flight`);
     return true;
   }
 
   const page = encodeTrackResistancePage(gradePercent, { crr: TACX_FEC_DEFAULT_CRR });
   const raw = page[5] | (page[6] << 8);
-  if (raw === fec.lastGradeRaw) return true;
+  if (!force && raw === fec.lastGradeRaw) return true;
 
   const bytes = fec.framing === "ant"
     ? buildAntFrame(ANT_ACKNOWLEDGED_DATA, fec.channel, page)
@@ -146,20 +148,31 @@ export async function sendFecGrade(gradePercent) {
   }
 }
 
+export function sendFecTargetPower(watts) {
+  const page = encodeTargetPowerPage(watts);
+  return queueFecWrite(fec.framing === "ant"
+    ? buildAntFrame(ANT_ACKNOWLEDGED_DATA, fec.channel, page)
+    : page);
+}
+
 function queueFecWrite(bytes) {
   // The device only allows one outstanding GATT operation at a time.
-  const task = fec.writeQueue.then(() => writeFecBytes(bytes));
+  const characteristic = fec.write;
+  const task = fec.writeQueue.then(() => {
+    if (characteristic !== fec.write) throw new Error("Trainer connection changed.");
+    return writeFecBytes(characteristic, bytes);
+  });
   fec.writeQueue = task.catch(() => {});
   return task;
 }
 
-async function writeFecBytes(bytes) {
+async function writeFecBytes(characteristic, bytes) {
   const payload = bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes);
   // FE-C control is an acknowledged transaction; prefer a Write Request and
   // only fall back to Write Without Response for peripherals that reject it.
   try {
-    await fec.write.writeValue(payload);
+    await characteristic.writeValue(payload);
   } catch {
-    await fec.write.writeValueWithoutResponse(payload);
+    await characteristic.writeValueWithoutResponse(payload);
   }
 }

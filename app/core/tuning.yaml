@@ -796,6 +796,26 @@ training_zones:
   # Heart Rate Reserve (Karvonen) from resting/max HR; power uses FTP.
   resting_heart_rate_bpm: 60
   max_heart_rate_bpm: 180
+  # Upper FTP fractions for power zones Z1 through Z6. Z7 has no ceiling.
+  power_zone_limits: [0.55, 0.75, 0.9, 1.05, 1.2, 1.5]
+  # Default top of the workout chart as a multiple of FTP. Higher targets expand the scale.
+  workout_profile_ftp_ceiling: 1.5
+  # Maximum number of intervals drawn in the sidebar workout chart.
+  workout_profile_step_limit: 2000
+  # Maximum number of rows displayed in the sidebar workout preview.
+  workout_preview_step_limit: 200
+  # Minimum spacing between ERG target updates, including ramp updates.
+  workout_erg_update_ms: 1000
+  # Release ERG and pause the workout when trainer power stops updating.
+  workout_erg_power_timeout_ms: 3000
+  # Ignore smaller target deviations in the HUD, in watts, rpm, and bpm.
+  workout_hud_target_tolerance: { power: 10, cadence: 5, heart_rate: 5 }
+  # Show the next workout step when the active step has this many seconds left.
+  workout_hud_next_step_seconds: 30
+  # Countdown before a workout starts or restarts.
+  workout_start_countdown_seconds: 3
+  # Start the selected workout on the first pedal movement when enabled.
+  workout_auto_start: false
   power_zone_definitions:
     - { name: "Active Recovery", color: "#8b949e" }
     - { name: "Endurance", color: "#4f9bff" }
@@ -1095,6 +1115,23 @@ demo_ride:
   heart_rate_fall_tau_seconds: 78
   low_effort_return_delay_seconds: 120
   heart_rate_noise_bpm: 1
+
+# --- Virtual road speed during ERG -------------------------------------------
+erg_road_speed:
+  # Assumed rider and bike masses when converting measured power into road speed.
+  rider_weight_kg: 85
+  bike_weight_kg: 10
+  # Road tire rolling resistance and upright riding drag area.
+  rolling_resistance_coefficient: 0.005
+  drag_area_square_meters: 0.48
+  # Air density at sea level and fraction of pedal power reaching the wheel.
+  air_density_kg_per_cubic_meter: 1.225
+  drivetrain_efficiency: 0.96
+  # Allow a rider to stall uphill and limit modeled speeds on steep descents.
+  min_speed_kph: 0
+  max_speed_kph: 72
+  # Smooth changes in measured effort and route grade over several seconds.
+  speed_smoothing_tau_seconds: 3
 
 # --- Ride recording ----------------------------------------------------------
 #

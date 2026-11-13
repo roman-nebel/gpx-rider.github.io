@@ -5,10 +5,11 @@
 
 import { stopDemoMode, syncDemoModeUi } from "../demo/demo-mode.mjs";
 import { isHeartRateConnected } from "../trainer/heartrate.mjs";
-import { setPedaling, updatePedalingFromSpeed } from "./movement.mjs";
+import { currentRideSpeedKph, setPedaling, updatePedalingFromSpeed } from "./movement.mjs";
 import { rideLogSummary } from "./recorder.mjs";
 import { gradeAt } from "../route/route.mjs";
 import { els, state } from "../core/state.mjs";
+import { stopWorkoutErg } from "../workout/workout-erg.mjs";
 import { isTrainerConnected } from "../trainer/trainer.mjs";
 import { updateTrainingMeters } from "./training-zones.mjs";
 import { HEART_RATE_REFRESH_MS } from "../core/tuning.mjs";
@@ -24,6 +25,8 @@ export function handleTrainerTelemetry(telemetry) {
   if (!telemetry) {
     state.trainerSpeedKph = null;
     state.trainerPowerWatts = null;
+    state.trainerPowerSampleAt = null;
+    if (state.workoutErg || state.workoutCountdown) stopWorkoutErg("Trainer disconnected.");
     state.trainerCadenceRpm = null;
     state.trainerHeartRateBpm = null;
     setPedaling(false);
@@ -33,7 +36,10 @@ export function handleTrainerTelemetry(telemetry) {
   }
 
   if (telemetry.speedKph !== null) state.trainerSpeedKph = telemetry.speedKph;
-  if (telemetry.powerWatts !== null) state.trainerPowerWatts = telemetry.powerWatts;
+  if (telemetry.powerWatts !== null) {
+    state.trainerPowerWatts = telemetry.powerWatts;
+    if (telemetry.powerSampleFresh !== false) state.trainerPowerSampleAt = performance.now();
+  }
   if (telemetry.cadenceRpm !== null) state.trainerCadenceRpm = telemetry.cadenceRpm;
   if (telemetry.totalCaloriesKcal !== null) state.trainerCaloriesKcal = telemetry.totalCaloriesKcal;
   state.trainerHeartRateBpm = telemetry.heartRateBpm;
@@ -146,7 +152,6 @@ export function currentRideTimerSeconds() {
 
 export function updateTelemetryUi() {
   const powerText = Number.isFinite(state.trainerPowerWatts) ? `${state.trainerPowerWatts} W` : "--";
-  const speedText = formatSpeed(state.trainerSpeedKph, state.distanceUnits);
   const heartRate = currentHeartRate();
   const heartRateText = Number.isFinite(heartRate) ? `${heartRate} bpm` : "--";
   const caloriesText = formatEnergy(currentCaloriesKcal() ?? NaN, state.energyUnits);
@@ -154,7 +159,7 @@ export function updateTelemetryUi() {
   const heartRateConnected = state.demoModeActive || isHeartRateConnected();
 
   els.powerStat.textContent = powerText;
-  els.speedStat.textContent = speedText;
+  updateRideSpeedUi();
   els.heartRateStat.textContent = heartRateText;
   els.trainerStat.textContent = state.demoModeActive ? "Demo trainer" : els.trainerStat.textContent;
   els.trainerDot.classList.toggle("connected", trainerConnected);
@@ -166,8 +171,14 @@ export function updateTelemetryUi() {
   els.hrDot.classList.toggle("connected", heartRateConnected);
   els.caloriesStat.textContent = caloriesText;
   els.hudPowerStat.textContent = powerText;
-  els.hudSpeedStat.textContent = speedText;
   els.hudHeartRateStat.textContent = heartRateText;
   els.hudCaloriesStat.textContent = caloriesText;
   syncDemoModeUi();
+}
+
+
+export function updateRideSpeedUi() {
+  const speedText = formatSpeed(currentRideSpeedKph(), state.distanceUnits);
+  if (els.speedStat.textContent !== speedText) els.speedStat.textContent = speedText;
+  if (els.hudSpeedStat.textContent !== speedText) els.hudSpeedStat.textContent = speedText;
 }

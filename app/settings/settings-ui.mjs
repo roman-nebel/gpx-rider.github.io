@@ -10,6 +10,7 @@ import { applyHudFieldOrder, layoutMetricTiles, renderHudOrderControls, updateFu
 import { saveSettings } from "../storage/persistence.mjs";
 import { renderProfile } from "../route/profile-ui.mjs";
 import { updateRecordingUi } from "../ride/recording-ui.mjs";
+import { renderWorkout } from "../workout/workout-ui.mjs";
 import { updateRideUi } from "../ride/ride-ui.mjs";
 import { gradeAt, interpolateRoutePoint } from "../route/route.mjs";
 import { prefetchTerrainAround } from "../map/terrain-tiles.mjs";
@@ -96,6 +97,7 @@ export function updateSpeedOutput() {
 }
 
 export function updateRiderProfileFromControls() {
+  const previousMaxHeartRate = state.maxHeartRateBpm;
   const restingHeartRate = Number(els.restingHeartRateInput.value);
   state.restingHeartRateBpm = Number.isFinite(restingHeartRate) && restingHeartRate >= 30 && restingHeartRate <= 140
     ? Math.round(restingHeartRate)
@@ -109,6 +111,7 @@ export function updateRiderProfileFromControls() {
     state.maxHeartRateBpm = Math.min(240, state.restingHeartRateBpm + 1);
   }
 
+  const previousFtp = state.ftpWatts;
   const ftpWatts = Number(els.ftpInput.value);
   state.ftpWatts = Number.isFinite(ftpWatts) && ftpWatts > 0 && ftpWatts <= 1000
     ? Math.round(ftpWatts)
@@ -116,6 +119,7 @@ export function updateRiderProfileFromControls() {
 
   syncRiderProfileControls();
   renderZoneSummaries();
+  if (state.ftpWatts !== previousFtp || state.maxHeartRateBpm !== previousMaxHeartRate) renderWorkout();
   saveSettings();
   updateTrainingMeters(state.route.length ? gradeAt(state.route, state.progressMeters) : NaN);
 }

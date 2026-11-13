@@ -1,11 +1,9 @@
-// Minimal Garmin FIT activity encoder — just enough of the FIT profile to
-// produce a valid virtual-ride activity file (file_id, events, records, lap,
-// session, activity) that Strava, Garmin Connect, and intervals.icu accept.
+// Encodes Garmin FIT virtual-ride activities with optional workout steps and linked laps.
 //
 // samples: [{ t (unix seconds), lat, lng, ele (m), distance (m),
 //             speedKph, powerWatts, heartRateBpm, cadenceRpm }] — nullable
 //             fields allowed.
-// summary: { startTimeMs, totalElapsedSeconds, totalTimerSeconds,
+// summary: { startTimeMs, endTimeMs (optional), totalElapsedSeconds, totalTimerSeconds,
 //            totalDistanceMeters, totalCalories (kcal, nullable) }
 
 import { APP_NAME } from "../core/tuning.mjs";
@@ -14,6 +12,7 @@ const FIT_EPOCH_OFFSET_SECONDS = 631065600; // 1989-12-31T00:00:00Z
 const SEMICIRCLES_PER_DEGREE = 2 ** 31 / 180;
 
 const BASE_TYPE = {
+  byte: 0x0d,
   enum: 0x00,
   string: 0x07,
   uint8: 0x02,
@@ -40,7 +39,7 @@ const SIZE = {
   [BASE_TYPE.sint32]: 4,
 };
 
-const GLOBAL_MSG = { fileId: 0, session: 18, lap: 19, record: 20, event: 21, activity: 34 };
+const GLOBAL_MSG = { fileId: 0, session: 18, lap: 19, record: 20, event: 21, workout: 26, workoutStep: 27, activity: 34 };
 const FILE_TYPE_ACTIVITY = 4;
 const SPORT_CYCLING = 2;
 const SUB_SPORT_VIRTUAL_ACTIVITY = 58;
@@ -52,6 +51,9 @@ const EVENT_TYPE_START = 0;
 const EVENT_TYPE_STOP = 1;
 const EVENT_TYPE_STOP_ALL = 4;
 const ACTIVITY_TYPE_MANUAL = 0;
+const WORKOUT_TARGET_OPEN = 2;
+const WORKOUT_TARGET_CADENCE = 3;
+const WORKOUT_TARGET_POWER = 4;
 
 // Message schemas: [fieldNumber, baseType]
 const FILE_ID_FIELDS = [
@@ -87,6 +89,26 @@ const LAP_FIELDS = [
   [0, BASE_TYPE.enum], // event
   [1, BASE_TYPE.enum], // event_type
   [25, BASE_TYPE.enum], // sport
+];
+const WORKOUT_LAP_FIELDS = [
+  ...LAP_FIELDS,
+  [254, BASE_TYPE.uint16], // message_index
+  [71, BASE_TYPE.uint16], // wkt_step_index
+];
+const WORKOUT_FIELDS = [
+  [4, BASE_TYPE.enum], [6, BASE_TYPE.uint16], [8, BASE_TYPE.string, 128],
+];
+const WORKOUT_STEP_FIELDS = [
+  [254, BASE_TYPE.uint16], // message_index
+  [0, BASE_TYPE.string, 128], // wkt_step_name
+  [1, BASE_TYPE.enum], [2, BASE_TYPE.uint32], // duration
+  [3, BASE_TYPE.enum], [4, BASE_TYPE.uint32], // target
+  [5, BASE_TYPE.uint32], [6, BASE_TYPE.uint32], // custom target bounds
+  [7, BASE_TYPE.enum], [8, BASE_TYPE.string, 255], // intensity and notes
+  [9, BASE_TYPE.enum], [10, BASE_TYPE.uint16], [11, BASE_TYPE.uint16], // equipment and exercise
+  [12, BASE_TYPE.uint16], [13, BASE_TYPE.uint16], // exercise weight and display unit
+  [19, BASE_TYPE.enum], [20, BASE_TYPE.uint32], // secondary target
+  [21, BASE_TYPE.uint32], [22, BASE_TYPE.uint32], // secondary custom target bounds
 ];
 const SESSION_FIELDS = [
   [253, BASE_TYPE.uint32], // timestamp (session end)
@@ -166,11 +188,9 @@ class ByteWriter {
   write(baseType, value, size = SIZE[baseType]) {
     if (baseType === BASE_TYPE.string) {
       const text = typeof value === "string" ? value : "";
-      const encoded = new TextEncoder().encode(text);
-      for (let i = 0; i < size; i += 1) {
-        this.u8(i < encoded.length ? encoded[i] : 0);
-      }
-      this.bytes[this.bytes.length - 1] = 0;
+      const encoded = new Uint8Array(size);
+      new TextEncoder().encodeInto(text, encoded.subarray(0, -1));
+      this.bytes.push(...encoded);
       return;
     }
     const encoded = value === null || value === undefined || Number.isNaN(value)
@@ -182,8 +202,8 @@ class ByteWriter {
   }
 }
 
-function writeDefinition(writer, localType, globalMsg, fields) {
-  writer.u8(0x40 | localType); // definition record header
+function writeDefinition(writer, localType, globalMsg, fields, developerFields = []) {
+  writer.u8((developerFields.length ? 0x60 : 0x40) | localType);
   writer.u8(0); // reserved
   writer.u8(0); // little-endian
   writer.u16(globalMsg);
@@ -192,6 +212,10 @@ function writeDefinition(writer, localType, globalMsg, fields) {
     writer.u8(fieldNumber);
     writer.u8(size);
     writer.u8(baseType);
+  }
+  if (developerFields.length) {
+    writer.u8(developerFields.length);
+    for (const field of developerFields) writer.bytes.push(...field);
   }
 }
 
@@ -205,15 +229,93 @@ function encodeScaled(value, scale, offset = 0) {
   return Math.round((value + offset) * scale);
 }
 
-export function encodeFitActivity({ samples, summary }) {
+function fitWorkoutStep(step) {
+  if (step.durationSeconds === undefined) return step;
+  const power = step.power;
+  const cadence = step.cadenceRpm > 0 ? Math.round(step.cadenceRpm) : null;
+  const ramp = power?.length === 2 && power[0] !== power[1];
+  const percent = (fraction) => `${Number((fraction * 100).toFixed(10))}% FTP`;
+  return {
+    0: step.name, 1: 0, 2: encodeScaled(step.durationSeconds, 1000),
+    3: power ? WORKOUT_TARGET_POWER : cadence ? WORKOUT_TARGET_CADENCE : WORKOUT_TARGET_OPEN,
+    4: power || cadence ? 0 : null,
+    5: power ? encodeScaled(Math.min(...power), 100) : cadence,
+    6: power ? encodeScaled(Math.max(...power), 100) : cadence,
+    8: ramp ? `Power ramp: ${percent(power[0])} to ${percent(power[1])}` : null,
+    19: power && cadence ? WORKOUT_TARGET_CADENCE : null,
+    20: power && cadence ? 0 : null,
+    21: power ? cadence : null,
+    22: power ? cadence : null,
+  };
+}
+
+function writeWorkout(writer, workout) {
+  writeDefinition(writer, 6, GLOBAL_MSG.workout, WORKOUT_FIELDS);
+  writeData(writer, 6, WORKOUT_FIELDS, [SPORT_CYCLING, workout.steps.length, workout.name]);
+  writeDefinition(writer, 7, GLOBAL_MSG.workoutStep, WORKOUT_STEP_FIELDS);
+  workout.steps.forEach((step, index) => {
+    const fields = fitWorkoutStep(step);
+    writeData(writer, 7, WORKOUT_STEP_FIELDS, WORKOUT_STEP_FIELDS.map(([number]) =>
+      number === 254 ? index : fields[number]));
+  });
+}
+
+function writeWorkoutPauseField(writer) {
+  // Stable application UUID: 90ee1240-2feb-47b5-ada5-1ef34af13667.
+  const applicationId = [0x90, 0xee, 0x12, 0x40, 0x2f, 0xeb, 0x47, 0xb5,
+    0xad, 0xa5, 0x1e, 0xf3, 0x4a, 0xf1, 0x36, 0x67];
+  writeDefinition(writer, 8, 207, [[1, BASE_TYPE.byte, applicationId.length], [3, BASE_TYPE.uint8]]);
+  writer.bytes.push(8, ...applicationId, 0);
+  const fields = [
+    [0, BASE_TYPE.uint8], [1, BASE_TYPE.uint8], [2, BASE_TYPE.uint8],
+    [3, BASE_TYPE.string, 16], [14, BASE_TYPE.uint16],
+  ];
+  writeDefinition(writer, 9, 206, fields);
+  writeData(writer, 9, fields, [0, 0, BASE_TYPE.uint8, "workout_paused", GLOBAL_MSG.lap]);
+}
+
+function writeWorkoutLaps(writer, boundaries, summary, endTime, hasPausedLaps) {
+  const start = { startMs: summary.startTimeMs, timerSeconds: 0, distanceMeters: 0, caloriesKcal: 0 };
+  const end = {
+    startMs: endTime * 1000, timerSeconds: summary.totalTimerSeconds,
+    distanceMeters: summary.totalDistanceMeters, caloriesKcal: summary.totalCalories,
+  };
+  const starts = [start, ...boundaries];
+  writeDefinition(writer, 3, GLOBAL_MSG.lap, WORKOUT_LAP_FIELDS, hasPausedLaps ? [[0, 1, 0]] : []);
+  let count = 0;
+  starts.forEach((from, index) => {
+    const to = starts[index + 1] ?? end;
+    const timer = Math.max(0, to.timerSeconds - from.timerSeconds);
+    if (!timer && (!from.paused || Math.min(to.startMs, end.startMs) <= from.startMs)) return;
+    const startTime = toFitTimestamp(from.startMs / 1000);
+    const lapEndMs = Math.min(to.startMs, end.startMs);
+    const lapEnd = Math.max(startTime, toFitTimestamp(lapEndMs / 1000));
+    const elapsed = Math.max(timer, (lapEndMs - from.startMs) / 1000);
+    const calories = Number.isFinite(to.caloriesKcal) && Number.isFinite(from.caloriesKcal)
+      ? Math.max(0, Math.round(to.caloriesKcal) - Math.round(from.caloriesKcal)) : null;
+    writeData(writer, 3, WORKOUT_LAP_FIELDS, [
+      lapEnd, startTime, encodeScaled(elapsed, 1000), encodeScaled(timer, 1000),
+      encodeScaled(Math.max(0, to.distanceMeters - from.distanceMeters), 100), calories,
+      EVENT_LAP, EVENT_TYPE_STOP, SPORT_CYCLING, count++, from.stepIndex,
+    ]);
+    if (hasPausedLaps) writer.u8(from.paused ? 1 : 0);
+  });
+  return count;
+}
+
+export function encodeFitActivity({ samples, summary, workout, workoutLaps = [] }) {
   if (!samples?.length) throw new Error("No ride samples to encode.");
 
   const startFit = toFitTimestamp(summary.startTimeMs / 1000);
-  const endFit = toFitTimestamp(samples.at(-1).t);
+  const endTimeMs = summary.endTimeMs ?? samples.at(-1).t * 1000;
+  const endFit = toFitTimestamp(endTimeMs / 1000);
   const writer = new ByteWriter();
+  const hasPausedLaps = Boolean(workout?.steps?.length && workoutLaps.some(({ paused }) => paused));
 
   writeDefinition(writer, 0, GLOBAL_MSG.fileId, FILE_ID_FIELDS);
   writeData(writer, 0, FILE_ID_FIELDS, [FILE_TYPE_ACTIVITY, null, null, startFit, APP_NAME]);
+  if (workout?.steps?.length) writeWorkout(writer, workout);
+  if (hasPausedLaps) writeWorkoutPauseField(writer);
 
   writeDefinition(writer, 1, GLOBAL_MSG.event, EVENT_FIELDS);
   writeData(writer, 1, EVENT_FIELDS, [startFit, EVENT_TIMER, EVENT_TYPE_START]);
@@ -240,30 +342,34 @@ export function encodeFitActivity({ samples, summary }) {
   const distanceCm = encodeScaled(summary.totalDistanceMeters, 100);
   const calories = Number.isFinite(summary.totalCalories) ? Math.round(summary.totalCalories) : null;
 
-  writeDefinition(writer, 3, GLOBAL_MSG.lap, LAP_FIELDS);
-  writeData(writer, 3, LAP_FIELDS, [
-    endFit, startFit, elapsedMs, timerMs, distanceCm, calories,
-    EVENT_LAP, EVENT_TYPE_STOP, SPORT_CYCLING,
-  ]);
+  const lapCount = workout?.steps?.length && workoutLaps.length
+    ? writeWorkoutLaps(writer, workoutLaps, summary, endTimeMs / 1000, hasPausedLaps) : 0;
+  if (!lapCount) {
+    writeDefinition(writer, 3, GLOBAL_MSG.lap, LAP_FIELDS);
+    writeData(writer, 3, LAP_FIELDS, [
+      endFit, startFit, elapsedMs, timerMs, distanceCm, calories,
+      EVENT_LAP, EVENT_TYPE_STOP, SPORT_CYCLING,
+    ]);
+  }
 
   writeDefinition(writer, 4, GLOBAL_MSG.session, SESSION_FIELDS);
   writeData(writer, 4, SESSION_FIELDS, [
     endFit, startFit, elapsedMs, timerMs, distanceCm, calories,
-    SPORT_CYCLING, SUB_SPORT_VIRTUAL_ACTIVITY, 0, 1,
+    SPORT_CYCLING, SUB_SPORT_VIRTUAL_ACTIVITY, 0, lapCount || 1,
     EVENT_SESSION, EVENT_TYPE_STOP,
   ]);
 
   writeDefinition(writer, 5, GLOBAL_MSG.activity, ACTIVITY_FIELDS);
   writeData(writer, 5, ACTIVITY_FIELDS, [
     endFit, timerMs, 1, ACTIVITY_TYPE_MANUAL, EVENT_ACTIVITY, EVENT_TYPE_STOP,
-    toFitLocalTimestamp(endFit, samples.at(-1).t * 1000),
+    toFitLocalTimestamp(endFit, endTimeMs),
   ]);
 
   const dataBytes = writer.bytes;
 
   const header = new ByteWriter();
   header.u8(14); // header size
-  header.u8(0x10); // protocol version 1.0
+  header.u8(hasPausedLaps ? 0x20 : 0x10); // Developer fields require FIT protocol 2.0.
   header.u16(2132); // profile version 21.32
   header.u32(dataBytes.length);
   header.u8(".".charCodeAt(0));

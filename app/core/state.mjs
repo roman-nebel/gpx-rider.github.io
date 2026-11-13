@@ -6,6 +6,7 @@
 
 import { createRideEstimator } from "../ride/eta.mjs";
 import {
+  DEFAULT_WORKOUT_AUTO_START,
   DEFAULT_BEACON_COLOR,
   DEFAULT_BEACON_DIAMETER_METERS,
   DEFAULT_BEACON_ENABLED,
@@ -75,7 +76,9 @@ export const state = {
   minimapPaths: [],
   minimapMarker: null,
   trainerSpeedKph: null,
+  ergRoadSpeedKph: null, // Modeled map speed while pedaling in an ERG workout.
   trainerPowerWatts: null,
+  trainerPowerSampleAt: null, // Timestamp of the most recent actual trainer power sample.
   trainerCadenceRpm: null,
   trainerCaloriesKcal: null,
   powerCaloriesKcal: 0,
@@ -184,6 +187,13 @@ export const state = {
   restingHeartRateBpm: DEFAULT_RESTING_HEART_RATE_BPM,
   maxHeartRateBpm: DEFAULT_MAX_HEART_RATE_BPM,
   ftpWatts: null,
+  workoutErg: null, // Active, explicitly enabled ERG session for the selected workout.
+  workoutCountdown: null, // Pending workout start and its countdown timer.
+  workoutAutoStart: DEFAULT_WORKOUT_AUTO_START,
+  workoutAutoStartAttempted: false, // One automatic start per workout selection.
+  workoutResult: null, // Completed workout and its frozen summary for the HUD.
+  workoutHudPreview: null, // Workout timeline and its zone fills.
+  workout: null, // Selected workout, independent of route and ride recording.
   draggedHudField: null,
   fullscreenClockTimer: null,
   showMinimap: DEFAULT_SHOW_MINIMAP,
@@ -220,6 +230,23 @@ export const els = {
   mapsApiKeyInput: document.querySelector("#mapsApiKeyInput"),
   mapsApiKeySaveBtn: document.querySelector("#mapsApiKeySaveBtn"),
   gpxFile: document.querySelector("#gpxFile"),
+  workoutFile: document.querySelector("#workoutFile"),
+  workoutChip: document.querySelector("#workoutChip"),
+  workoutChipName: document.querySelector("#workoutChipName"),
+  workoutCard: document.querySelector("#workoutCard"),
+  workoutName: document.querySelector("#workoutName"),
+  workoutStepCount: document.querySelector("#workoutStepCount"),
+  workoutErgInput: document.querySelector("#workoutErgInput"),
+  workoutAutoStartInput: document.querySelector("#workoutAutoStartInput"),
+  workoutErgStatus: document.querySelector("#workoutErgStatus"),
+  workoutCardActions: document.querySelector("#workoutCardActions"),
+  pauseWorkoutBtn: document.querySelector("#pauseWorkoutBtn"),
+  endWorkoutBtn: document.querySelector("#endWorkoutBtn"),
+  workoutFtpWarning: document.querySelector("#workoutFtpWarning"),
+  workoutChart: document.querySelector("#workoutChart"),
+  workoutSteps: document.querySelector("#workoutSteps"),
+  workoutError: document.querySelector("#workoutError"),
+  clearWorkoutBtn: document.querySelector("#clearWorkoutBtn"),
   gpxChip: document.querySelector("#gpxChip"),
   gpxChipName: document.querySelector("#gpxChipName"),
   difficultyStat: document.querySelector("#difficultyStat"),
@@ -378,6 +405,34 @@ export const els = {
   fsClockElapsed: document.querySelector("#fsClockElapsed"),
   fsClockDistance: document.querySelector("#fsClockDistance"),
   fsClockAscent: document.querySelector("#fsClockAscent"),
+  workoutHud: document.querySelector("#workoutHud"),
+  workoutHudChart: document.querySelector("#workoutHudChart"),
+  workoutHudTrack: document.querySelector("#workoutHudTrack"),
+  workoutHudTime: document.querySelector("#workoutHudTime"),
+  workoutHudCurrent: document.querySelector("#workoutHudCurrent"),
+  workoutHudSummary: document.querySelector("#workoutHudSummary"),
+  workoutHudStepTrack: document.querySelector("#workoutHudStepTrack"),
+  workoutHudStepProgress: document.querySelector("#workoutHudStepProgress"),
+  workoutHudRemaining: document.querySelector("#workoutHudRemaining"),
+  workoutHudMiniChart: document.querySelector("#workoutHudMiniChart"),
+  workoutHudPlayBtn: document.querySelector("#workoutHudPlayBtn"),
+  workoutHudEndBtn: document.querySelector("#workoutHudEndBtn"),
+  workoutHudCountdown: document.querySelector("#workoutHudCountdown"),
+  workoutHudStartError: document.querySelector("#workoutHudStartError"),
+  workoutHudNext: document.querySelector("#workoutHudNext"),
+  workoutHudNextName: document.querySelector("#workoutHudNextName"),
+  workoutHudNextDuration: document.querySelector("#workoutHudNextDuration"),
+  workoutHudNextPower: document.querySelector("#workoutHudNextPower"),
+  workoutHudNextCadence: document.querySelector("#workoutHudNextCadence"),
+  workoutHudNextHeartRate: document.querySelector("#workoutHudNextHeartRate"),
+  workoutHudNextSpeed: document.querySelector("#workoutHudNextSpeed"),
+  zonePowerDeviation: document.querySelector("#zonePowerDeviation"),
+  zonePowerRamp: document.querySelector("#zonePowerRamp"),
+  zonePowerTarget: document.querySelector("#zonePowerTarget"),
+  zoneHeartRateDeviation: document.querySelector("#zoneHeartRateDeviation"),
+  zoneHeartRateTarget: document.querySelector("#zoneHeartRateTarget"),
+  zoneCadenceDeviation: document.querySelector("#zoneCadenceDeviation"),
+  zoneCadenceTarget: document.querySelector("#zoneCadenceTarget"),
   fullscreenTrainingMeters: document.querySelector("#fullscreenTrainingMeters"),
   powerMeter: document.querySelector("#powerMeter"),
   heartRateMeter: document.querySelector("#heartRateMeter"),
@@ -435,6 +490,7 @@ export const els = {
   recHeartRateStat: document.querySelector("#recHeartRateStat"),
   recCaloriesStat: document.querySelector("#recCaloriesStat"),
   downloadFitBtn: document.querySelector("#downloadFitBtn"),
+  downloadWorkoutFitBtn: document.querySelector("#downloadWorkoutFitBtn"),
   clearRideDataBtn: document.querySelector("#clearRideDataBtn"),
 };
 

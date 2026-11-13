@@ -125,10 +125,13 @@ body {
   color: var(--ink);
 }
 
-.top-bar-divider {
-  width: 1px;
-  height: 22px;
-  background: rgba(255, 255, 255, 0.1);
+.top-bar-files {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .gpx-chip {
@@ -506,8 +509,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: var(--hud-control-size);
+  height: var(--hud-control-size);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
   background: rgba(13, 16, 21, 0.55);
@@ -677,6 +680,7 @@ body {
   --fs-glass-bg: rgba(13, 16, 21, 0.3);
   --fs-glass-border: rgba(255, 255, 255, 0.14);
   --fs-label: rgba(255, 255, 255, 0.5);
+  --hud-track-bg: rgba(255, 255, 255, 0.14);
   --fs-dock-inset: 12px;
   --fs-dock-gap: 10px;
 }
@@ -694,8 +698,12 @@ body {
    once instead of per component. */
 
 .map-viewport {
+  container: map-hud / inline-size;
   --hud-inset: 24px;
   --hud-gap: 12px;
+  --hud-control-size: 42px;
+  --hud-banner-width: 420px;
+  --workout-free-power-gradient: linear-gradient(to top, white, transparent);
   --hud-bottom-inset-x: 24px;
   --hud-bottom-inset-y: 36px;
   /* Side columns stop above the bottom stack: map's bottom strip (Google
@@ -748,6 +756,17 @@ body {
   max-width: calc(100% - 2 * var(--hud-inset));
   align-items: center;
   gap: 10px;
+}
+
+.hud-region-center:has(.workout-step-chip:not([hidden])) {
+  top: calc(var(--hud-inset) + var(--hud-control-size) + var(--hud-gap));
+}
+
+/* The center chip can share the top row once both side groups clear it. */
+@container map-hud (min-width: 1120px) {
+  .hud-region-center:has(.workout-step-chip:not([hidden])) {
+    top: var(--hud-inset);
+  }
 }
 
 /* One full-width panel/stack; children stretch across it. */
@@ -805,6 +824,7 @@ body {
 }
 
 .fs-zone-meter {
+  --zone-value-size: 20px;
   display: grid;
   gap: 6px;
   padding: 10px 12px;
@@ -823,9 +843,324 @@ body {
   color: var(--fs-label);
 }
 
+.fs-zone-unit {
+  text-transform: none;
+}
+
+.fs-zone-meter strong,
+.fs-zone-target {
+  font: 600 var(--zone-value-size)/1 var(--font-num);
+}
+
 .fs-zone-meter strong {
-  font: 600 20px/1 var(--font-num);
   color: #fff;
+}
+
+.fs-zone-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.fs-zone-meta-row > .fs-zone-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-zone-ramp {
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 9px/1 var(--font-mono);
+  color: var(--muted);
+}
+
+.fs-zone-readings {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.fs-zone-readings strong {
+  flex: none;
+  white-space: nowrap;
+}
+
+.fs-zone-target {
+  margin-inline-start: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.fs-zone-deviation {
+  flex: none;
+  font: 700 var(--zone-value-size)/1 var(--font-ui);
+  color: var(--accent);
+}
+
+.workout-step-chip {
+  width: min(var(--hud-banner-width), calc(100cqw - 2 * var(--hud-inset)));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  gap: 10px;
+}
+
+.workout-current-row {
+  align-items: center;
+}
+
+.workout-current-main {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.workout-current-row,
+.workout-next-step,
+.workout-next-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.workout-step-chip strong {
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workout-step-text {
+  font: 600 14px/1 var(--font-ui);
+}
+
+.workout-step-metrics {
+  color: var(--ink-bright);
+  font: 600 clamp(11px, 3.3cqw, 14px)/1.3 var(--font-num);
+  white-space: nowrap;
+}
+
+.workout-step-chip.is-complete strong {
+  max-width: 100%;
+  font-size: 15px;
+}
+
+.workout-next-step {
+  row-gap: 2px;
+}
+
+.workout-next-label {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font: 600 11px/1 var(--font-ui);
+}
+
+.workout-next-row {
+  align-items: baseline;
+}
+
+.workout-next-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workout-next-row strong {
+  max-width: none;
+  min-width: 0;
+}
+
+.workout-next-icon {
+  --workout-next-icon-size: 15px;
+  flex: none;
+  align-self: center;
+  width: 15px;
+  height: 15px;
+  background: currentColor;
+  mask: var(--workout-next-icon) center / var(--workout-next-icon-size) no-repeat;
+}
+
+.workout-next-cadence {
+  --workout-next-icon: url("./assets/mdi/bike-pedal.svg");
+  --workout-next-icon-size: 18px;
+}
+
+.workout-next-heart-rate {
+  --workout-next-icon: url("./assets/mdi/heart.svg");
+  --workout-next-icon-size: 14px;
+}
+
+.workout-next-bolt {
+  --workout-next-icon: url("./assets/mdi/lightning-bolt.svg");
+}
+
+.workout-next-speed {
+  --workout-next-icon: url("./assets/mdi/speedometer.svg");
+}
+
+.workout-next-detail {
+  display: flex;
+  flex-shrink: 0;
+  max-width: 100%;
+  margin-inline-start: auto;
+  align-self: center;
+  align-items: baseline;
+  gap: clamp(4px, 1.7cqw, 10px);
+  min-width: 0;
+}
+
+.workout-next-detail:has(.workout-next-power:not([hidden])) {
+  align-self: baseline;
+}
+
+.workout-next-power {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  min-width: 0;
+}
+
+.workout-next-power > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@container map-hud (max-width: 420px) {
+  .workout-next-main {
+    gap: 5px;
+  }
+
+  .workout-step-text {
+    font-size: 12px;
+  }
+
+  .workout-step-metrics {
+    font-size: clamp(10px, 2.9cqw, 12px);
+  }
+
+  .workout-next-detail {
+    gap: 4px;
+  }
+
+  .workout-next-power {
+    gap: 1px;
+  }
+
+  .workout-next-icon {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+.workout-step-track {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 5px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--hud-track-bg);
+}
+
+.workout-step-track::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--workout-step-background, var(--faint));
+  clip-path: inset(0 0 0 var(--workout-step-elapsed, 0%) round 5px 0 0 5px);
+}
+
+.workout-step-track progress {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.workout-step-remaining {
+  grid-column: 2;
+  justify-self: end;
+}
+
+.workout-hud-actions {
+  display: flex;
+  grid-column: 3;
+  gap: 4px;
+}
+
+.workout-hud-start-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--accent);
+  font: 600 11px/1.3 var(--font-ui);
+}
+
+.workout-hud-action {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  min-height: 0;
+  border-radius: 8px;
+  padding: 0;
+}
+
+#workoutHudCountdown {
+  color: inherit;
+}
+
+.workout-hud-action svg {
+  width: 12px;
+  height: 12px;
+}
+
+.workout-hud-action[data-state="start"] {
+  width: auto;
+  padding-inline: 8px;
+}
+
+.workout-hud-action:not([data-state="start"]) .workout-start-label,
+.workout-hud-action:not([data-state="play"]) .workout-play-icon,
+.workout-hud-action:not([data-state="pause"]) .workout-pause-icon {
+  display: none;
+}
+
+.workout-mini-chart {
+  height: 8px;
+}
+
+.workout-mini-chart::before {
+  content: none;
+}
+
+.workout-step-summary {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.workout-step-summary dt {
+  color: var(--muted);
+  font: 600 11px/1 var(--font-ui);
+}
+
+.workout-step-summary dd {
+  margin: 3px 0 0;
+  font: 600 18px/1.1 var(--font-num);
 }
 
 .fs-zone-track {
@@ -833,7 +1168,7 @@ body {
   height: 5px;
   overflow: visible;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--hud-track-bg);
 }
 
 .fs-zone-fill {
@@ -859,7 +1194,7 @@ body {
 /* top-center: climb banner */
 .climb-banner {
   display: block;
-  min-width: 420px;
+  min-width: var(--hud-banner-width);
   padding: 14px 20px 15px;
   border-radius: 16px;
   background: var(--fs-glass-bg);
@@ -1309,8 +1644,88 @@ body {
 .fs-bar-track {
   height: 6px;
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--hud-track-bg);
   overflow: hidden;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-track {
+  flex: none;
+  margin-top: auto;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-head span {
+  font-size: 9px;
+  letter-spacing: normal;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-head {
+  gap: 4px;
+}
+
+.workout-timeline {
+  position: relative;
+  overflow: visible;
+  background: transparent;
+}
+
+.workout-timeline-segments {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.workout-timeline-segments > span {
+  --workout-segment-gap: min(2px, 25%);
+  position: relative;
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.workout-timeline-segments > span:last-child {
+  --workout-segment-gap: 0px;
+}
+
+.workout-timeline-segments > span::before,
+.workout-timeline-segments > .workout-timeline-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 var(--workout-segment-gap) 0 0);
+  background: var(--workout-segment-background);
+}
+
+.workout-timeline-segments > .workout-timeline-active::after {
+  clip-path: inset(0 var(--workout-segment-gap) 0 var(--workout-segment-elapsed) round 5px 0 0 5px);
+}
+
+.workout-step-track.workout-power-hatched::before,
+.workout-timeline-segments > .workout-power-hatched::before,
+.workout-timeline-segments > .workout-power-hatched.workout-timeline-active::after {
+  mask-image: repeating-linear-gradient(125deg, transparent 0 2px, black 2px 3px);
+}
+
+.workout-timeline-segments > .workout-timeline-active::before,
+.workout-timeline-segments > span:has(~ .workout-timeline-active)::before,
+.workout-timeline-complete > span::before {
+  background: var(--hud-track-bg);
+  mask-image: none;
+}
+
+.workout-timeline-complete > .workout-timeline-active::after {
+  content: none;
 }
 
 .fs-bar-fill {
@@ -1516,6 +1931,139 @@ body {
   margin: 6px 0 0;
   font: 400 11px/1.4 var(--font-ui);
   color: var(--faint);
+}
+
+.workout-card {
+  display: grid;
+  gap: 10px;
+}
+
+.workout-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.workout-heading {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.workout-heading strong {
+  display: block;
+  margin-top: 5px;
+}
+
+.workout-warning {
+  color: var(--accent);
+}
+
+.workout-error {
+  color: var(--red);
+  margin: 0;
+}
+
+.workout-chart {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--bg);
+  font: 500 10px/1.3 var(--font-mono);
+  color: var(--muted);
+}
+
+.workout-chart-plot {
+  position: relative;
+}
+
+.workout-chart-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.workout-chart-unit {
+  position: absolute;
+  inset: 2px auto auto 2px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--bg);
+}
+
+.workout-chart-grid {
+  stroke: var(--line);
+}
+
+.workout-chart-ftp {
+  stroke: var(--faint);
+  stroke-opacity: 0.65;
+  stroke-dasharray: 4 3;
+}
+
+.workout-chart-ftp-label {
+  fill: var(--muted);
+  opacity: 0.8;
+  stroke: var(--bg);
+  stroke-width: 2px;
+  paint-order: stroke;
+}
+
+.workout-chart-open {
+  fill: var(--line);
+  stroke: var(--faint);
+  stroke-dasharray: 2 2;
+}
+
+.workout-chart-range {
+  fill: none;
+  stroke: var(--bg);
+  stroke-opacity: 0.8;
+  stroke-dasharray: 3 2;
+}
+
+.workout-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.workout-steps {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workout-steps li {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  font: 500 11px/1.3 var(--font-mono);
+  color: #c2c6cf;
+  overflow-wrap: anywhere;
+}
+
+.workout-step-number {
+  color: var(--faintest);
+}
+
+.workout-step-name,
+.workout-step-notes {
+  color: var(--muted);
+}
+
+.workout-step-name {
+  text-align: end;
+}
+
+.workout-step-notes {
+  grid-column: 1 / -1;
 }
 
 .gallery-export-card {
@@ -2048,6 +2596,14 @@ progress.ascent-progress::-moz-progress-bar {
 
 .button-row .btn {
   flex: 1;
+}
+
+.fit-export-actions {
+  flex-wrap: wrap;
+}
+
+.fit-export-actions .btn {
+  flex-basis: auto;
 }
 
 /* ---- simulation ------------------------------------------------------------------ */
@@ -2881,10 +3437,19 @@ input[type="color"] {
     height: 56vh;
   }
 
+  .map-pane:has(.workout-step-chip:not([hidden])) {
+    min-height: 600px;
+  }
+
   .control-pane {
     width: 100%;
     border-left: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .top-bar-group,
+  .top-bar-files {
+    flex-wrap: wrap;
   }
 
   .top-bar {
@@ -2986,11 +3551,8 @@ input[type="color"] {
   }
 
   .fs-zone-meter {
+    --zone-value-size: 16px;
     padding: 8px 9px;
-  }
-
-  .fs-zone-meter strong {
-    font-size: 16px;
   }
 
   /* The banner's desktop min-width (420px) overflows a phone; let it span the
@@ -2998,6 +3560,9 @@ input[type="color"] {
   .climb-banner {
     width: 100%;
     min-width: 0;
+  }
+
+  .climb-banner {
     padding: 12px 14px 13px;
   }
 

@@ -22,7 +22,12 @@ import {
   GRADE_METER_MIN_PERCENT,
   HEART_RATE_ZONE_DEFINITIONS,
   POWER_ZONE_DEFINITIONS,
+  POWER_ZONE_LIMITS,
+  WORKOUT_HUD_TARGET_TOLERANCE,
 } from "../core/tuning.mjs";
+
+import { currentWorkoutHudStep } from "../workout/workout-hud.mjs";
+import { workoutMeterTarget } from "../workout/workout-step.mjs";
 
 // The zone meters stack in the left column, under the clock chip.
 export function registerTrainingMetersHud() {
@@ -62,8 +67,8 @@ export function updateTrainingMeters(grade) {
     max: powerScale.max,
     zones: powerZones,
     definitions: POWER_ZONE_DEFINITIONS,
-    text: Number.isFinite(power) ? `${Math.round(power)} W` : "--",
-    fallbackMeta: ftpWatts ? `FTP ${ftpWatts} W` : "Zones not set",
+    text: Number.isFinite(power) ? String(Math.round(power)) : "--",
+    fallbackMeta: ftpWatts ? `FTP ${ftpWatts}` : "Zones not set",
   });
 
   updateZoneMeter({
@@ -76,8 +81,8 @@ export function updateTrainingMeters(grade) {
     max: heartRateScale.max,
     zones: heartRateZones,
     definitions: HEART_RATE_ZONE_DEFINITIONS,
-    text: Number.isFinite(heartRate) ? `${Math.round(heartRate)} bpm` : "--",
-    fallbackMeta: `Max ${maxHeartRateBpm} bpm`,
+    text: Number.isFinite(heartRate) ? String(Math.round(heartRate)) : "--",
+    fallbackMeta: `Max ${maxHeartRateBpm}`,
   });
 
   const gradeZones = gradeMeterZones();
@@ -90,7 +95,7 @@ export function updateTrainingMeters(grade) {
     min: GRADE_METER_MIN_PERCENT,
     max: GRADE_METER_MAX_PERCENT,
     zones: gradeZones,
-    text: Number.isFinite(gradeValue) ? `${gradeValue.toFixed(1)}%` : "--",
+    text: Number.isFinite(gradeValue) ? gradeValue.toFixed(1) : "--",
     fallbackMeta: "Live road",
     zone: gradeZones.findIndex((zone) => zone.color === gradeColor(gradeValue)),
     color: Number.isFinite(gradeValue) ? gradeColor(gradeValue) : null,
@@ -106,11 +111,62 @@ export function updateTrainingMeters(grade) {
     min: CADENCE_METER_MIN_RPM,
     max: CADENCE_METER_MAX_RPM,
     zones: cadenceZones,
-    text: Number.isFinite(cadence) ? `${Math.round(cadence)} rpm` : "--",
+    text: Number.isFinite(cadence) ? String(Math.round(cadence)) : "--",
     fallbackMeta: "Cadence",
     zone: cadenceZones.findIndex((zone) => zone.color === cadenceColor(cadence)),
     color: Number.isFinite(cadence) ? cadenceColor(cadence) : null,
   });
+  updateWorkoutMeterTargets(heartRateZones, heartRate);
+}
+
+export function updateWorkoutMeterTargets(heartRateZones, heartRate) {
+  const step = currentWorkoutHudStep();
+  const context = {
+    ftp: state.ftpWatts,
+    maxHeartRate: state.maxHeartRateBpm,
+    heartRateZones: step && (heartRateZones ?? currentHeartRateZones()),
+    elapsed: state.workoutErg?.elapsed ?? 0,
+  };
+  const powerTarget = workoutMeterTarget(step, "W", context);
+  const ramp = powerTarget?.ramp;
+  els.zonePowerRamp.hidden = !ramp;
+  if (ramp) {
+    const text = ramp.map(Math.round).join("→");
+    if (els.zonePowerRamp.textContent !== text) els.zonePowerRamp.textContent = text;
+  }
+  updateMeterTarget(els.zonePowerTarget, els.zonePowerDeviation, state.trainerPowerWatts,
+    powerTarget, WORKOUT_HUD_TARGET_TOLERANCE.power);
+  updateMeterTarget(els.zoneCadenceTarget, els.zoneCadenceDeviation, state.trainerCadenceRpm,
+    workoutMeterTarget(step, "rpm", context), WORKOUT_HUD_TARGET_TOLERANCE.cadence);
+  updateMeterTarget(els.zoneHeartRateTarget, els.zoneHeartRateDeviation, heartRate ?? currentHeartRate(),
+    workoutMeterTarget(step, "bpm", context), WORKOUT_HUD_TARGET_TOLERANCE.heart_rate);
+}
+
+function updateMeterTarget(targetEl, deviationEl, value, target, tolerance) {
+  targetEl.hidden = !target;
+  deviationEl.hidden = true;
+  if (!target) return;
+
+  const min = Math.round(target.min);
+  const max = Math.round(target.max);
+  const text = min === max ? String(min) : `${min}–${max}`;
+  if (targetEl.textContent !== text) {
+    targetEl.textContent = text;
+    targetEl.title = `Workout target ${text}`;
+    targetEl.setAttribute("aria-label", targetEl.title);
+  }
+  if (!Number.isFinite(value)) return;
+  const direction = value < target.min - tolerance ? "below" :
+    value > target.max + tolerance ? "above" : null;
+  if (!direction) return;
+
+  deviationEl.hidden = false;
+  const arrow = direction === "below" ? "↑" : "↓";
+  if (deviationEl.textContent !== arrow) {
+    deviationEl.textContent = arrow;
+    deviationEl.title = direction === "below" ? "Increase to reach target" : "Decrease to reach target";
+    deviationEl.setAttribute("aria-label", deviationEl.title);
+  }
 }
 
 export function currentHeartRateZones() {
@@ -152,13 +208,8 @@ function calculateHeartRateZones(maxHr, restingHr = DEFAULT_RESTING_HEART_RATE_B
 
 function calculatePowerZones(ftp) {
   if (!Number.isFinite(ftp) || ftp <= 0) return null;
-  const boundary = (ratio) => Math.floor(ftp * ratio);
-  const z1Max = boundary(0.55);
-  const z2Max = boundary(0.75);
-  const z3Max = boundary(0.9);
-  const z4Max = boundary(1.05);
-  const z5Max = boundary(1.2);
-  const z6Max = boundary(1.5);
+  const [z1Max, z2Max, z3Max, z4Max, z5Max, z6Max] =
+    POWER_ZONE_LIMITS.map((ratio) => Math.floor(ftp * ratio));
   return [
     { min: 0, max: z1Max, label: `≤${z1Max}W` },
     { min: z1Max + 1, max: z2Max, label: `≤${z2Max}W` },

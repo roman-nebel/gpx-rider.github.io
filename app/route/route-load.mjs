@@ -2,6 +2,7 @@
 // and the once-per-load route overview (name chip, difficulty classification,
 // climbs list).
 
+import { stopWorkoutErg } from "../workout/workout-erg.mjs";
 import { detectClimbs } from "./climbs.mjs";
 import { focusClimb, syncFocusedClimbList } from "./climbs-ui.mjs";
 import { clearDemoHistory, stopDemoMode, syncDemoModeUi } from "../demo/demo-mode.mjs";
@@ -54,6 +55,7 @@ export function applyGpxText(text, { overrideName = null, fallbackName = null, g
     return;
   }
 
+  if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
   stopDemoMode({ silent: true });
   clearDemoHistory();
   state.route = enrichRoute(route);

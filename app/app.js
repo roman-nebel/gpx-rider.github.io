@@ -53,7 +53,7 @@ import {
   handleProfilePointerUp,
 } from "./route/profile-ui.mjs";
 import { persistRideLog, restoreRideLog, rideLogSummary } from "./ride/recorder.mjs";
-import { confirmClearRideData, downloadFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
+import { confirmClearRideData, downloadFitFile, downloadWorkoutFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
 import { loadGpxFile, loadGpxFromUrl } from "./route/route-load.mjs";
 import {
   openSettings,
@@ -70,6 +70,11 @@ import {
 } from "./settings/settings-ui.mjs";
 import { els, state, updateProgressLabel } from "./core/state.mjs";
 import { initStorage } from "./storage/storage.mjs";
+import { registerWorkoutHud } from "./workout/workout-hud.mjs";
+import {
+  endWorkout, handleWorkoutErgRejection, toggleWorkoutErg, toggleWorkoutPause, useWorkoutHudPlay,
+} from "./workout/workout-erg.mjs";
+import { clearWorkout, importWorkout, restoreWorkout, updateWorkoutAutoStart } from "./workout/workout-ui.mjs";
 import { registerClimbBannerHud } from "./route/climbs-ui.mjs";
 import { initScreenManager } from "./hud/screen-manager.mjs";
 import {
@@ -106,6 +111,7 @@ async function startApp() {
 
   initTrainer({
     onTelemetry: handleTrainerTelemetry,
+    onPowerRejected: handleWorkoutErgRejection,
     onStatus: handleTrainerStatus,
     onMessage: updateProgressLabel,
   });
@@ -130,12 +136,14 @@ async function startApp() {
   initScreenManager(els.mapViewport);
   initTheaterModeUi();
   registerClimbBannerHud();
+  registerWorkoutHud();
   registerDemoBannerHud();
   registerTrainingMetersHud();
   registerCameraDebugHud();
   registerMinimapHud();
 
   restoreSettings();
+  restoreWorkout();
   restoreRideLog();
   state.powerCaloriesKcal = rideLogSummary().caloriesKcal ?? 0;
   updateRecordingUi();
@@ -187,6 +195,14 @@ function bindEvents() {
     }
   });
   els.gpxFile.addEventListener("change", loadGpxFile);
+  els.workoutErgInput.addEventListener("change", toggleWorkoutErg);
+  els.workoutAutoStartInput.addEventListener("change", updateWorkoutAutoStart);
+  els.pauseWorkoutBtn.addEventListener("click", toggleWorkoutPause);
+  els.endWorkoutBtn.addEventListener("click", endWorkout);
+  els.workoutHudPlayBtn.addEventListener("click", useWorkoutHudPlay);
+  els.workoutHudEndBtn.addEventListener("click", endWorkout);
+  els.workoutFile.addEventListener("change", importWorkout);
+  els.clearWorkoutBtn.addEventListener("click", clearWorkout);
   els.speedInput.addEventListener("input", () => {
     updateSpeedOutput();
     saveRide();
@@ -247,6 +263,7 @@ function bindEvents() {
   els.startBtn.addEventListener("click", toggleSimulation);
   els.resetBtn.addEventListener("click", resetRide);
   els.downloadFitBtn.addEventListener("click", downloadFitFile);
+  els.downloadWorkoutFitBtn.addEventListener("click", downloadWorkoutFitFile);
   els.clearRideDataBtn.addEventListener("click", confirmClearRideData);
   els.profile.addEventListener("mousemove", handleProfileHover);
   els.profile.addEventListener("mouseleave", handleProfileLeave);

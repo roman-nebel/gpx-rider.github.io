@@ -53,6 +53,10 @@ export function formatDuration(totalSeconds, style = "clock") {
     if (h > 0) return `${h}h${m > 0 ? `${m}m` : ""}`;
     return `${m}:${pad(s)}`;
   }
+  if (style === "padded-clock") {
+    if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    return `${pad(m)}:${pad(s)}`;
+  }
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 

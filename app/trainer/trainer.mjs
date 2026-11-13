@@ -5,19 +5,23 @@
 import { clamp } from "../core/geo.mjs";
 import { readJson, writeJson } from "../storage/storage.mjs";
 import { GRADE_INTERVAL_MAX_SECONDS, GRADE_INTERVAL_MIN_SECONDS } from "../core/tuning.mjs";
-import { connectFec, isFecConnected, resetFec, sendFecGrade, TACX_FEC_SERVICE } from "./trainer-fec.mjs";
+import { connectFec, isFecConnected, resetFec, sendFecGrade, sendFecTargetPower, TACX_FEC_SERVICE } from "./trainer-fec.mjs";
 
 const FTMS_SERVICE = 0x1826;
 const FTMS_INDOOR_BIKE_DATA = 0x2ad2;
+const FTMS_POWER_RANGE = 0x2ad8;
 const FTMS_CONTROL_POINT = 0x2ad9;
 const FTMS_STATUS = 0x2ada;
 const GATT_RECONNECT_DELAY_MS = 350;
+const FTMS_TARGET_RESPONSE_TIMEOUT_MS = 2000;
 
 export const OP_REQUEST_CONTROL = 0x00;
 export const OP_RESET = 0x01;
 export const OP_START_OR_RESUME = 0x07;
 export const OP_STOP_OR_PAUSE = 0x08;
 export const OP_SET_SIMULATION = 0x11;
+
+const OP_SET_TARGET_POWER = 0x05;
 
 const FTMS_RESPONSE_CODE = 0x80;
 const FTMS_RESULT_TEXT = {
@@ -32,6 +36,7 @@ const FTMS_OPCODE_NAMES = {
   [OP_RESET]: "Reset",
   [OP_START_OR_RESUME]: "Start/Resume",
   [OP_STOP_OR_PAUSE]: "Stop/Pause",
+  [OP_SET_TARGET_POWER]: "Set Target Power",
   [OP_SET_SIMULATION]: "Set Simulation",
 };
 
@@ -41,6 +46,9 @@ const trainer = {
   device: null,
   protocol: null, // "ftms" | "fec" — which backend owns the connected device
   controlPoint: null,
+  powerRange: null,
+  powerSession: null,
+  pendingTargetResponse: null,
   bikeData: null,
   writeQueue: Promise.resolve(),
   gradeSampleSum: 0,
@@ -54,6 +62,7 @@ let callbacks = {
   onTelemetry: () => {},
   onStatus: () => {},
   onMessage: () => {},
+  onPowerRejected: () => {},
 };
 
 export function initTrainer(handlers) {
@@ -166,8 +175,18 @@ async function connectTrainerDevice(device) {
 
 async function connectFtms(service) {
   trainer.controlPoint = await service.getCharacteristic(FTMS_CONTROL_POINT);
-  await subscribeToControlPointResponses();
+  const receivesResponses = await subscribeToControlPointResponses();
   await subscribeToBikeData(service);
+  try {
+    const characteristic = await service.getCharacteristic(FTMS_POWER_RANGE);
+    const range = await characteristic.readValue();
+    const min = Math.max(0, range.getInt16(0, true));
+    const max = range.getInt16(2, true);
+    const step = range.getUint16(4, true) || 1;
+    if (receivesResponses && max >= min) trainer.powerRange = { min, max, step };
+  } catch {
+    // Target power is optional. The route can still drive simulation grade.
+  }
 
   try {
     const status = await service.getCharacteristic(FTMS_STATUS);
@@ -180,7 +199,12 @@ async function connectFtms(service) {
 function resetTrainerConnection() {
   trainer.device = null;
   trainer.protocol = null;
+  trainer.pendingTargetResponse?.reject(new Error("Trainer disconnected."));
   trainer.controlPoint = null;
+  trainer.powerRange = null;
+  trainer.powerSession = null;
+  trainer.lastGradeSentRaw = null;
+  trainer.gradeWriteInFlight = false;
   trainer.bikeData = null;
   trainer.writeQueue = Promise.resolve();
   resetFec();
@@ -248,12 +272,15 @@ async function subscribeToControlPointResponses() {
   try {
     trainer.controlPoint.addEventListener("characteristicvaluechanged", handleControlPointResponse);
     await trainer.controlPoint.startNotifications();
+    return true;
   } catch (error) {
     console.warn("Control point responses are not available.", error);
+    return false;
   }
 }
 
 function handleControlPointResponse(event) {
+  if (event.target !== trainer.controlPoint) return;
   const data = event.target.value;
   if (data.byteLength < 3 || data.getUint8(0) !== FTMS_RESPONSE_CODE) return;
 
@@ -264,9 +291,11 @@ function handleControlPointResponse(event) {
 
   console.debug(`[trainer] response: ${opcodeName} -> ${resultText}`);
 
-  if (resultCode !== 0x01) {
-    callbacks.onStatus(resultText);
+  if (requestOpcode === OP_SET_TARGET_POWER && trainer.pendingTargetResponse) {
+    if (resultCode === 0x01) trainer.pendingTargetResponse.resolve();
+    else trainer.pendingTargetResponse.reject(new Error(resultText));
   }
+  if (resultCode !== 0x01) callbacks.onStatus(resultText);
 }
 
 async function subscribeToBikeData(service) {
@@ -339,6 +368,7 @@ function handleBikeData(event) {
 // combined with the hard interval, guarantees we never enqueue BLE writes
 // faster than the trainer can actually process them.
 export function queueTrainerGradeSample(gradePercent, { force = false, intervalSeconds = 2 } = {}) {
+  if (trainer.powerSession) return;
   trainer.gradeSampleSum += gradePercent;
   trainer.gradeSampleCount += 1;
 
@@ -355,11 +385,12 @@ export function queueTrainerGradeSample(gradePercent, { force = false, intervalS
   void sendTrainerGrade(averageGrade);
 }
 
-export async function sendTrainerGrade(gradePercent) {
+export async function sendTrainerGrade(gradePercent, { force = false } = {}) {
+  if (trainer.powerSession) return;
   // Tacx FE-C trainers take the grade as a Track Resistance page instead of an
   // FTMS Set Simulation write; the FE-C backend owns its own dedupe/queue.
   if (trainer.protocol === "fec") {
-    await sendFecGrade(gradePercent);
+    await sendFecGrade(gradePercent, { force });
     return;
   }
   if (!trainer.controlPoint) return;
@@ -367,13 +398,13 @@ export async function sendTrainerGrade(gradePercent) {
   // Never let a slow write build a backlog: if one is still in flight, skip
   // this attempt entirely rather than queueing another. The next window
   // picks up wherever the rider actually is by then.
-  if (trainer.gradeWriteInFlight) {
+  if (trainer.gradeWriteInFlight && !force) {
     console.debug(`[trainer] grade ${gradePercent.toFixed(1)}% dropped, previous write still in flight`);
     return;
   }
 
   const grade = Math.round(gradePercent * 100);
-  if (grade === trainer.lastGradeSentRaw) return;
+  if (!force && grade === trainer.lastGradeSentRaw) return;
 
   const payload = [
     OP_SET_SIMULATION,
@@ -399,6 +430,41 @@ export async function sendTrainerGrade(gradePercent) {
   }
 }
 
+export function trainerSupportsTargetPower() {
+  return trainer.protocol === "fec" ? isFecConnected() : Boolean(trainer.protocol === "ftms" && trainer.powerRange);
+}
+
+export function queueTrainerTargetPower(targetWatts) {
+  if (!trainerSupportsTargetPower() || !Number.isFinite(targetWatts)) return null;
+  const range = trainer.powerRange ?? { min: 0, max: 1000, step: 0.25 };
+  const steps = Math.floor((range.max - range.min) / range.step);
+  const watts = range.min + clamp(Math.round((targetWatts - range.min) / range.step), 0, steps) * range.step;
+  const session = trainer.powerSession ??= { inFlight: false, watts: null };
+  if (session.inFlight) return session.watts ?? watts;
+  if (watts === session.watts) return watts;
+
+  session.inFlight = true;
+  const write = trainer.protocol === "fec" ? sendFecTargetPower(watts) :
+    sendBytes([OP_SET_TARGET_POWER, watts & 0xff, watts >> 8], session);
+  write.then(() => {
+    session.watts = watts;
+  }, (error) => {
+    if (trainer.powerSession === session) callbacks.onPowerRejected(error.message);
+  }).finally(() => {
+    session.inFlight = false;
+  });
+  return watts;
+}
+
+export function releaseTrainerTargetPower(grade) {
+  if (!trainer.powerSession) return;
+  trainer.powerSession = null;
+  trainer.gradeSampleSum = 0;
+  trainer.gradeSampleCount = 0;
+  trainer.lastGradeAttemptAt = performance.now();
+  void sendTrainerGrade(grade, { force: true });
+}
+
 export async function sendTrainerCommand(opcode, payload = []) {
   if (!trainer.controlPoint) return;
   const opcodeName = FTMS_OPCODE_NAMES[opcode] || `0x${opcode.toString(16)}`;
@@ -417,17 +483,48 @@ function clearTrainerErrorStatus() {
   callbacks.onStatus(trainerDisplayName(), { onlyClearError: true });
 }
 
-function sendBytes(bytes) {
+function sendBytes(bytes, powerSession = null) {
   // The device only allows one outstanding GATT operation at a time.
   // Grade writes fire independently of Start/Pause/Reset commands, so
   // without a queue two overlapping writes throw "GATT operation already
   // in progress" and the losing write is simply never applied.
-  const task = trainer.writeQueue.then(() => writeBytesNow(bytes));
+  const characteristic = trainer.controlPoint;
+  const task = trainer.writeQueue.then(() => {
+    if (characteristic !== trainer.controlPoint) throw new Error("Trainer connection changed.");
+    if (!powerSession) return writeBytesNow(characteristic, bytes);
+    if (trainer.powerSession !== powerSession) return;
+    return writeTargetPower(characteristic, bytes);
+  });
   trainer.writeQueue = task.catch(() => {});
   return task;
 }
 
-async function writeBytesNow(bytes) {
+async function writeTargetPower(characteristic, bytes) {
+  // An ATT write acknowledgment only confirms receipt. Keep subsequent
+  // terrain writes queued until the trainer accepts or rejects this procedure.
+  let timeout;
+  let pending;
+  const response = new Promise((resolve, reject) => {
+    pending = { resolve, reject };
+    trainer.pendingTargetResponse = pending;
+    timeout = setTimeout(() => reject(new Error("No target power response from the trainer.")),
+      FTMS_TARGET_RESPONSE_TIMEOUT_MS);
+  });
+  try {
+    const write = writeBytesNow(characteristic, bytes).catch((error) => {
+      pending.reject(error);
+      throw error;
+    });
+    const results = await Promise.allSettled([write, response]);
+    const failure = results.find((result) => result.status === "rejected");
+    if (failure) throw failure.reason;
+  } finally {
+    clearTimeout(timeout);
+    if (trainer.pendingTargetResponse === pending) trainer.pendingTargetResponse = null;
+  }
+}
+
+async function writeBytesNow(characteristic, bytes) {
   // FTMS requires the Control Point to be written with a Write Request
   // (writeValue) so the machine treats it as a real control transaction and
   // sends back a Response Code indication. Write Without Response is a
@@ -435,8 +532,8 @@ async function writeBytesNow(bytes) {
   // applying it. Only fall back to it for non-compliant peripherals that
   // don't support Write Request at all.
   try {
-    await trainer.controlPoint.writeValue(new Uint8Array(bytes));
+    await characteristic.writeValue(new Uint8Array(bytes));
   } catch {
-    await trainer.controlPoint.writeValueWithoutResponse(new Uint8Array(bytes));
+    await characteristic.writeValueWithoutResponse(new Uint8Array(bytes));
   }
 }

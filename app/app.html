@@ -17,19 +17,30 @@
             <span class="brand-dot"></span>
             <span id="brandName" class="brand-name">GPX Rider</span>
           </a>
-          <span class="top-bar-divider"></span>
-          <div id="gpxChip" class="gpx-chip" hidden>
-            <span class="gpx-chip-tag">GPX</span>
-            <span id="gpxChipName" class="gpx-chip-name">--</span>
+          <div class="top-bar-files">
+            <div id="gpxChip" class="gpx-chip" hidden>
+              <span class="gpx-chip-tag">GPX</span>
+              <span id="gpxChipName" class="gpx-chip-name">--</span>
+            </div>
+            <button id="browseGalleryBtn" type="button" class="btn btn-blue" hidden>
+              Browse gallery
+              <span id="browseGalleryCount" class="count-badge">0</span>
+            </button>
+            <label class="file-picker btn btn-ghost">
+              <input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml">
+              <span>Open GPX file…</span>
+            </label>
           </div>
-          <label class="file-picker btn btn-ghost">
-            <input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml">
-            <span>Open GPX file…</span>
-          </label>
-          <button id="browseGalleryBtn" type="button" class="btn btn-blue" hidden>
-            Browse gallery
-            <span id="browseGalleryCount" class="count-badge">0</span>
-          </button>
+          <div class="top-bar-files">
+            <div id="workoutChip" class="gpx-chip" hidden>
+              <span class="gpx-chip-tag">WORKOUT</span>
+              <span id="workoutChipName" class="gpx-chip-name"></span>
+            </div>
+            <label class="file-picker btn btn-ghost">
+              <input id="workoutFile" type="file" accept=".fit,.xml,.json">
+              <span>Import workout…</span>
+            </label>
+          </div>
         </div>
         <button id="settingsBtn" type="button" class="btn btn-ghost">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -131,26 +142,41 @@
 
             <div id="fullscreenTrainingMeters" class="fs-training-meters" hidden aria-live="polite">
               <div id="powerMeter" class="fs-zone-meter" data-zone-meter="power">
-                <span class="fs-zone-label">Power</span>
-                <strong id="zonePowerValue">--</strong>
-                <span id="zonePowerMeta" class="fs-zone-meta">FTP --</span>
+                <span class="fs-zone-label">Power, <span class="fs-zone-unit">W</span></span>
+                <div class="fs-zone-readings">
+                  <strong id="zonePowerValue">--</strong>
+                  <span id="zonePowerDeviation" class="fs-zone-deviation" hidden></span>
+                  <span id="zonePowerTarget" class="fs-zone-target" hidden></span>
+                </div>
+                <div class="fs-zone-meta-row">
+                  <span id="zonePowerMeta" class="fs-zone-meta">FTP --</span>
+                  <span id="zonePowerRamp" class="fs-zone-ramp" hidden></span>
+                </div>
                 <div class="fs-zone-track"><div id="zonePowerFill" class="fs-zone-fill"></div></div>
               </div>
               <div id="heartRateMeter" class="fs-zone-meter" data-zone-meter="heartRate">
-                <span class="fs-zone-label">Heart rate</span>
-                <strong id="zoneHeartRateValue">--</strong>
+                <span class="fs-zone-label">Heart rate, <span class="fs-zone-unit">bpm</span></span>
+                <div class="fs-zone-readings">
+                  <strong id="zoneHeartRateValue">--</strong>
+                  <span id="zoneHeartRateDeviation" class="fs-zone-deviation" hidden></span>
+                  <span id="zoneHeartRateTarget" class="fs-zone-target" hidden></span>
+                </div>
                 <span id="zoneHeartRateMeta" class="fs-zone-meta">Max --</span>
                 <div class="fs-zone-track"><div id="zoneHeartRateFill" class="fs-zone-fill"></div></div>
               </div>
               <div id="gradeMeter" class="fs-zone-meter" data-zone-meter="grade">
-                <span class="fs-zone-label">Grade</span>
+                <span class="fs-zone-label">Grade, <span class="fs-zone-unit">%</span></span>
                 <strong id="zoneGradeValue">--</strong>
                 <span id="zoneGradeMeta" class="fs-zone-meta">Live road</span>
                 <div class="fs-zone-track"><div id="zoneGradeFill" class="fs-zone-fill"></div></div>
               </div>
               <div id="cadenceMeter" class="fs-zone-meter" data-zone-meter="cadence">
-                <span class="fs-zone-label">Cadence</span>
-                <strong id="zoneCadenceValue">--</strong>
+                <span class="fs-zone-label">Cadence, <span class="fs-zone-unit">rpm</span></span>
+                <div class="fs-zone-readings">
+                  <strong id="zoneCadenceValue">--</strong>
+                  <span id="zoneCadenceDeviation" class="fs-zone-deviation" hidden></span>
+                  <span id="zoneCadenceTarget" class="fs-zone-target" hidden></span>
+                </div>
                 <span id="zoneCadenceMeta" class="fs-zone-meta">Cadence</span>
                 <div class="fs-zone-track"><div id="zoneCadenceFill" class="fs-zone-fill"></div></div>
               </div>
@@ -212,6 +238,50 @@
               </div>
             </div>
 
+            <section id="workoutHud" class="fs-clock workout-step-chip" aria-label="Workout" hidden>
+              <div class="workout-current-row">
+                <div class="workout-current-main">
+                  <strong id="workoutHudCurrent" class="workout-step-text"></strong>
+                  <div id="workoutHudStepTrack" class="workout-step-track">
+                    <progress id="workoutHudStepProgress" max="1" value="0" aria-label="Current step progress"></progress>
+                  </div>
+                  <div id="workoutHudMiniChart" class="workout-step-track workout-mini-chart" aria-hidden="true" hidden></div>
+                </div>
+                <span id="workoutHudRemaining" class="workout-step-metrics workout-step-remaining"></span>
+                <div class="workout-hud-actions">
+                  <button id="workoutHudPlayBtn" type="button" class="btn btn-accent workout-hud-action" aria-label="Start workout" title="Start workout">
+                    <span class="workout-start-label">Start</span>
+                    <svg class="workout-play-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
+                    <svg class="workout-pause-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 2h3v8H2zm5 0h3v8H7z"></path></svg>
+                    <span id="workoutHudCountdown" class="workout-step-metrics" aria-hidden="true" hidden></span>
+                  </button>
+                  <button id="workoutHudEndBtn" type="button" class="icon-btn workout-hud-action" aria-label="End workout" title="End workout" hidden>
+                    <svg viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
+                  </button>
+                </div>
+              </div>
+              <p id="workoutHudStartError" class="workout-hud-start-error" role="alert" hidden></p>
+              <dl id="workoutHudSummary" class="workout-step-summary" hidden></dl>
+              <section id="workoutHudNext" class="workout-next-step" aria-label="Next workout step" hidden>
+                <span class="workout-next-label">Up next</span>
+                <div class="workout-next-row">
+                  <div class="workout-next-main">
+                    <strong id="workoutHudNextName" class="workout-step-text"></strong>
+                    <div class="workout-step-metrics workout-next-detail">
+                      <span id="workoutHudNextHeartRate" class="workout-next-icon workout-next-heart-rate" role="img" aria-label="Heart rate target" title="Heart rate target" hidden></span>
+                      <span id="workoutHudNextCadence" class="workout-next-icon workout-next-cadence" role="img" aria-label="Cadence target" title="Cadence target" hidden></span>
+                      <span id="workoutHudNextSpeed" class="workout-next-icon workout-next-speed" role="img" aria-label="Speed target" title="Speed target" hidden></span>
+                      <span class="workout-next-power" hidden>
+                        <span class="workout-next-icon workout-next-bolt" role="img" aria-label="Power target" title="Power target"></span>
+                        <span id="workoutHudNextPower"></span>
+                      </span>
+                    </div>
+                  </div>
+                  <span id="workoutHudNextDuration" class="workout-step-metrics workout-step-remaining"></span>
+                </div>
+              </section>
+            </section>
+
             <!-- bottom data dock: metric tiles + the road-ahead profile -->
             <div id="fullscreenOverlayBottom" class="fs-dock" hidden>
               <div class="fs-dock-top-tools">
@@ -268,6 +338,15 @@
                       <div class="fs-bar-head"><span>CLIMBING</span><span id="fsClimbLabel" class="fs-bar-value fs-bar-value-accent">--</span></div>
                       <div class="fs-bar-track"><div id="fsClimbFill" class="fs-bar-fill fs-bar-fill-amber"></div></div>
                     </div>
+                    <div id="workoutHudTrack" class="fs-bar workout-hud-track" hidden>
+                      <div class="fs-bar-head">
+                        <span>Workout</span>
+                        <span id="workoutHudTime" class="fs-bar-value"></span>
+                      </div>
+                      <div class="fs-bar-track workout-timeline">
+                        <div id="workoutHudChart" class="workout-timeline-segments"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -295,6 +374,44 @@
               <span id="difficultyDetail" class="stat-detail"></span>
             </div>
           </div>
+
+          <p id="workoutError" class="panel-card panel-card-hint workout-error" role="alert" hidden></p>
+          <section id="workoutCard" class="panel-card workout-card" aria-label="Workout" hidden>
+            <div class="panel-card-head">
+              <div class="workout-heading">
+                <span class="panel-card-title">Workout</span>
+                <strong id="workoutName"></strong>
+                <p id="workoutStepCount" class="panel-card-hint"></p>
+              </div>
+              <button id="clearWorkoutBtn" type="button" class="btn btn-ghost btn-sm" aria-label="Remove workout">Remove</button>
+            </div>
+            <p id="workoutFtpWarning" class="panel-card-hint workout-warning" role="status" hidden>
+              FTP is missing. Ride steps with a % FTP target at your own effort. Set FTP in the rider profile to see their power targets.
+            </p>
+            <div class="setting-row">
+              <div class="setting-row-text">
+                <span id="workoutErgLabel" class="setting-row-label">Hold target power (ERG)</span>
+                <span id="workoutErgStatus" class="setting-row-hint" role="status">Let the trainer adjust resistance to match each step.</span>
+              </div>
+              <label class="switch">
+                <input id="workoutErgInput" type="checkbox" aria-labelledby="workoutErgLabel" aria-describedby="workoutErgStatus">
+                <span class="switch-track"><span class="switch-knob"></span></span>
+              </label>
+            </div>
+            <div id="workoutCardActions" class="workout-card-actions" hidden>
+              <button id="pauseWorkoutBtn" type="button" class="btn btn-ghost btn-sm" hidden>Pause</button>
+              <button id="endWorkoutBtn" type="button" class="btn btn-ghost btn-sm" hidden>End workout</button>
+            </div>
+            <div class="setting-row">
+              <label for="workoutAutoStartInput" class="setting-row-label">Start workout when pedaling</label>
+              <label class="switch">
+                <input id="workoutAutoStartInput" type="checkbox">
+                <span class="switch-track"><span class="switch-knob"></span></span>
+              </label>
+            </div>
+            <div id="workoutChart" class="workout-chart"></div>
+            <ol id="workoutSteps" class="workout-steps"></ol>
+          </section>
 
           <div class="panel-card">
             <div class="panel-card-head">
@@ -448,8 +565,9 @@
               <div><dt>heart rate</dt><dd id="recHeartRateStat">--</dd></div>
               <div><dt>energy</dt><dd id="recCaloriesStat">--</dd></div>
             </dl>
-            <div class="button-row">
-              <button id="downloadFitBtn" type="button" class="btn btn-accent" disabled>Download .FIT</button>
+            <div class="button-row fit-export-actions">
+              <button id="downloadFitBtn" type="button" class="btn btn-accent" disabled>Full ride .FIT</button>
+              <button id="downloadWorkoutFitBtn" type="button" class="btn btn-outline-blue" disabled>Workout only .FIT</button>
               <button id="clearRideDataBtn" type="button" class="btn btn-outline-danger" disabled>Reset buffer</button>
             </div>
           </div>
