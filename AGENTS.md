@@ -208,8 +208,8 @@ in place).
   it); a pure simulation ETA is plain remaining-distance ÷ slider-speed.
   The estimator resets when a new GPX loads, not on ride reset.
 - **UI layout & reusable components.** The app is a dark, single-viewport
-  shell (`app.html`): a top bar (brand, route and workout pickers, and Settings),
-  a 3D map filling the left, and a fixed-width right control panel. CSS
+  shell (`app.html`): a 3D map filling the left and a right control panel with
+  Route, Workout, Devices, My profile, Simulation & demo, and Settings. CSS
   components in `styles.css` are meant to be reused, not re-invented per
   screen: `.btn` (+ `-ghost`/`-blue`/`-accent`/`-outline-*`/`-sm`),
   `.panel-card` (+ `-head`/`-title`/`-hint`), `.stat-grid` + `.stat-tile`,
@@ -320,7 +320,7 @@ in place).
     left HUD column (the training-zone meters stack under it).
   - **Top-right controls**: the existing `.map-actions` cluster, plus the
     Settings shortcut (`#mapSettingsShortcutBtn`, class `.map-action-btn-settings`)
-    so the same controls are available when fullscreen hides the top bar.
+    so the same controls are available when fullscreen hides the control panel.
   - **Top-centre climb/segment banner** (`#climbBanner`, `updateFullscreenClimbBanner`):
     reuses `state.climbs`. Shows the *ahead* variant (category chip from
     `CLIMB_CATEGORIES`, countdown, a mini grade-profile built with
@@ -350,7 +350,7 @@ in place).
   in `route-load.mjs` runs once per route load (GPX import or restoring a saved
   ride), not on every ride-progress tick — it only depends on the route's
   fixed distance/ascent totals and populates `state.routeName`/`state.climbs`
-  for later use. It fills the top-bar route picker (`#routePicker`), the Difficulty
+  for later use. It fills the sidebar route picker (`#routePicker`), the Difficulty
   stat tile (`#difficultyStat` + `#difficultyDetail`), and the climbs list
   inside the elevation card. `state.routeName` prefers a gallery ride's curated title,
   then the GPX's own `<name>` (`parseGpx` in `route.mjs` returns

@@ -84,36 +84,14 @@ body {
   min-height: 620px;
 }
 
-.top-bar {
-  flex: none;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas: "brand pickers settings";
+.sidebar-header {
+  display: flex;
   align-items: center;
-  gap: 14px;
-  height: 62px;
-  padding: 0 22px;
-  background: var(--bar);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.top-bar-pickers {
-  grid-area: pickers;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  width: 100%;
-  max-width: 384px;
-}
-
-#settingsBtn {
-  grid-area: settings;
-  justify-self: end;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .brand {
-  grid-area: brand;
-  justify-self: start;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -121,15 +99,15 @@ body {
 }
 
 .brand-dot {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--accent);
   animation: logoPulse 2s ease-in-out infinite;
 }
 
 .brand-name {
-  font: 600 13px/1 var(--font-mono);
+  font: 600 16px/1 var(--font-mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink);
@@ -1834,25 +1812,11 @@ body {
 
 .stat-grid {
   display: grid;
-  gap: 1px;
-  overflow: hidden;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-
-.stat-grid-4 {
-  grid-template-columns: repeat(4, 1fr);
-  flex: none;
-}
-
-.stat-grid-live {
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 10px 8px;
 }
 
 .stat-tile {
-  padding: 13px;
-  background: var(--card);
   min-width: 0;
 }
 
@@ -1866,15 +1830,11 @@ body {
 
 .stat-value {
   display: block;
-  margin-top: 9px;
-  font: 600 19px/1 var(--font-num);
+  margin-top: 5px;
+  font: 600 14px/1 var(--font-num);
   color: var(--ink-bright);
   letter-spacing: -0.02em;
-  white-space: nowrap;
-}
-
-.stat-value-sm {
-  font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .stat-detail {
@@ -1894,13 +1854,73 @@ body {
   background: var(--card);
 }
 
-.panel-card-flush {
-  padding: 0;
-  overflow: hidden;
+.sidebar-section {
+  display: grid;
+  gap: 12px;
 }
 
-.panel-card-zone-help {
-  overflow: visible;
+.sidebar-section h2,
+.sidebar-profile > summary {
+  margin: 0;
+  color: var(--ink-bright);
+  font: 600 16px/1.3 var(--font-ui);
+}
+
+.sidebar-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sidebar-section-head > h2,
+.sidebar-section-head > .btn-sm {
+  flex: none;
+}
+
+.sidebar-section-head > .selection-picker {
+  margin-inline-start: auto;
+}
+
+.sidebar-profile {
+  display: block;
+}
+
+.sidebar-profile > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  cursor: pointer;
+}
+
+.sidebar-profile > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-profile[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.sidebar-subgroup,
+.sidebar-detail-body {
+  display: grid;
+  gap: 10px;
+}
+
+.sidebar-details {
+  color: var(--muted);
+  font: 600 12px/1.4 var(--font-ui);
+}
+
+.sidebar-details summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.sidebar-detail-body,
+.sidebar-details .climb-status {
+  margin-top: 10px;
 }
 
 .panel-card-head {
@@ -1932,16 +1952,6 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-.workout-heading {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.workout-heading strong {
-  display: block;
-  margin-top: 5px;
 }
 
 .workout-warning {
@@ -2143,8 +2153,6 @@ body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  padding: 12px 14px;
-  border-top: 1px solid var(--line);
 }
 
 .rider-zone-form label {
@@ -2173,8 +2181,6 @@ body {
 .zone-editor {
   display: grid;
   gap: 12px;
-  padding: 12px 14px 14px;
-  border-top: 1px solid var(--line);
 }
 
 .zone-editor-note {
@@ -2256,16 +2262,6 @@ body {
 }
 
 /* ---- climbs ----------------------------------------------------------------- */
-
-.climbs-section {
-  margin-top: 11px;
-  padding-top: 11px;
-  border-top: 1px solid var(--line-soft);
-}
-
-.climbs-section[hidden] {
-  display: none;
-}
 
 .climb-status {
   display: flex;
@@ -2380,10 +2376,6 @@ progress.ascent-progress::-moz-progress-bar {
   color: var(--faint);
 }
 
-.stat-grid-live {
-  margin-top: 13px;
-}
-
 /* ---- connections -------------------------------------------------------------- */
 
 .connection-row {
@@ -2391,11 +2383,7 @@ progress.ascent-progress::-moz-progress-bar {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 13px 16px;
-}
-
-.connection-row + .connection-row {
-  border-top: 1px solid var(--line-soft);
+  padding: 3px 0;
 }
 
 .connection-info {
@@ -2403,6 +2391,18 @@ progress.ascent-progress::-moz-progress-bar {
   align-items: center;
   gap: 11px;
   min-width: 0;
+}
+
+.connection-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.connection-actions .icon-btn {
+  width: 32px;
+  height: 32px;
 }
 
 .status-dot {
@@ -2423,6 +2423,10 @@ progress.ascent-progress::-moz-progress-bar {
   color: var(--ink);
 }
 
+.connection-info > div {
+  min-width: 0;
+}
+
 .connection-status {
   margin-top: 5px;
   font: 500 11px/1 var(--font-mono);
@@ -2440,6 +2444,7 @@ progress.ascent-progress::-moz-progress-bar {
 
 .demo-card-top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
@@ -2458,16 +2463,10 @@ progress.ascent-progress::-moz-progress-bar {
   align-items: center;
   flex-wrap: wrap;
   gap: 6px 14px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.theater-hud-toggles-label {
-  font: 500 11px/1 var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--faint);
-  flex: 1 0 100%;
+.theater-hud-toggles > .panel-card-title {
+  flex-basis: 100%;
 }
 
 .theater-hud-toggle {
@@ -2556,7 +2555,7 @@ progress.ascent-progress::-moz-progress-bar {
   display: flex;
   gap: 26px;
   flex-wrap: wrap;
-  margin: 14px 0 0;
+  margin: 0;
 }
 
 .rec-stats div {
@@ -3405,10 +3404,6 @@ input[type="color"] {
     width: 420px;
   }
 
-  .stat-grid-live {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .gallery-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -3435,18 +3430,9 @@ input[type="color"] {
 
   .control-pane {
     width: 100%;
+    padding: 14px;
     border-left: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.07);
-  }
-
-  .top-bar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "brand settings"
-      "pickers pickers";
-    gap: 8px 12px;
-    height: auto;
-    padding: 10px 14px;
   }
 
   .gallery-grid {

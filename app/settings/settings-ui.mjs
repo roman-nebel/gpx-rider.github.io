@@ -66,6 +66,11 @@ export function openSettings(tab = "camera") {
 
 // --- Simulation, units & rider profile -------------------------------------
 
+export function toggleTrainerSettings() {
+  els.trainerSettings.hidden = !els.trainerSettings.hidden;
+  els.trainerSettingsBtn.setAttribute("aria-expanded", String(!els.trainerSettings.hidden));
+}
+
 export function updateGradeIntervalFromControl() {
   state.gradeUpdateIntervalSeconds = clamp(
     Number(els.gradeIntervalInput.value),

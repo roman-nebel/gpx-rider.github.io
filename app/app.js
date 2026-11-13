@@ -59,6 +59,7 @@ import {
   openSettings,
   resetRenderingToDefaults,
   selectSettingsTab,
+  toggleTrainerSettings,
   toggleProfileSeries,
   updateDisplaySettingsFromControls,
   updateGradeIntervalFromControl,
@@ -259,6 +260,7 @@ function bindEvents() {
   els.routeGradeColorsInput.addEventListener("change", updateRenderingSettingsFromControls);
   els.resetRenderingBtn.addEventListener("click", resetRenderingToDefaults);
   els.connectBtn.addEventListener("click", connectTrainer);
+  els.trainerSettingsBtn.addEventListener("click", toggleTrainerSettings);
   els.connectHrBtn.addEventListener("click", connectHeartRate);
   els.demoModeBtn.addEventListener("click", toggleDemoMode);
   els.resizeRecordingWindowBtn.addEventListener("click", toggleTheaterMode);

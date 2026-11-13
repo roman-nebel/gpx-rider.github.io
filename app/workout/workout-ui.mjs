@@ -97,6 +97,7 @@ export async function clearWorkout() {
 export function renderWorkout() {
   const workout = state.workout;
   els.workoutCard.hidden = !workout;
+  els.clearWorkoutBtn.hidden = !workout;
   setPickerSelection(els.workoutPicker, workout ? workout.name || "Untitled workout" : null);
   if (!workout) {
     syncWorkoutHud([], 0);
@@ -105,7 +106,6 @@ export function renderWorkout() {
     return;
   }
 
-  els.workoutName.textContent = workout.name;
   const total = workout.steps.length;
   const previewCount = Math.min(total, WORKOUT_PREVIEW_STEP_LIMIT);
   els.workoutStepCount.textContent = previewCount < total

@@ -50,8 +50,14 @@ export function handleTrainerTelemetry(telemetry) {
 }
 
 export function handleTrainerStatus(text, { onlyClearError = false } = {}) {
+  const connected = isTrainerConnected();
+  els.trainerSettingsBtn.hidden = !connected;
+  if (!connected) {
+    els.trainerSettings.hidden = true;
+    els.trainerSettingsBtn.setAttribute("aria-expanded", "false");
+  }
   if (state.demoModeActive) {
-    if (isTrainerConnected()) {
+    if (connected) {
       stopDemoMode({ message: "Demo mode turned off because a real trainer connected." });
     } else {
       return;
