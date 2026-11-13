@@ -48,6 +48,10 @@ export function restoreRideLog() {
   const lastSample = log.samples.at(-1);
   log.lastTickAtMs = saved.lastTickAtMs ?? (lastSample ? lastSample[0] * 1000 : null);
   log.lastTickCalories = Object.hasOwn(saved, "lastTickCalories") ? saved.lastTickCalories : lastSample?.[8] ?? null;
+  const lastRunBoundary = log.workoutLaps.findLast(({ startsRun, endsRun }) => startsRun || endsRun);
+  if (lastRunBoundary?.startsRun && log.lastTickAtMs !== null) {
+    appendWorkoutBoundary(null, log.lastTickAtMs, { endsRun: true });
+  }
 }
 
 export function recordRideTick({
@@ -62,10 +66,11 @@ export function recordRideTick({
   cadenceRpm,
   workout,
   workoutSession,
+  workoutPaused = workoutSession?.paused === true,
 }) {
   const now = Date.now();
   if (log.startedAtMs === null) log.startedAtMs = now;
-  const lapChanged = recordWorkoutBoundary(workout, workoutSession, now - elapsedSeconds * 1000);
+  const lapChanged = recordWorkoutBoundary(workout, workoutSession, workoutPaused, now - elapsedSeconds * 1000);
   log.timerSeconds += Math.max(0, elapsedSeconds);
   log.distanceMeters += Math.max(0, metersAdvanced);
   log.lastTickAtMs = now;
@@ -91,7 +96,7 @@ export function recordRideTick({
   if (lapChanged || now - log.lastPersistAtMs >= RIDE_PERSIST_INTERVAL_MS) persistRideLog();
 }
 
-function recordWorkoutBoundary(workout, session, startMs) {
+function recordWorkoutBoundary(workout, session, workoutPaused, startMs) {
   if (workout !== log.selectedWorkout) {
     log.selectedWorkout = workout;
     // FIT Activity has room for one plan. Keep the one that owns recorded laps.
@@ -100,20 +105,25 @@ function recordWorkoutBoundary(workout, session, startMs) {
       JSON.stringify(log.workout) === JSON.stringify(workout));
   }
   const activeSession = log.matchesWorkout ? session ?? null : null;
-  const step = activeSession?.index ?? null;
-  if (step === log.workoutStep && activeSession === log.workoutSession &&
-      (step !== null || log.workoutLaps.at(-1)?.stepIndex == null)) return false;
+  const paused = Boolean(activeSession && workoutPaused);
+  const step = paused ? null : activeSession?.index ?? null;
+  const startsRun = Boolean(activeSession && activeSession !== log.workoutSession);
+  const previous = log.workoutLaps.at(-1);
+  if (!startsRun && step === log.workoutStep &&
+      (step !== null || previous?.stepIndex == null)) return false;
 
-  log.workoutSession = activeSession;
+  if (startsRun) log.workoutSession = activeSession;
   log.workoutStep = step;
   appendWorkoutBoundary(activeSession?.steps[step]?.sourceIndex ?? null,
-    activeSession ? startMs : log.lastTickAtMs ?? startMs);
+    activeSession ? Math.max(startMs, activeSession.startedAtMs ?? startMs) : log.lastTickAtMs ?? startMs,
+    { startsRun, paused, workoutStartMs: startsRun ? activeSession.startedAtMs : undefined });
   return true;
 }
 
-function appendWorkoutBoundary(stepIndex, startMs) {
+function appendWorkoutBoundary(stepIndex, startMs, details = {}) {
   log.workoutLaps.push({
     stepIndex,
+    ...details,
     sampleIndex: log.samples.length,
     startMs: Math.max(log.startedAtMs, startMs),
     timerSeconds: log.timerSeconds,
@@ -126,7 +136,14 @@ export function closeRecordedWorkout(session) {
   if (!session || log.workoutSession !== session) return;
   log.workoutSession = null;
   log.workoutStep = null;
-  appendWorkoutBoundary(null, log.lastTickAtMs);
+  appendWorkoutBoundary(null, Date.now(), { endsRun: true });
+  persistRideLog();
+}
+
+export function recordWorkoutPause(session) {
+  if (log.workoutSession !== session) return;
+  log.workoutStep = session.paused ? null : session.index;
+  appendWorkoutBoundary(session.steps[log.workoutStep]?.sourceIndex ?? null, Date.now(), { paused: session.paused });
   persistRideLog();
 }
 

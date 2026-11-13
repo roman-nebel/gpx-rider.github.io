@@ -2,7 +2,7 @@
 import { els, state } from "../core/state.mjs";
 import { WORKOUT_ERG_POWER_TIMEOUT_MS, WORKOUT_ERG_UPDATE_MS, WORKOUT_START_COUNTDOWN_SECONDS } from "../core/tuning.mjs";
 import { currentHeartRate, updateRideSpeedUi } from "../ride/telemetry-ui.mjs";
-import { closeRecordedWorkout } from "../ride/recorder.mjs";
+import { closeRecordedWorkout, recordWorkoutPause } from "../ride/recorder.mjs";
 import { ensureMovementLoop, resetRide } from "../ride/movement.mjs";
 import { updateWorkoutMeterTargets } from "../ride/training-zones.mjs";
 import { gradeAt, routeTotalDistance } from "../route/route.mjs";
@@ -75,7 +75,7 @@ function updateCountdown() {
   if (state.progressMeters >= routeTotalDistance(state.route)) resetRide();
   state.ergRoadSpeedKph = null;
   state.workoutErg = {
-    steps: countdown.steps, index: 0, elapsed: 0, paused: false, nextWriteAt: 0,
+    steps: countdown.steps, index: 0, elapsed: 0, paused: false, nextWriteAt: 0, startedAtMs: Date.now(),
     summary: createWorkoutSummary(),
   };
   els.workoutErgInput.checked = true;
@@ -110,6 +110,7 @@ export function toggleWorkoutPause() {
   const session = state.workoutErg;
   if (!session) return;
   session.paused = !session.paused;
+  recordWorkoutPause(session);
   if (session.paused) {
     pauseWorkoutErg();
     state.ergRoadSpeedKph = null;

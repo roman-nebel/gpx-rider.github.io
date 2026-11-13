@@ -270,7 +270,8 @@ function tick(now) {
       routeProgressMeters: state.progressMeters,
       cadenceRpm: state.trainerCadenceRpm,
       workout: state.workout,
-      workoutSession: recordingWorkoutSession(now),
+      workoutSession: state.workoutErg,
+      workoutPaused: Boolean(state.workoutErg && !recordingWorkoutSession(now)),
     });
   }
 

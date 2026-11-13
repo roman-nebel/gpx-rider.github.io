@@ -1,9 +1,12 @@
 // Finds and rebases the recorded workout portion of a FIT activity.
 
 export function workoutFitRange(boundaries, sampleCount, findLegacySample) {
-  const first = boundaries.findIndex(({ stepIndex }) => Number.isInteger(stepIndex));
+  const runStart = boundaries.findLastIndex(({ startsRun }) => startsRun);
+  const first = runStart >= 0 ? runStart : boundaries.findIndex(({ stepIndex }) => Number.isInteger(stepIndex));
   if (first < 0) return null;
-  const last = boundaries.findLastIndex(({ stepIndex }) => Number.isInteger(stepIndex));
+  const runEnd = boundaries.findIndex(({ endsRun }, index) => index > first && endsRun);
+  const last = runEnd >= 0 ? runEnd - 1 : runStart >= 0 ? boundaries.length - 1
+    : boundaries.findLastIndex(({ stepIndex }) => Number.isInteger(stepIndex));
   const start = boundaries[first];
   const end = boundaries[last + 1];
   const startIndex = start.sampleIndex ?? findLegacySample(start);
@@ -14,6 +17,7 @@ export function workoutFitRange(boundaries, sampleCount, findLegacySample) {
 export function sliceWorkoutFit({ samples, summary, workout, workoutLaps }, range) {
   const { first, last, startIndex, endIndex } = range;
   const start = workoutLaps[first];
+  const startTimeMs = start.workoutStartMs ?? start.startMs;
   const end = workoutLaps[last + 1] ?? {
     startMs: summary.endTimeMs ?? samples.at(-1).t * 1000,
     timerSeconds: summary.totalTimerSeconds,
@@ -36,9 +40,9 @@ export function sliceWorkoutFit({ samples, summary, workout, workoutLaps }, rang
       ...sample, distance: distance(sample.distance),
     })),
     summary: {
-      startTimeMs: start.startMs,
+      startTimeMs,
       endTimeMs: end.startMs,
-      totalElapsedSeconds: Math.max(timer, (end.startMs - start.startMs) / 1000),
+      totalElapsedSeconds: Math.max(timer, (end.startMs - startTimeMs) / 1000),
       totalTimerSeconds: timer,
       totalDistanceMeters: distance(end.distanceMeters),
       totalCalories: calories(end.caloriesKcal),

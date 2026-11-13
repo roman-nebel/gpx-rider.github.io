@@ -34,3 +34,42 @@ test("workout-only export resolves legacy boundaries and supports an ongoing wor
   assert.equal(workoutFitRange([start], 2, () => 1), null);
   assert.equal(workoutFitRange([], samples.length), null);
 });
+
+test("workout-only export uses the latest restart and excludes riding between runs", () => {
+  const workoutLaps = [
+    { stepIndex: 0, startsRun: true },
+    { stepIndex: null, endsRun: true },
+    { stepIndex: 0, startsRun: true },
+    { stepIndex: null },
+    { stepIndex: 1 },
+    { stepIndex: null, endsRun: true },
+  ].map((boundary, index) => ({
+    ...boundary, sampleIndex: index * 2, startMs: index * 2000,
+    timerSeconds: index * 2, distanceMeters: index * 20, caloriesKcal: index * 2,
+  }));
+  const samples = Array.from({ length: 12 }, (_, t) => ({ t, distance: t * 10 }));
+  const range = workoutFitRange(workoutLaps, samples.length);
+  const slice = sliceWorkoutFit({ samples, workoutLaps }, range);
+  assert.deepEqual(slice.samples.map(({ t }) => t), [4, 5, 6, 7, 8, 9]);
+  assert.deepEqual(slice.workoutLaps.map(({ stepIndex }) => stepIndex), [0, null, 1]);
+  assert.equal(slice.summary.totalTimerSeconds, 6);
+});
+
+test("workout-only export keeps a trailing pause through the explicit end of the run", () => {
+  const workoutLaps = [
+    { stepIndex: 0, startsRun: true, workoutStartMs: 1800 },
+    { stepIndex: null, paused: true },
+    { stepIndex: null, endsRun: true },
+  ].map((boundary, index) => ({
+    ...boundary, sampleIndex: 2 + index * 2, startMs: 2000 + index * 2000,
+    timerSeconds: 2 + index * 2, distanceMeters: 20 + index * 20, caloriesKcal: 2 + index * 2,
+  }));
+  const samples = Array.from({ length: 8 }, (_, t) => ({ t, distance: t * 10 }));
+  const range = workoutFitRange(workoutLaps, samples.length);
+  const slice = sliceWorkoutFit({ samples, workoutLaps }, range);
+  assert.deepEqual(slice.samples.map(({ t }) => t), [2, 3, 4, 5]);
+  assert.deepEqual(slice.workoutLaps.map(({ stepIndex, paused }) => [stepIndex, Boolean(paused)]), [[0, false], [null, true]]);
+  assert.equal(slice.summary.startTimeMs, 1800);
+  assert.equal(slice.summary.endTimeMs, 6000);
+  assert.equal(slice.summary.totalTimerSeconds, 4);
+});
