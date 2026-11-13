@@ -86,24 +86,34 @@ body {
 
 .top-bar {
   flex: none;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "brand pickers settings";
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   height: 62px;
   padding: 0 22px;
   background: var(--bar);
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-.top-bar-group {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
+.top-bar-pickers {
+  grid-area: pickers;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 384px;
+}
+
+#settingsBtn {
+  grid-area: settings;
+  justify-self: end;
 }
 
 .brand {
+  grid-area: brand;
+  justify-self: start;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -123,40 +133,27 @@ body {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink);
+  white-space: nowrap;
 }
 
-.top-bar-files {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.btn.selection-picker {
+  justify-content: flex-start;
+  gap: 6px;
   min-width: 0;
-  padding-inline-start: 12px;
-  border-inline-start: 1px solid rgba(255, 255, 255, 0.1);
+  padding-inline: 10px;
 }
 
-.gpx-chip {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 10px;
-}
-
-.gpx-chip-tag {
-  font: 600 11px/1 var(--font-mono);
-  letter-spacing: 0.05em;
-  color: var(--blue-soft);
-}
-
-.gpx-chip-name {
+.selection-picker-name {
+  flex: 1;
   overflow: hidden;
-  font: 500 12px/1 var(--font-mono);
-  color: #c7cad2;
+  min-width: 0;
+  text-align: start;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.selection-picker svg {
+  flex-shrink: 0;
 }
 
 /* ---- buttons -------------------------------------------------------------- */
@@ -235,19 +232,6 @@ body {
   font-size: 11px;
 }
 
-.count-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 19px;
-  height: 19px;
-  padding: 0 5px;
-  background: var(--blue);
-  border-radius: 5px;
-  font: 700 10px/1 var(--font-mono);
-  color: var(--bg);
-}
-
 .icon-btn {
   display: flex;
   align-items: center;
@@ -277,8 +261,14 @@ body {
   pointer-events: none;
 }
 
-.file-picker span {
-  display: contents;
+.file-picker:has(input:focus-visible) {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.file-picker:has(input:disabled) {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 /* ---- map pane -------------------------------------------------------------- */
@@ -3130,6 +3120,7 @@ input[type="color"] {
 }
 
 .gallery-title {
+  margin: 0;
   font: 500 30px/1 var(--font-serif);
   color: #f5f6f8;
 }
@@ -3143,13 +3134,10 @@ input[type="color"] {
 
 .gallery-head-actions {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 12px;
-}
-
-.gallery-attribution {
-  font: 400 12px/1 var(--font-ui);
-  color: var(--faint);
+  margin-inline-start: auto;
 }
 
 .gallery-head-actions .icon-btn {
@@ -3163,6 +3151,21 @@ input[type="color"] {
   min-height: 0;
   overflow-y: auto;
   padding: 4px 32px 32px;
+}
+
+.gallery-message,
+.gallery-import-error {
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--muted);
+}
+
+.gallery-import-error {
+  border-color: var(--salmon);
+  color: var(--salmon);
 }
 
 .gallery-grid {
@@ -3447,13 +3450,12 @@ input[type="color"] {
     border-top: 1px solid rgba(255, 255, 255, 0.07);
   }
 
-  .top-bar-group,
-  .top-bar-files {
-    flex-wrap: wrap;
-  }
-
   .top-bar {
-    flex-wrap: wrap;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand settings"
+      "pickers pickers";
+    gap: 8px 12px;
     height: auto;
     padding: 10px 14px;
   }
@@ -3503,6 +3505,31 @@ input[type="color"] {
 
   .settings-rail-foot {
     display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .gallery-head {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .gallery-head-title {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+
+  .gallery-title {
+    font-size: 23px;
+  }
+
+  .gallery-head-actions {
+    gap: 6px;
+  }
+
+  .gallery-scroll {
+    padding-inline: 14px;
   }
 }
 

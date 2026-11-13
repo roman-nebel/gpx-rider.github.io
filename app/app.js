@@ -29,7 +29,7 @@ import {
 import { registerCameraDebugHud, toggleCameraDebugCollapsed } from "./camera/camera-debug.mjs";
 import { registerDemoBannerHud, toggleDemoMode } from "./demo/demo-mode.mjs";
 import { copyGalleryMetadata, syncGalleryMetadataExportAvailability, updateGalleryMetadataExport } from "./gallery-ui/gallery-export.mjs";
-import { initGallery } from "./gallery-ui/gallery.mjs";
+import { initGallery, openRouteGallery } from "./gallery-ui/gallery.mjs";
 import { connectHeartRate, initHeartRate, reconnectSavedHeartRate } from "./trainer/heartrate.mjs";
 import { getStoredMapsApiKey, initMap, registerMinimapHud, saveMapsApiKey } from "./map/map-init.mjs";
 import {
@@ -74,7 +74,7 @@ import { registerWorkoutHud } from "./workout/workout-hud.mjs";
 import {
   endWorkout, handleWorkoutErgRejection, toggleWorkoutErg, toggleWorkoutPause, useWorkoutHudPlay,
 } from "./workout/workout-erg.mjs";
-import { clearWorkout, importWorkout, restoreWorkout, updateWorkoutAutoStart } from "./workout/workout-ui.mjs";
+import { clearWorkout, importWorkout, openWorkoutGallery, restoreWorkout, updateWorkoutAutoStart } from "./workout/workout-ui.mjs";
 import { registerClimbBannerHud } from "./route/climbs-ui.mjs";
 import { initScreenManager } from "./hud/screen-manager.mjs";
 import {
@@ -195,6 +195,8 @@ function bindEvents() {
     }
   });
   els.gpxFile.addEventListener("change", loadGpxFile);
+  els.routePicker.addEventListener("click", openRouteGallery);
+  els.workoutPicker.addEventListener("click", openWorkoutGallery);
   els.workoutErgInput.addEventListener("change", toggleWorkoutErg);
   els.workoutAutoStartInput.addEventListener("change", updateWorkoutAutoStart);
   els.pauseWorkoutBtn.addEventListener("click", toggleWorkoutPause);
@@ -313,7 +315,7 @@ function bindEvents() {
     // (natively) and must not also kick the rider out of fullscreen.
     if (
       event.key === "Escape" && state.mapFullscreen &&
-      !els.settingsDialog.open && !els.galleryDialog.open
+      !els.settingsDialog.open && !els.galleryDialog.open && !els.workoutGalleryDialog.open
     ) exitMapFullscreen();
   });
   document.addEventListener("click", closeOverviewModeMenuOnOutsideClick);

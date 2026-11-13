@@ -1,5 +1,5 @@
 // Route loading: GPX file/URL intake, applying parsed GPX to the app state,
-// and the once-per-load route overview (name chip, difficulty classification,
+// and the once-per-load route overview (selected name, difficulty classification,
 // climbs list).
 
 import { stopWorkoutErg } from "../workout/workout-erg.mjs";
@@ -25,13 +25,29 @@ import { renderRoute } from "../map/route-render.mjs";
 import { prefetchTerrainAround } from "../map/terrain-tiles.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
 import { formatAltitude, formatDistance } from "../core/units.mjs";
+import { setPickerSelection } from "../top-bar/selection-picker.mjs";
 
 export async function loadGpxFile(event) {
-  const [file] = event.target.files;
+  const input = event.currentTarget;
+  const [file] = input.files;
   if (!file) return;
+  input.value = "";
+  input.disabled = true;
+  els.routeImportError.hidden = true;
 
-  const text = await file.text();
-  applyGpxText(text, { fallbackName: filenameToRouteName(file.name) });
+  try {
+    const text = await file.text();
+    if (!applyGpxText(text, { fallbackName: filenameToRouteName(file.name) })) {
+      throw new Error("That GPX file does not contain enough track points.");
+    }
+    els.galleryDialog.close();
+  } catch (error) {
+    els.routeImportError.textContent = `Import failed. ${error.message}`;
+    els.routeImportError.hidden = false;
+    if (els.galleryDialog.open) els.routeImportError.scrollIntoView({ block: "nearest" });
+  } finally {
+    input.disabled = false;
+  }
 }
 
 // Gallery rides pass their curated title as `overrideName`, which wins over
@@ -47,12 +63,12 @@ function filenameToRouteName(filename) {
   return filename.replace(/\.[^./\\]+$/, "").trim() || null;
 }
 
-export function applyGpxText(text, { overrideName = null, fallbackName = null, galleryMetadata = null } = {}) {
+function applyGpxText(text, { overrideName = null, fallbackName = null, galleryMetadata = null } = {}) {
   const { points: route, name: gpxName } = parseGpx(text);
 
   if (route.length < 2) {
     updateProgressLabel("That GPX file does not contain enough track points.");
-    return;
+    return false;
   }
 
   if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
@@ -97,16 +113,16 @@ export function applyGpxText(text, { overrideName = null, fallbackName = null, g
   els.startBtn.disabled = false;
   els.resetBtn.disabled = false;
   syncDemoModeUi();
+  return true;
 }
 
-// Route name (top-bar GPX chip), classification (difficulty stat tile) and
+// Route name (top-bar picker), classification (difficulty stat tile) and
 // detected climbs, shown once a GPX loads. All are cheap single passes over
 // the whole route and only depend on its fixed distance/elevation totals,
 // so this runs once per load rather than on every ride-progress tick like
 // updateRideUi.
 export function updateRouteOverview() {
-  els.gpxChip.hidden = !state.routeName;
-  els.gpxChipName.textContent = state.routeName ?? "";
+  setPickerSelection(els.routePicker, state.route.length ? state.routeName || "Untitled route" : null);
 
   if (!state.route.length) {
     state.climbs = [];

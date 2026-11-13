@@ -3,6 +3,7 @@ import { WORKOUT_PREVIEW_STEP_LIMIT, WORKOUT_PROFILE_STEP_LIMIT } from "../core/
 import { els, state } from "../core/state.mjs";
 import { readJson, removeStored, writeJsonCommitted } from "../storage/storage.mjs";
 import { saveSettings } from "../storage/persistence.mjs";
+import { setPickerSelection } from "../top-bar/selection-picker.mjs";
 import { decodeFitWorkout } from "./fit-workout.mjs";
 import { decodeMyWhooshJson, decodeMyWhooshXml } from "./mywhoosh-workout.mjs";
 import { syncWorkoutHud } from "./workout-hud.mjs";
@@ -25,6 +26,11 @@ export function updateWorkoutAutoStart() {
   saveSettings();
 }
 
+export function openWorkoutGallery() {
+  els.workoutImportError.hidden = true;
+  els.workoutGalleryDialog.showModal();
+}
+
 export async function importWorkout(event) {
   const input = event.currentTarget;
   const file = input.files?.[0];
@@ -33,6 +39,7 @@ export async function importWorkout(event) {
   input.disabled = true;
   els.clearWorkoutBtn.disabled = true;
   setWorkoutError("");
+  els.workoutImportError.hidden = true;
 
   try {
     const workout = await readWorkoutFile(file);
@@ -44,10 +51,11 @@ export async function importWorkout(event) {
     state.workout = workout;
     state.workoutAutoStartAttempted = false;
     renderWorkout();
+    els.workoutGalleryDialog.close();
     els.workoutCard.scrollIntoView({ block: "nearest" });
   } catch (error) {
-    setWorkoutError(`Import failed. ${error.message}`);
-    els.workoutError.scrollIntoView({ block: "nearest" });
+    els.workoutImportError.textContent = `Import failed. ${error.message}`;
+    els.workoutImportError.hidden = false;
   } finally {
     input.disabled = false;
     els.clearWorkoutBtn.disabled = false;
@@ -83,15 +91,13 @@ export async function clearWorkout() {
     els.workoutFile.disabled = false;
     els.clearWorkoutBtn.disabled = false;
   }
-  if (!state.workout) els.workoutFile.focus();
+  if (!state.workout) els.workoutPicker.focus();
 }
 
 export function renderWorkout() {
   const workout = state.workout;
   els.workoutCard.hidden = !workout;
-  els.workoutChip.hidden = !workout;
-  els.workoutChipName.textContent = workout?.name ?? "";
-  els.workoutChip.title = workout?.name ?? "";
+  setPickerSelection(els.workoutPicker, workout ? workout.name || "Untitled workout" : null);
   if (!workout) {
     syncWorkoutHud([], 0);
     els.workoutChart.replaceChildren();

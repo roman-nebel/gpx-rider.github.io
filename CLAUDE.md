@@ -50,6 +50,7 @@ pages, `styles.css`, `gallery.json`, and `assets/` stay at the app root.
 | `app/settings/` | Settings | `settings-ui.mjs` (settings dialog shell + every non-camera panel: units, rider profile, display & HUD toggles, rendering, screenshot settings) |
 | `app/storage/` | Storage & persistence | `storage.mjs` (IndexedDB behind a sync cache, localStorage fallback + migration; tested), `persistence.mjs` (`restoreSettings`/`saveSettings`, `restoreSavedRide`/`saveRide` — the one deliberately cross-cutting module) |
 | `app/hud/` | Shared HUD layout | `screen-manager.mjs` (**the central HUD layout manager** — see "Map HUD layout" below), `map-hud.mjs` (clock chip, HUD tile order/visibility + drag-reorder, tile layout, dock collapse, fullscreen enter/exit, map screenshot action), `theater-mode.mjs` (exact-size recording viewport) |
+| `app/top-bar/` | Toolbar | `selection-picker.mjs` (shared route and workout gallery button showing the current selection) |
 | `app/gallery-ui/` | Gallery | `gallery.mjs` (fullscreen ride-gallery overlay; cards from `app/gallery.json`, per-card on-demand 3D preview via each route's `metadata.json#previewCamera`), `gallery-export.mjs` (Export to gallery card: metadata.json snippet with the live camera, clipboard copy) |
 | `app/landing/` | Landing page | `landing.mjs` (public landing page behavior: hero replay over a live 3D map with a faked HUD, then summit orbit, loops; knobs in `LANDING_HERO`, `core/tuning.mjs`), `landing-route.mjs` (static route data the hero replays — marketing data, not app runtime) |
 | `app/demo/` | Demo mode | `demo.mjs` (pure synthetic trainer/HR ride model; tested), `demo-mode.mjs` (demo mode UI: drives the ride from the model, demo chip sync) |
@@ -206,7 +207,7 @@ in place).
   it); a pure simulation ETA is plain remaining-distance ÷ slider-speed.
   The estimator resets when a new GPX loads, not on ride reset.
 - **UI layout & reusable components.** The app is a dark, single-viewport
-  shell (`app.html`): a fixed top bar (brand, GPX chip, Open/Browse/Settings),
+  shell (`app.html`): a top bar (brand, route and workout pickers, and Settings),
   a 3D map filling the left, and a fixed-width right control panel. CSS
   components in `styles.css` are meant to be reused, not re-invented per
   screen: `.btn` (+ `-ghost`/`-blue`/`-accent`/`-outline-*`/`-sm`),
@@ -348,7 +349,7 @@ in place).
   in `route-load.mjs` runs once per route load (GPX import or restoring a saved
   ride), not on every ride-progress tick — it only depends on the route's
   fixed distance/ascent totals and populates `state.routeName`/`state.climbs`
-  for later use. It fills the top-bar GPX chip (`#gpxChip`), the Difficulty
+  for later use. It fills the top-bar route picker (`#routePicker`), the Difficulty
   stat tile (`#difficultyStat` + `#difficultyDetail`), and the climbs list
   inside the elevation card. `state.routeName` prefers a gallery ride's curated title,
   then the GPX's own `<name>` (`parseGpx` in `route.mjs` returns

@@ -32,8 +32,7 @@ import {
   ROUTE_LINE_SPACING_METERS,
 } from "../core/tuning.mjs";
 import { formatAltitude, formatDistance } from "../core/units.mjs";
-
-export const GALLERY_ATTRIBUTION = "satellite previews with optional Photorealistic 3D · map data © Google";
+import { els as appEls } from "../core/state.mjs";
 
 const DIFFICULTY_COLORS = {
   "Very Easy": "#4ec06f",
@@ -49,6 +48,11 @@ let els = null;
 let previewStartRequested = false;
 let previewServices = null;
 
+export function openRouteGallery() {
+  appEls.routeImportError.hidden = true;
+  appEls.galleryDialog.showModal();
+}
+
 export async function initGallery(onLoadRoute, {
   shouldAutoLoadFirst = () => false,
   getRequestedRouteId = () => null,
@@ -57,24 +61,25 @@ export async function initGallery(onLoadRoute, {
   getMaps3d = () => null,
   getMapLabelsEnabled = () => false,
 } = {}) {
+  const status = document.getElementById("galleryStatus");
   let routes;
   try {
     const response = await fetch("./gallery.json");
-    if (!response.ok) return;
+    if (!response.ok) throw new Error("Gallery request failed.");
     routes = (await response.json()).routes;
   } catch {
+    status.textContent = "Could not load the route gallery.";
     return;
   }
-  if (!routes?.length) return;
+  if (!routes?.length) {
+    status.textContent = "No routes in the gallery yet.";
+    return;
+  }
 
   els = {
-    dialog: document.getElementById("galleryDialog"),
+    dialog: appEls.galleryDialog,
     grid: document.getElementById("galleryGrid"),
     count: document.getElementById("galleryCount"),
-    attribution: document.getElementById("galleryAttribution"),
-    closeBtn: document.getElementById("galleryCloseBtn"),
-    browseBtn: document.getElementById("browseGalleryBtn"),
-    browseCount: document.getElementById("browseGalleryCount"),
   };
   previewServices = { getMaps3d, getMapLabelsEnabled };
 
@@ -89,16 +94,14 @@ export async function initGallery(onLoadRoute, {
   }
   refreshCards(getCurrentRouteName, getDistanceUnits);
 
+  status.hidden = true;
   els.count.textContent = `${routes.length} route${routes.length === 1 ? "" : "s"}`;
-  els.attribution.textContent = GALLERY_ATTRIBUTION;
-  els.browseCount.textContent = String(routes.length);
-  els.browseBtn.hidden = false;
-  els.browseBtn.addEventListener("click", () => {
+  els.count.hidden = false;
+  appEls.routePicker.addEventListener("click", () => {
     refreshCards(getCurrentRouteName, getDistanceUnits);
-    els.dialog.showModal();
     void startGalleryPreviews();
   });
-  els.closeBtn.addEventListener("click", () => els.dialog.close());
+  if (els.dialog.open) void startGalleryPreviews();
 
   // A specific route requested via the app URL (e.g. the landing page's
   // "Launch GPX Rider" deep-link, ?route=<id>) always wins over a restored

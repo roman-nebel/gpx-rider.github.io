@@ -12,35 +12,21 @@
   <body>
     <main class="app-shell">
       <header class="top-bar">
-        <div class="top-bar-group">
-          <a class="brand" href="./" aria-label="Go to site home">
-            <span class="brand-dot"></span>
-            <span id="brandName" class="brand-name">GPX Rider</span>
-          </a>
-          <div class="top-bar-files">
-            <div id="gpxChip" class="gpx-chip" hidden>
-              <span class="gpx-chip-tag">GPX</span>
-              <span id="gpxChipName" class="gpx-chip-name">--</span>
-            </div>
-            <button id="browseGalleryBtn" type="button" class="btn btn-blue" hidden>
-              Browse gallery
-              <span id="browseGalleryCount" class="count-badge">0</span>
-            </button>
-            <label class="file-picker btn btn-ghost">
-              <input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml">
-              <span>Open GPX file…</span>
-            </label>
-          </div>
-          <div class="top-bar-files">
-            <div id="workoutChip" class="gpx-chip" hidden>
-              <span class="gpx-chip-tag">WORKOUT</span>
-              <span id="workoutChipName" class="gpx-chip-name"></span>
-            </div>
-            <label class="file-picker btn btn-ghost">
-              <input id="workoutFile" type="file" accept=".fit,.xml,.json">
-              <span>Import workout…</span>
-            </label>
-          </div>
+        <a class="brand" href="./" aria-label="Go to site home">
+          <span class="brand-dot"></span>
+          <span id="brandName" class="brand-name">GPX Rider</span>
+        </a>
+        <div class="top-bar-pickers">
+          <button id="routePicker" type="button" class="btn btn-blue selection-picker" aria-haspopup="dialog" aria-controls="galleryDialog" data-label="Route">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><path d="M8.5 18H17a3 3 0 0 0 0-6H7a3 3 0 0 1 0-6h8.5"></path></svg>
+            <span class="selection-picker-name">Select route</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>
+          </button>
+          <button id="workoutPicker" type="button" class="btn btn-blue selection-picker" aria-haspopup="dialog" aria-controls="workoutGalleryDialog" data-label="Workout">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6v12M18 6v12M3 9v6m18-6v6M6 12h12"></path></svg>
+            <span class="selection-picker-name">Select workout</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>
+          </button>
         </div>
         <button id="settingsBtn" type="button" class="btn btn-ghost">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -1074,18 +1060,46 @@
     <dialog id="galleryDialog" class="gallery-dialog" aria-labelledby="galleryTitle">
       <header class="gallery-head">
         <div class="gallery-head-title">
-          <span id="galleryTitle" class="gallery-title">Route gallery</span>
-          <span id="galleryCount" class="gallery-count">0 ROUTES</span>
+          <h2 id="galleryTitle" class="gallery-title">Route gallery</h2>
+          <span id="galleryCount" class="gallery-count" hidden></span>
         </div>
         <div class="gallery-head-actions">
-          <span id="galleryAttribution" class="gallery-attribution"></span>
-          <button id="galleryCloseBtn" type="button" class="icon-btn" title="Close gallery" aria-label="Close gallery">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
-          </button>
+          <label class="file-picker btn btn-blue">
+            <input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml">
+            Import route
+          </label>
+          <form method="dialog">
+            <button type="submit" class="icon-btn" title="Close gallery" aria-label="Close route gallery">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+            </button>
+          </form>
         </div>
       </header>
       <div class="gallery-scroll">
+        <p id="routeImportError" class="gallery-import-error" role="alert" hidden></p>
+        <p id="galleryStatus" class="gallery-message" role="status">Loading routes…</p>
         <div class="gallery-grid" id="galleryGrid"></div>
+      </div>
+    </dialog>
+
+    <dialog id="workoutGalleryDialog" class="gallery-dialog" aria-labelledby="workoutGalleryTitle">
+      <header class="gallery-head">
+        <h2 id="workoutGalleryTitle" class="gallery-title">Workout gallery</h2>
+        <div class="gallery-head-actions">
+          <label class="file-picker btn btn-blue">
+            <input id="workoutFile" type="file" accept=".fit,.xml,.json">
+            Import workout
+          </label>
+          <form method="dialog">
+            <button type="submit" class="icon-btn" title="Close gallery" aria-label="Close workout gallery">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+            </button>
+          </form>
+        </div>
+      </header>
+      <div class="gallery-scroll">
+        <p id="workoutImportError" class="gallery-import-error" role="alert" hidden></p>
+        <p class="gallery-message">No workouts in the gallery yet.</p>
       </div>
     </dialog>
 
