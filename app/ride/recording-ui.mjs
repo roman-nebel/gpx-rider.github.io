@@ -29,8 +29,9 @@ export function updateRecordingUi() {
     ? `${summary.heartRateSampleCount} samples`
     : "--";
   els.recCaloriesStat.textContent = formatEnergy(summary.caloriesKcal ?? NaN, state.energyUnits);
-  els.downloadFitBtn.disabled = summary.sampleCount < 2;
-  els.downloadWorkoutFitBtn.disabled = !rideLogWorkoutFitRange();
+  const exportLocked = workoutExportLocked();
+  els.downloadFitBtn.disabled = exportLocked || summary.sampleCount < 2;
+  els.downloadWorkoutFitBtn.disabled = exportLocked || !rideLogWorkoutFitRange();
   els.clearRideDataBtn.disabled = summary.sampleCount === 0;
 }
 
@@ -43,6 +44,10 @@ export function downloadWorkoutFitFile() {
 }
 
 function downloadFit(workoutOnly) {
+  if (workoutExportLocked()) {
+    updateProgressLabel("End the workout before downloading FIT files.");
+    return;
+  }
   const range = rideLogWorkoutFitRange();
   if (workoutOnly && !range) {
     updateProgressLabel("Not enough recorded workout data to download a FIT file.");
@@ -104,6 +109,7 @@ function downloadFit(workoutOnly) {
   // Keep both downloads available until the rider explicitly resets the buffer.
   if (range) return;
   window.setTimeout(() => {
+    if (workoutExportLocked()) return;
     if (window.confirm("FIT file downloaded. Clear the collected ride data to start fresh?")) {
       clearRideLog();
       state.powerCaloriesKcal = 0;
@@ -111,6 +117,10 @@ function downloadFit(workoutOnly) {
       updateProgressLabel("Ride data cleared.");
     }
   }, 300);
+}
+
+function workoutExportLocked() {
+  return Boolean(state.workoutErg || state.workoutCountdown);
 }
 
 export function confirmClearRideData() {

@@ -3,6 +3,7 @@ import { els, state } from "../core/state.mjs";
 import { WORKOUT_ERG_POWER_TIMEOUT_MS, WORKOUT_ERG_UPDATE_MS, WORKOUT_START_COUNTDOWN_SECONDS } from "../core/tuning.mjs";
 import { currentHeartRate, updateRideSpeedUi } from "../ride/telemetry-ui.mjs";
 import { closeRecordedWorkout, recordWorkoutPause } from "../ride/recorder.mjs";
+import { updateRecordingUi } from "../ride/recording-ui.mjs";
 import { ensureMovementLoop, resetRide } from "../ride/movement.mjs";
 import { updateWorkoutMeterTargets } from "../ride/training-zones.mjs";
 import { gradeAt, routeTotalDistance } from "../route/route.mjs";
@@ -54,6 +55,7 @@ function startWorkoutErg() {
   state.workoutResult = null;
   els.workoutErgInput.checked = true;
   state.workoutCountdown = { deadline: performance.now() + WORKOUT_START_COUNTDOWN_SECONDS * 1000, steps };
+  updateRecordingUi();
   updateCountdown();
 }
 
@@ -101,6 +103,7 @@ export function stopWorkoutErg(message = ERG_HINT) {
   closeRecordedWorkout(state.workoutErg);
   if (state.workoutErg) releaseTrainerTargetPower(currentGrade());
   state.workoutErg = null;
+  updateRecordingUi();
   state.ergRoadSpeedKph = null;
   updateRideSpeedUi();
   els.workoutErgInput.checked = false;
