@@ -62,6 +62,7 @@ export const state = {
   climbs: [],
   progressMeters: 0,
   simulationAthlete: DEFAULT_SIMULATION_ATHLETE, // Persisted athlete preset for simulation.
+  trainerProgressBeforeSimulation: null, // Saved real position while Simulator owns the route.
   simulatorEnabled: false, // Selects the synthetic source for Live Data.
   simulationMode: "fixed", // Selected mode for the next simulation start.
   simulationNotice: "", // Most recent simulation transition shown in the sidebar.

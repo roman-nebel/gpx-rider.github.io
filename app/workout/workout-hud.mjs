@@ -4,6 +4,7 @@ import { WORKOUT_HUD_NEXT_STEP_SECONDS } from "../core/tuning.mjs";
 import { formatDuration } from "../core/units.mjs";
 import { registerHudComponent } from "../hud/screen-manager.mjs";
 import { updateWorkoutMeterTargets } from "../ride/training-zones.mjs";
+import { effectiveWorkoutFtp } from "../simulation/simulation.mjs";
 import { previewNextWorkoutStep } from "./workout-preview.mjs";
 import { buildWorkoutProfile, workoutZoneBands } from "./workout-profile.mjs";
 
@@ -11,13 +12,13 @@ export function registerWorkoutHud() {
   registerHudComponent({ id: "workout-step", region: "center", weight: 5, element: els.workoutHud });
 }
 
-export function syncWorkoutHud(steps, total) {
+export function syncWorkoutHud(steps, total, ftp) {
   if (state.workoutResult?.workout !== state.workout) state.workoutResult = null;
-  const profile = total === steps.length && total > 0 ? buildWorkoutProfile(steps, state.ftpWatts) : null;
-  const intervals = profile?.intervals ?? (total ? buildWorkoutProfile(steps.slice(0, 1), state.ftpWatts).intervals : []);
+  const profile = total === steps.length && total > 0 ? buildWorkoutProfile(steps, ftp) : null;
+  const intervals = profile?.intervals ?? (total ? buildWorkoutProfile(steps.slice(0, 1), ftp).intervals : []);
   const fills = intervals.map(({ power }) => ({
-    background: zoneBackground(power),
-    hatched: Boolean(power?.relative && !state.ftpWatts),
+    background: zoneBackground(power, ftp),
+    hatched: Boolean(power?.relative && !ftp),
   }));
   state.workoutHudPreview = total ? { profile, fills } : null;
   els.workoutHud.hidden = !total;
@@ -35,7 +36,7 @@ export function syncWorkoutHud(steps, total) {
     }
   }
   els.workoutHudChart.replaceChildren(segments);
-  els.workoutHudMiniChart.style.backgroundImage = miniChartBackground(profile);
+  els.workoutHudMiniChart.style.backgroundImage = miniChartBackground(profile, ftp);
   updateWorkoutHud();
   updateWorkoutMeterTargets();
 }
@@ -145,11 +146,11 @@ function setButtonLabel(button, label) {
   button.setAttribute("aria-label", label);
 }
 
-function miniChartBackground(profile) {
+function miniChartBackground(profile, ftp) {
   if (!profile?.extent) return "";
   const stops = profile.intervals.flatMap(({ start, end, power }) => {
     const width = end - start;
-    return workoutZoneBands(power, state.ftpWatts).map((band) => {
+    return workoutZoneBands(power, ftp).map((band) => {
       const left = (start + width * band.start) / profile.extent * 100;
       const right = (start + width * band.end) / profile.extent * 100;
       return `${band.color} ${left}% ${right}%`;
@@ -166,7 +167,7 @@ function updateNextWorkoutStep(session) {
   if (!showNext) return;
 
   setText(els.workoutHudNextName, next.name);
-  const preview = previewNextWorkoutStep(next, state.simulation?.workout?.ftp ?? state.ftpWatts);
+  const preview = previewNextWorkoutStep(next, effectiveWorkoutFtp());
   setText(els.workoutHudNextDuration, preview.duration);
   setText(els.workoutHudNextPower, preview.power);
   els.workoutHudNextPower.parentElement.hidden = !preview.power;
@@ -195,9 +196,9 @@ function renderWorkoutSummary(container, result) {
   container.replaceChildren(items);
 }
 
-function zoneBackground(power) {
+function zoneBackground(power, ftp) {
   if (!power) return "var(--workout-free-power-gradient)";
-  const bands = workoutZoneBands(power, state.ftpWatts);
+  const bands = workoutZoneBands(power, ftp);
   if (bands.length === 1) return bands[0].color;
   const stops = bands.map(({ start, end, color }) => `${color} ${start * 100}% ${end * 100}%`);
   return `linear-gradient(to right, ${stops.join(", ")})`;

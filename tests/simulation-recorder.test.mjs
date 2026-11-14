@@ -4,6 +4,7 @@ import {
   createSimulationRecording,
   latestSimulationRecording,
   recordSimulationTick,
+  recordSimulationWorkoutBoundary,
   simulationWorkoutFit,
 } from "../app/simulation/simulation-recorder.mjs";
 
@@ -51,10 +52,12 @@ test("workout-only export stops at the saved workout endpoint after virtual ridi
   const first = { t: 10, distance: 0 };
   const workoutEnd = { t: 12, distance: 20 };
   const replacement = { t: 12, distance: 22 };
+  recordSimulationWorkoutBoundary(recording, 0);
+  recording.workoutLaps.push({ stepIndex: 1, timerSeconds: 1 }, { stepIndex: null, timerSeconds: 2 });
   recording.workoutEnd = {
     count: 2,
     lastSample: workoutEnd,
-    summary: { ...recording.summary, totalDistanceMeters: 20 },
+    summary: { ...recording.summary, totalDistanceMeters: 20, totalTimerSeconds: 2 },
   };
   recording.samples.push(first, replacement, { t: 13, distance: 30 });
   recording.summary.totalDistanceMeters = 30;
@@ -63,6 +66,7 @@ test("workout-only export stops at the saved workout endpoint after virtual ridi
   assert.deepEqual(output.samples, [first, workoutEnd]);
   assert.equal(output.summary.totalDistanceMeters, 20);
   assert.equal(output.simulated, true);
+  assert.deepEqual(output.workoutLaps.map(lap => lap.stepIndex), [0, 1]);
   assert.equal(recording.samples[1], replacement);
   assert.equal(simulationWorkoutFit(createSimulationRecording(10000)), null);
 });

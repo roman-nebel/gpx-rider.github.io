@@ -450,7 +450,7 @@ export function saveRide() {
     route,
     name: state.routeName,
     galleryMetadata: state.galleryMetadata,
-    progressMeters: Math.round(state.progressMeters),
+    progressMeters: Math.round(state.trainerProgressBeforeSimulation ?? state.progressMeters),
     speedKph: Number(els.speedInput.value),
     savedAt: new Date().toISOString(),
   });

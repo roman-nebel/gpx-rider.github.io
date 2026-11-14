@@ -93,6 +93,7 @@ function applyGpxText(text, { overrideName = null, fallbackName = null, galleryM
   state.selectedProfileSegment = null;
   state.lastGalleryMetadataRefreshMs = 0;
   state.progressMeters = 0;
+  if (state.simulatorEnabled) state.trainerProgressBeforeSimulation = 0;
   state.lastTick = 0;
   state.profileHoverMeters = null;
   // A new route is a new ride: the ETA pace history starts over.

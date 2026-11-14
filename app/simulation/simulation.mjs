@@ -4,7 +4,7 @@ import { els, state } from "../core/state.mjs";
 import { WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 import { advanceDemoRide, createDemoRideModel, normalizeSimulationAthlete, simulationAthlete } from "../demo/demo.mjs";
 import { registerHudComponent } from "../hud/screen-manager.mjs";
-import { createSimulationRecording, persistSimulationRecording, recordSimulationTick } from "./simulation-recorder.mjs";
+import { createSimulationRecording, persistSimulationRecording, recordSimulationTick, recordSimulationWorkoutBoundary, finishSimulationWorkout } from "./simulation-recorder.mjs";
 import { ensureMovementLoop, setPedaling, updatePedalingFromSpeed } from "../ride/movement.mjs";
 import { updateRecordingUi } from "../ride/recording-ui.mjs";
 import { updateRideUi } from "../ride/ride-ui.mjs";
@@ -12,7 +12,7 @@ import { updateSpeedOutput } from "../settings/settings-ui.mjs";
 import { advanceAlongRoad, gradeAt, interpolateRoutePoint, roadDistanceAt, routeTotalDistance } from "../route/route.mjs";
 import { saveRide, saveSettings } from "../storage/persistence.mjs";
 import { refreshRideTelemetry } from "../ride/telemetry-ui.mjs";
-import { updateWorkoutHud } from "../workout/workout-hud.mjs";
+import { renderWorkout } from "../workout/workout-ui.mjs";
 import { stopWorkoutErg } from "../workout/workout-erg.mjs";
 import { expandTimedWorkoutSteps, normalizeWorkoutStep, workoutTargetWatts } from "../workout/workout-step.mjs";
 
@@ -29,18 +29,23 @@ export function registerSimulationHud() {
 export function updateSimulatorFromControl() {
   state.simulatorEnabled = els.simulatorInput.checked;
   if (state.simulatorEnabled) {
+    state.trainerProgressBeforeSimulation = state.progressMeters;
     if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
     setPedaling(false);
   } else {
     stopSimulation("", { refresh: false });
+    if (state.trainerProgressBeforeSimulation !== null) {
+      state.progressMeters = state.trainerProgressBeforeSimulation;
+      state.trainerProgressBeforeSimulation = null;
+    }
     updatePedalingFromSpeed();
     saveRide();
   }
-  updateSimulationControls("");
+  state.simulationNotice = "";
+  renderWorkout();
   if (state.route.length) {
     updateRideUi({ force: true });
   } else {
-    updateWorkoutHud();
     refreshRideTelemetry();
     updateRecordingUi();
   }
@@ -48,14 +53,23 @@ export function updateSimulatorFromControl() {
 
 export function selectSimulationMode(event) {
   if (!state.simulation) state.simulationMode = event.currentTarget.value;
-  updateSimulationControls("");
+  state.simulationNotice = "";
+  renderWorkout();
 }
 
 export function selectSimulationAthlete(event) {
   if (state.simulation) return;
   state.simulationAthlete = normalizeSimulationAthlete(event.currentTarget.value);
   saveSettings();
-  updateSimulationControls("");
+  state.simulationNotice = "";
+  renderWorkout();
+}
+
+export function effectiveWorkoutFtp() {
+  if (state.simulatorEnabled && state.simulationMode === "workout") {
+    return state.simulation?.workout?.ftp ?? simulationAthlete(state.simulationAthlete).ftp_watts;
+  }
+  return state.ftpWatts;
 }
 
 export function updateSimulationSpeed() {
@@ -85,6 +99,7 @@ export function toggleSimulation() {
   state.simulation = simulation;
   advanceVirtualRider(simulation, 0, gradeAt(state.route, state.progressMeters));
   recordSimulationPosition(simulation, 0);
+  if (workout) recordSimulationWorkoutBoundary(recording, workout.steps[0].sourceIndex);
   updateSimulationControls("");
   state.lastTick = performance.now();
   ensureMovementLoop();
@@ -116,12 +131,7 @@ export function handleSimulationWorkoutChange() {
     state.simulationMode = "virtual";
     if (active) {
       recordSimulationPosition(state.simulation, 0, true);
-      const { recording } = state.simulation;
-      recording.workoutEnd = {
-        count: recording.samples.length,
-        lastSample: recording.samples.at(-1),
-        summary: { ...recording.summary },
-      };
+      finishSimulationWorkout(state.simulation.recording);
       state.simulation.mode = "virtual";
       state.simulation.workout = null;
     }
@@ -165,7 +175,7 @@ function simulationUnavailable(mode, steps) {
 function timedWorkoutSteps() {
   const source = state.workout?.steps;
   if (!source?.length || source.length > WORKOUT_PROFILE_STEP_LIMIT) return null;
-  const steps = expandTimedWorkoutSteps(source.map(normalizeWorkoutStep));
+  const steps = expandTimedWorkoutSteps(source.map((step, sourceIndex) => ({ ...normalizeWorkoutStep(step), sourceIndex })));
   return steps?.length ? steps : null;
 }
 
@@ -180,7 +190,6 @@ export function advanceSimulation(elapsedSeconds, finishMeters) {
   const simulation = state.simulation;
 
   let remaining = elapsedSeconds;
-  let metersAdvanced = 0;
   const workout = simulation.workout;
   const finishRoadMeters = roadDistanceAt(state.route, finishMeters);
   while (remaining > 0 && state.progressMeters < finishMeters) {
@@ -198,7 +207,7 @@ export function advanceSimulation(elapsedSeconds, finishMeters) {
       ? { progress: finishMeters, metersAdvanced: distanceLeft }
       : advanceAlongRoad(state.route, state.progressMeters, speedMps * seconds);
     state.progressMeters = advancement.progress;
-    metersAdvanced += advancement.metersAdvanced;
+    recordSimulationPosition(simulation, advancement.metersAdvanced);
     remaining -= seconds;
     if (!step) continue;
     if (seconds < stepRemaining) {
@@ -207,10 +216,12 @@ export function advanceSimulation(elapsedSeconds, finishMeters) {
       workout.elapsed = 0;
       workout.index += 1;
       if (workout.index === workout.steps.length) break;
+      if (state.progressMeters < finishMeters) {
+        recordSimulationWorkoutBoundary(simulation.recording, workout.steps[workout.index].sourceIndex);
+      }
     }
   }
 
-  recordSimulationPosition(simulation, metersAdvanced);
   return Boolean(workout && workout.index === workout.steps.length);
 }
 

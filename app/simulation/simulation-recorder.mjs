@@ -19,6 +19,7 @@ export function createSimulationRecording(startTimeMs, workout = null) {
     samples: [],
     simulated: true,
     workout,
+    workoutLaps: [],
     summary: {
       startTimeMs,
       endTimeMs: startTimeMs,
@@ -63,6 +64,28 @@ export function recordSimulationTick(activity, {
   }
 }
 
+export function recordSimulationWorkoutBoundary(activity, stepIndex) {
+  const { summary } = activity;
+  activity.workoutLaps.push({
+    stepIndex,
+    startMs: summary.endTimeMs,
+    timerSeconds: summary.totalTimerSeconds,
+    distanceMeters: summary.totalDistanceMeters,
+    caloriesKcal: summary.totalCalories,
+  });
+}
+
+export function finishSimulationWorkout(activity) {
+  activity.workoutEnd = {
+    count: activity.samples.length,
+    lastSample: activity.samples.at(-1),
+    summary: { ...activity.summary },
+  };
+  // A full-ride export includes any subsequent free riding as an unlinked lap.
+  recordSimulationWorkoutBoundary(activity, null);
+  persistSimulationRecording();
+}
+
 export function persistSimulationRecording() {
   if (!recording) return;
   const endTimeMs = recording.summary.endTimeMs;
@@ -99,5 +122,7 @@ export function simulationWorkoutFit(recording) {
   // FIT timestamp. Retain the original workout endpoint for this export.
   const samples = recording.samples.slice(0, end.count - 1);
   samples.push(end.lastSample);
-  return { ...recording, samples, summary: end.summary };
+  const workoutLaps = recording.workoutLaps?.filter(({ timerSeconds }) =>
+    timerSeconds < end.summary.totalTimerSeconds);
+  return { ...recording, samples, workoutLaps, summary: end.summary };
 }
