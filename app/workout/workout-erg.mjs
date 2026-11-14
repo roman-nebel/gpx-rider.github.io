@@ -32,7 +32,11 @@ export function toggleWorkoutErg() {
 
 function startWorkoutErg() {
   if (state.workoutCountdown || state.simulatorEnabled) return;
-  if (!state.workout || state.route.length < 2) {
+  if (!state.workout) {
+    rejectWorkoutStart("Select a workout to use ERG.");
+    return;
+  }
+  if (state.route.length < 2) {
     rejectWorkoutStart("Load a route before starting a workout.");
     return;
   }

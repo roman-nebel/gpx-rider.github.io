@@ -512,16 +512,6 @@
               <p id="workoutFtpWarning" class="panel-card-hint workout-warning" role="status" hidden>
                 Set FTP in your rider profile to see power targets for steps based on % FTP.
               </p>
-              <div class="setting-row">
-                <div class="setting-row-text">
-                  <span id="workoutErgLabel" class="setting-row-label">Hold target power (ERG)</span>
-                  <span id="workoutErgStatus" class="setting-row-hint" role="status">Let the trainer adjust resistance to match each step.</span>
-                </div>
-                <label class="switch">
-                  <input id="workoutErgInput" type="checkbox" aria-labelledby="workoutErgLabel" aria-describedby="workoutErgStatus">
-                  <span class="switch-track"><span class="switch-knob"></span></span>
-                </label>
-              </div>
               <div id="workoutCardActions" class="workout-card-actions" hidden>
                 <button id="pauseWorkoutBtn" type="button" class="btn btn-ghost btn-sm" hidden>Pause</button>
                 <button id="endWorkoutBtn" type="button" class="btn btn-ghost btn-sm" hidden>End workout</button>
@@ -561,33 +551,45 @@
 
           <section class="panel-card sidebar-section">
             <h2>Devices</h2>
-            <div class="connection-row">
-              <div class="connection-info">
-                <span id="trainerDot" class="status-dot"></span>
-                <div>
-                  <div class="connection-name">Smart trainer</div>
-                  <div id="trainerStat" class="connection-status">Idle</div>
+            <div class="sidebar-subgroup">
+              <div class="connection-row">
+                <div class="connection-info">
+                  <span id="trainerDot" class="status-dot"></span>
+                  <div>
+                    <div class="connection-name">Smart trainer</div>
+                    <div id="trainerStat" class="connection-status">Idle</div>
+                  </div>
+                </div>
+                <div class="connection-actions">
+                  <button id="trainerSettingsBtn" type="button" class="icon-btn" aria-label="Trainer settings" title="Trainer settings" aria-controls="trainerSettings" aria-expanded="false" hidden>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  </button>
+                  <button id="connectBtn" type="button" class="btn btn-outline-blue btn-sm">Connect</button>
                 </div>
               </div>
-              <div class="connection-actions">
-                <button id="trainerSettingsBtn" type="button" class="icon-btn" aria-label="Trainer settings" title="Trainer settings" aria-controls="trainerSettings" aria-expanded="false" hidden>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                </button>
-                <button id="connectBtn" type="button" class="btn btn-outline-blue btn-sm">Connect</button>
-              </div>
-            </div>
-            <div id="trainerSettings" class="sidebar-subgroup" hidden>
-              <div class="setting-slider">
-                <div class="setting-slider-head">
-                  <label for="gradeIntervalInput">Grade update interval</label>
-                  <output id="gradeIntervalOutput" for="gradeIntervalInput">2 s</output>
+              <div id="trainerSettings" class="sidebar-subgroup trainer-settings" hidden>
+                <div id="trainerErg" class="setting-row" hidden>
+                  <div class="setting-row-text">
+                    <span id="workoutErgLabel" class="setting-row-label">Hold target power (ERG)</span>
+                    <span id="workoutErgStatus" class="setting-row-hint" role="status">Let the trainer adjust resistance to match each step.</span>
+                  </div>
+                  <label class="switch">
+                    <input id="workoutErgInput" type="checkbox" aria-labelledby="workoutErgLabel" aria-describedby="workoutErgStatus">
+                    <span class="switch-track"><span class="switch-knob"></span></span>
+                  </label>
                 </div>
-                <input id="gradeIntervalInput" type="range" min="1" max="5" step="1" value="2">
+                <div class="setting-slider">
+                  <div class="setting-slider-head">
+                    <label for="gradeIntervalInput">Grade update interval</label>
+                    <output id="gradeIntervalOutput" for="gradeIntervalInput">2 s</output>
+                  </div>
+                  <input id="gradeIntervalInput" type="range" min="1" max="5" step="1" value="2">
+                </div>
+                <p class="settings-note">
+                  How often the route's grade is sent to the trainer. Longer
+                  intervals smooth resistance changes on noisy GPX files.
+                </p>
               </div>
-              <p class="settings-note">
-                How often the route's grade is sent to the trainer. Longer
-                intervals smooth resistance changes on noisy GPX files.
-              </p>
             </div>
             <div class="connection-row">
               <div class="connection-info">

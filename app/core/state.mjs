@@ -310,6 +310,7 @@ export const els = {
   connectBtn: document.querySelector("#connectBtn"),
   trainerSettingsBtn: document.querySelector("#trainerSettingsBtn"),
   trainerSettings: document.querySelector("#trainerSettings"),
+  trainerErg: document.querySelector("#trainerErg"),
   connectHrBtn: document.querySelector("#connectHrBtn"),
   simulationAthleteSelect: document.querySelector("#simulationAthleteSelect"),
   simulatorInput: document.querySelector("#simulatorInput"),

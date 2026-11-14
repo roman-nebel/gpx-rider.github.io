@@ -10,7 +10,7 @@ import { rideLogSummary } from "./recorder.mjs";
 import { gradeAt } from "../route/route.mjs";
 import { els, state } from "../core/state.mjs";
 import { stopWorkoutErg } from "../workout/workout-erg.mjs";
-import { isTrainerConnected } from "../trainer/trainer.mjs";
+import { isTrainerConnected, trainerSupportsTargetPower } from "../trainer/trainer.mjs";
 import { updateTrainingMeters } from "./training-zones.mjs";
 import { HEART_RATE_REFRESH_MS } from "../core/tuning.mjs";
 import { formatEnergy, formatSpeed } from "../core/units.mjs";
@@ -49,6 +49,7 @@ export function handleTrainerTelemetry(telemetry) {
 export function handleTrainerStatus(text, { onlyClearError = false } = {}) {
   const connected = isTrainerConnected();
   els.trainerSettingsBtn.hidden = !connected;
+  els.trainerErg.hidden = !connected || !trainerSupportsTargetPower();
   if (!connected) {
     els.trainerSettings.hidden = true;
     els.trainerSettingsBtn.setAttribute("aria-expanded", "false");
