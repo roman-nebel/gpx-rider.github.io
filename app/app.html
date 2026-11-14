@@ -16,7 +16,7 @@
           <div id="mapViewport" class="map-viewport">
             <div id="map" aria-label="Route map"></div>
             <div id="minimap" aria-label="Minimap showing rider position on the route"></div>
-            <div id="demoBanner" class="demo-banner" hidden>Demo mode: synthetic trainer + HR, FIT recording paused</div>
+            <div id="simulationBanner" class="simulation-banner" hidden></div>
             <div class="map-actions">
               <button id="screenshotBtn" type="button" class="map-action-btn" title="Save a JPG of the map view" aria-label="Save a JPG of the map view">
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
@@ -468,7 +468,7 @@
             <p id="workoutError" class="panel-card-hint workout-error" role="alert" hidden></p>
             <section id="workoutCard" class="workout-card" aria-label="Workout" hidden>
               <p id="workoutFtpWarning" class="panel-card-hint workout-warning" role="status" hidden>
-                FTP is missing. Ride steps with a % FTP target at your own effort. Set FTP in the rider profile to see their power targets.
+                Set FTP in your rider profile to see power targets for steps based on % FTP.
               </p>
               <div class="setting-row">
                 <div class="setting-row-text">
@@ -610,67 +610,65 @@
           </details>
 
           <section class="panel-card sidebar-section">
-            <h2>Simulation &amp; demo</h2>
-            <div class="sidebar-subgroup">
-              <div class="panel-card-head simulation-head">
-                <div>
-                  <span class="panel-card-title">Simulation</span>
-                  <p class="panel-card-hint">Auto-ride the route with no trainer</p>
-                </div>
-                <button id="startBtn" type="button" class="btn btn-accent" disabled>
-                  <svg class="icon-sim-play" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
-                  <svg class="icon-sim-stop" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
-                  <span id="startBtnLabel">Start</span>
-                </button>
-              </div>
-              <div class="speed-control">
-                <label for="speedInput" class="speed-label">Speed</label>
-                <input id="speedInput" type="range" min="8" max="100" step="1" value="24">
-                <output id="speedOutput" for="speedInput">24 km/h</output>
-              </div>
+            <div class="panel-card-head">
+              <h2>Simulation</h2>
+              <button id="startBtn" type="button" class="btn btn-accent" disabled>
+                <svg class="icon-sim-play" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
+                <svg class="icon-sim-stop" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
+                <span id="startBtnLabel">Start</span>
+              </button>
             </div>
-            <div class="demo-card">
-              <div class="demo-card-top">
-                <div>
-                  <span class="panel-card-title">Demo mode</span>
-                  <p class="panel-card-hint">Simulated trainer and heart rate for recording the app</p>
-                </div>
-                <div class="demo-card-actions">
-                  <button id="resizeRecordingWindowBtn" type="button" class="btn btn-ghost" title="Frame the map at the recording size" aria-pressed="false">Recording view</button>
-                  <button id="demoModeBtn" type="button" class="btn btn-outline-blue" aria-pressed="false" disabled>Demo mode</button>
-                </div>
-              </div>
-              <div class="theater-hud-toggles" role="group" aria-labelledby="theaterHideLabel">
-                <span id="theaterHideLabel" class="panel-card-title">Hide in recording view</span>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideClockInput" type="checkbox">
-                  <span>Top-left chip</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideMetersInput" type="checkbox">
-                  <span>Meters</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideDockInput" type="checkbox">
-                  <span>Bottom panel</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideClimbBannerInput" type="checkbox">
-                  <span>Climb banner</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideDemoChipInput" type="checkbox">
-                  <span>Demo mode chip</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideControlsInput" type="checkbox">
-                  <span>Controls</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideMinimapInput" type="checkbox">
-                  <span>Minimap</span>
-                </label>
-              </div>
+            <div class="simulation-control">
+              <label for="simulationModeSelect" class="speed-label">Mode</label>
+              <select id="simulationModeSelect" aria-describedby="simulationStatus">
+                <option value="fixed">Fixed speed</option>
+                <option value="virtual">Virtual rider</option>
+                <option id="simulationWorkoutOption" value="workout" disabled>Workout mode</option>
+              </select>
+            </div>
+            <div id="simulationSpeedControl" class="simulation-control">
+              <label for="speedInput" class="speed-label">Speed</label>
+              <input id="speedInput" type="range" min="8" max="100" step="1" value="24">
+              <output id="speedOutput" for="speedInput">24 km/h</output>
+            </div>
+            <p id="simulationStatus" class="setting-row-hint" role="status" hidden></p>
+          </section>
+
+          <section class="panel-card sidebar-section recording-view-card">
+            <div class="panel-card-head">
+              <h2>Recording view</h2>
+              <button id="resizeRecordingWindowBtn" type="button" class="btn btn-ghost" title="Frame the map at the recording size" aria-pressed="false">Recording view</button>
+            </div>
+            <div class="theater-hud-toggles" role="group" aria-labelledby="theaterHideLabel">
+              <span id="theaterHideLabel" class="panel-card-title">Hide in recording view</span>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideClockInput" type="checkbox">
+                <span>Top-left chip</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideMetersInput" type="checkbox">
+                <span>Meters</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideDockInput" type="checkbox">
+                <span>Bottom panel</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideClimbBannerInput" type="checkbox">
+                <span>Climb banner</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideDemoChipInput" type="checkbox">
+                <span>Simulation chip</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideControlsInput" type="checkbox">
+                <span>Controls</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideMinimapInput" type="checkbox">
+                <span>Minimap</span>
+              </label>
             </div>
           </section>
 

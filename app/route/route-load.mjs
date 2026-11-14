@@ -5,11 +5,10 @@
 import { stopWorkoutErg } from "../workout/workout-erg.mjs";
 import { detectClimbs } from "./climbs.mjs";
 import { focusClimb, syncFocusedClimbList } from "./climbs-ui.mjs";
-import { clearDemoHistory, stopDemoMode, syncDemoModeUi } from "../demo/demo-mode.mjs";
+import { stopSimulation, updateSimulationControls } from "../simulation/simulation.mjs";
 import { classifyRoute } from "./difficulty.mjs";
 import { createRideEstimator } from "../ride/eta.mjs";
 import { resetGalleryMetadataExportForRoute } from "../gallery-ui/gallery-export.mjs";
-import { updateStartButton } from "../ride/movement.mjs";
 import { enterOverviewMode } from "../camera/overview-camera.mjs";
 import { saveRide } from "../storage/persistence.mjs";
 import { renderProfile } from "./profile-ui.mjs";
@@ -72,8 +71,7 @@ function applyGpxText(text, { overrideName = null, fallbackName = null, galleryM
   }
 
   if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
-  stopDemoMode({ silent: true });
-  clearDemoHistory();
+  stopSimulation("", { refresh: false });
   state.route = enrichRoute(route);
   // Warm the online-terrain cache around the start, middle and end of the
   // route so the follow camera has real ground under it from the first frame,
@@ -95,7 +93,6 @@ function applyGpxText(text, { overrideName = null, fallbackName = null, galleryM
   state.selectedProfileSegment = null;
   state.lastGalleryMetadataRefreshMs = 0;
   state.progressMeters = 0;
-  state.simulating = false;
   state.lastTick = 0;
   state.profileHoverMeters = null;
   // A new route is a new ride: the ETA pace history starts over.
@@ -103,15 +100,13 @@ function applyGpxText(text, { overrideName = null, fallbackName = null, galleryM
   state.overviewActive = true;
   resetGalleryMetadataExportForRoute();
   enterOverviewMode({ instant: true });
-  updateStartButton();
   renderRoute();
   renderProfile();
   updateRouteOverview();
   updateRideUi({ force: true });
   saveRide();
 
-  els.startBtn.disabled = false;
-  syncDemoModeUi();
+  updateSimulationControls("");
   return true;
 }
 

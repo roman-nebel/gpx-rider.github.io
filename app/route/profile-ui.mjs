@@ -43,12 +43,7 @@ export function renderProfile(progress = currentRideProgress()) {
 }
 
 function currentProfileHistorySamples() {
-  if (state.demoModeActive && state.demoModel) {
-    return state.demoModel.historySamples;
-  }
-  if (state.demoHistorySamples.length) {
-    return state.demoHistorySamples;
-  }
+  if (state.simulation?.model) return state.simulation.model.historySamples;
   return rideLogSamples().slice(-PROFILE_HISTORY_SAMPLE_LIMIT);
 }
 

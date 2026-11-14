@@ -27,7 +27,7 @@ import {
   updateOverviewModeFromControl,
 } from "./camera/camera-ui.mjs";
 import { registerCameraDebugHud, toggleCameraDebugCollapsed } from "./camera/camera-debug.mjs";
-import { registerDemoBannerHud, toggleDemoMode } from "./demo/demo-mode.mjs";
+import { registerSimulationHud, selectSimulationMode, toggleSimulation, updateSimulationSpeed } from "./simulation/simulation.mjs";
 import { copyGalleryMetadata, syncGalleryMetadataExportAvailability, updateGalleryMetadataExport } from "./gallery-ui/gallery-export.mjs";
 import { initGallery, openRouteGallery } from "./gallery-ui/gallery.mjs";
 import { connectHeartRate, initHeartRate, reconnectSavedHeartRate } from "./trainer/heartrate.mjs";
@@ -41,7 +41,7 @@ import {
   toggleHudDock,
   toggleMapFullscreen,
 } from "./hud/map-hud.mjs";
-import { handleVisibilityChange, toggleSimulation } from "./ride/movement.mjs";
+import { handleVisibilityChange } from "./ride/movement.mjs";
 import { restoreSavedRide, restoreSettings, saveRide } from "./storage/persistence.mjs";
 import {
   cancelProfileSelection,
@@ -66,7 +66,6 @@ import {
   updateRenderingSettingsFromControls,
   updateRiderProfileFromControls,
   updateScreenshotSettingsFromControls,
-  updateSpeedOutput,
   updateUnitsFromControls,
 } from "./settings/settings-ui.mjs";
 import { els, state, updateProgressLabel } from "./core/state.mjs";
@@ -138,7 +137,7 @@ async function startApp() {
   initTheaterModeUi();
   registerClimbBannerHud();
   registerWorkoutHud();
-  registerDemoBannerHud();
+  registerSimulationHud();
   registerTrainingMetersHud();
   registerCameraDebugHud();
   registerMinimapHud();
@@ -206,10 +205,7 @@ function bindEvents() {
   els.workoutHudEndBtn.addEventListener("click", endWorkout);
   els.workoutFile.addEventListener("change", importWorkout);
   els.clearWorkoutBtn.addEventListener("click", clearWorkout);
-  els.speedInput.addEventListener("input", () => {
-    updateSpeedOutput();
-    saveRide();
-  });
+  els.speedInput.addEventListener("input", updateSimulationSpeed);
   els.gradeIntervalInput.addEventListener("input", updateGradeIntervalFromControl);
   els.distanceUnitSelect.addEventListener("change", updateUnitsFromControls);
   els.energyUnitSelect.addEventListener("change", updateUnitsFromControls);
@@ -262,7 +258,7 @@ function bindEvents() {
   els.connectBtn.addEventListener("click", connectTrainer);
   els.trainerSettingsBtn.addEventListener("click", toggleTrainerSettings);
   els.connectHrBtn.addEventListener("click", connectHeartRate);
-  els.demoModeBtn.addEventListener("click", toggleDemoMode);
+  els.simulationModeSelect.addEventListener("change", selectSimulationMode);
   els.resizeRecordingWindowBtn.addEventListener("click", toggleTheaterMode);
   els.startBtn.addEventListener("click", toggleSimulation);
   els.resetBtn.addEventListener("click", confirmResetRide);

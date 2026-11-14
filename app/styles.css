@@ -297,7 +297,7 @@ body {
   box-shadow: 0 0 0 100vmax rgba(4, 6, 9, 0.86);
 }
 
-/* Optional per-overlay hiding while in theater mode (Demo mode panel
+/* Optional per-overlay hiding while in theater mode (Recording view
    checkboxes), for a clean showcase recording. The classes are set
    independent of theater mode itself, so these rules only bite once
    .theater-mode is also present. */
@@ -317,7 +317,7 @@ body {
   display: none;
 }
 
-.map-viewport.theater-mode.theater-hide-demo-chip #demoBanner {
+.map-viewport.theater-mode.theater-hide-demo-chip #simulationBanner {
   display: none;
 }
 
@@ -2046,19 +2046,6 @@ body {
   gap: 12px;
 }
 
-.simulation-head > div {
-  display: grid;
-  gap: 6px;
-}
-
-.simulation-head .panel-card-title {
-  line-height: 1.2;
-}
-
-.simulation-head .panel-card-hint {
-  margin: 0;
-}
-
 .panel-card-title {
   display: block;
   font: 600 11px/1 var(--font-ui);
@@ -2594,28 +2581,6 @@ progress.ascent-progress::-moz-progress-bar {
   white-space: nowrap;
 }
 
-.demo-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.demo-card-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.demo-card-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .theater-hud-toggles {
   display: flex;
   align-items: center;
@@ -2645,17 +2610,17 @@ progress.ascent-progress::-moz-progress-bar {
   cursor: pointer;
 }
 
-.demo-card-actions .btn {
+.recording-view-card .btn {
   white-space: nowrap;
 }
 
-.demo-card .btn[aria-pressed="true"] {
+.recording-view-card .btn[aria-pressed="true"] {
   color: #1b1205;
   border-color: rgba(246, 165, 44, 0.9);
   background: var(--accent);
 }
 
-.demo-banner {
+.simulation-banner {
   max-width: 100%;
   padding: 8px 12px;
   border: 1px solid rgba(246, 165, 44, 0.45);
@@ -2669,14 +2634,14 @@ progress.ascent-progress::-moz-progress-bar {
   text-align: center;
   white-space: normal;
   pointer-events: none;
-  animation: demoBannerPulse 1.55s ease-in-out infinite;
+  animation: simulationBannerPulse 1.55s ease-in-out infinite;
 }
 
-.demo-banner[hidden] {
+.simulation-banner[hidden] {
   display: none;
 }
 
-@keyframes demoBannerPulse {
+@keyframes simulationBannerPulse {
   0%,
   100% {
     opacity: 0.76;
@@ -2731,11 +2696,10 @@ progress.ascent-progress::-moz-progress-bar {
 
 /* ---- simulation ------------------------------------------------------------------ */
 
-.speed-control {
+.simulation-control {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 14px;
 }
 
 .speed-label {
@@ -2745,11 +2709,12 @@ progress.ascent-progress::-moz-progress-bar {
   text-transform: uppercase;
 }
 
-.speed-control input {
+.simulation-control input,
+.simulation-control select {
   flex: 1;
 }
 
-.speed-control output {
+.simulation-control output {
   min-width: 60px;
   text-align: right;
   font: 600 13px/1 var(--font-num);

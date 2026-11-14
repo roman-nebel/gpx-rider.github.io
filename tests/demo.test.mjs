@@ -7,9 +7,8 @@ import {
   demoSpeedForPower,
   demoTargetCadenceRpm,
   demoTargetPowerWatts,
-  seedDemoHistory,
+  sampleDemoRide,
 } from "../app/demo/demo.mjs";
-import { enrichRoute, roadDistanceAt } from "../app/route/route.mjs";
 
 // A pinned rider profile so the tests exercise the physics/HR model, never
 // the shipped DEMO_RIDE tuning — retuning demo mode must not break this suite.
@@ -29,6 +28,7 @@ const TEST_RIDE = {
   power_smoothing_tau_seconds: 7,
   flat_cadence_rpm: 88,
   cadence_rpm_per_grade_percent: -1.5,
+  workout_cadence_power_exponent: 0.25,
   min_cadence_rpm: 55,
   max_cadence_rpm: 105,
   cadence_smoothing_tau_seconds: 5,
@@ -84,10 +84,6 @@ test("demo heart rate settles near threshold HR at FTP power", () => {
       advanceDemoRide(model, {
         elapsedSeconds: 1,
         gradePercent: 0,
-        point: { lat: 50, lng: 14, ele: 300 },
-        routeProgressMeters: i * 6,
-        metersAdvanced: 6,
-        caloriesFromPower: 0,
         config,
       });
     }
@@ -107,20 +103,14 @@ test("demo heart rate publishes at most once a second", () => {
     advanceDemoRide(model, {
       elapsedSeconds: 1,
       gradePercent: 0,
-      point: { lat: 50, lng: 14, ele: 300 },
-      routeProgressMeters: 0,
-      metersAdvanced: 0,
-      caloriesFromPower: 0,
+      config: TEST_RIDE,
     });
     const first = model.heartRateBpm;
     randomValue = 0.1;
     advanceDemoRide(model, {
       elapsedSeconds: 0.25,
       gradePercent: 8,
-      point: { lat: 50, lng: 14, ele: 301 },
-      routeProgressMeters: 2,
-      metersAdvanced: 2,
-      caloriesFromPower: 0,
+      config: TEST_RIDE,
     });
 
     assert.equal(model.heartRateBpm, first);
@@ -129,26 +119,34 @@ test("demo heart rate publishes at most once a second", () => {
   }
 });
 
-test("demo history can be seeded up to the current route position", () => {
+test("workout power overrides grade-based power, including a zero-watt target", () => {
   const model = createDemoRideModel(TEST_RIDE);
-  const route = enrichRoute([
-    { lat: 50, lng: 14, ele: 300 },
-    { lat: 50.005, lng: 14.005, ele: 330 },
-    { lat: 50.01, lng: 14.01, ele: 310 },
-  ]);
-
-  seedDemoHistory(model, {
-    route,
-    progressMeters: 750,
-    nowSeconds: 1000,
+  const telemetry = advanceDemoRide(model, {
+    elapsedSeconds: 1, gradePercent: 8, targetPowerWatts: 315, config: TEST_RIDE,
   });
+  assert.equal(telemetry.powerWatts, 315);
+  const calories = model.caloriesKcal;
+  assert.ok(calories > 0);
 
-  assert.ok(model.historySamples.length > 2);
-  assert.equal(model.historySamples.at(-1).routeProgressMeters, 750);
-  assert.ok(Math.abs(model.historySamples.at(-1).distance - roadDistanceAt(route, 750)) < 1);
-  assert.ok(model.elapsedSeconds > 0);
-  assert.ok(model.caloriesKcal > 0);
-  assert.ok(Number.isFinite(model.historySamples.at(-1).speedKph));
-  assert.ok(Number.isFinite(model.historySamples.at(-1).powerWatts));
-  assert.ok(Number.isFinite(model.historySamples.at(-1).heartRateBpm));
+  const recovery = advanceDemoRide(model, {
+    elapsedSeconds: 1, gradePercent: 8, targetPowerWatts: 0, config: TEST_RIDE,
+  });
+  assert.equal(recovery.powerWatts, 0);
+  assert.equal(recovery.cadenceRpm, 0);
+  assert.equal(model.caloriesKcal, calories);
+
+  const freeRide = advanceDemoRide(model, { elapsedSeconds: 1, gradePercent: 8, config: TEST_RIDE });
+  assert.ok(freeRide.powerWatts > 0);
+});
+
+test("virtual ride history begins at the current route position and tracks all distance between samples", () => {
+  const model = createDemoRideModel(TEST_RIDE);
+  const telemetry = advanceDemoRide(model, { elapsedSeconds: 0, gradePercent: 0, config: TEST_RIDE });
+  const point = { lat: 50, lng: 14, ele: 300 };
+  sampleDemoRide(model, { point, routeProgressMeters: 750, metersAdvanced: 0, telemetry, nowSeconds: 1000 });
+  sampleDemoRide(model, { point, routeProgressMeters: 754, metersAdvanced: 4, telemetry, nowSeconds: 1000.5 });
+  sampleDemoRide(model, { point, routeProgressMeters: 760, metersAdvanced: 6, telemetry, nowSeconds: 1001 });
+
+  assert.deepEqual(model.historySamples.map(({ routeProgressMeters, distance }) => [routeProgressMeters, distance]),
+    [[750, 0], [760, 10]]);
 });

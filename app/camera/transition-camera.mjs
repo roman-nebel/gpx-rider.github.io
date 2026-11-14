@@ -32,7 +32,8 @@ import { updateGalleryMetadataExport } from "../gallery-ui/gallery-export.mjs";
 import { bearing, haversine, toRad } from "../core/geo.mjs";
 import { advanceAlongRoad, gradeAt, interpolateRoutePoint, routeTotalDistance } from "../route/route.mjs";
 import { updateRiderDot } from "../map/route-render.mjs";
-import { els, state } from "../core/state.mjs";
+import { currentRideSpeedKph, isMoving } from "../ride/movement.mjs";
+import { state } from "../core/state.mjs";
 import { CAMERA_TRANSITION, DEFAULT_MAP_FOV_DEGREES, ELLIPSE_FLYBY } from "../core/tuning.mjs";
 
 // Which camera targets are flown into with the physical arc (vs. snapped or
@@ -311,12 +312,6 @@ function enuToChaseFrame([east, north, up]) {
   return [north, east, up];
 }
 
-// The same movement-source rule as the movement loop: trainer speed while
-// pedaling wins, else the simulation slider while simulating, else parked.
 function riderSpeedMps() {
-  if (state.pedaling && Number.isFinite(state.trainerSpeedKph)) {
-    return Math.max(0, state.trainerSpeedKph) / 3.6;
-  }
-  if (state.simulating) return Math.max(0, Number(els.speedInput?.value) || 0) / 3.6;
-  return 0;
+  return isMoving() ? Math.max(0, currentRideSpeedKph() ?? 0) / 3.6 : 0;
 }

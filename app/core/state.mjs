@@ -60,8 +60,10 @@ export const state = {
   // the live "current climb" / "next climb" status.
   climbs: [],
   progressMeters: 0,
-  simulating: false,
-  pedaling: false,
+  simulationMode: "fixed", // Selected mode for the next simulation start.
+  simulationNotice: "", // Most recent simulation transition shown in the sidebar.
+  simulation: null, // Active simulation, with its own virtual telemetry and workout clock.
+  pedaling: false, // Real trainer motion detected by speed hysteresis.
   movementLoopActive: false,
   tickRaf: null,
   tickTimeout: null,
@@ -86,11 +88,6 @@ export const state = {
   strapHeartRateBpm: null,
   heartRateStatusText: null,
   heartRateRefreshTimer: null,
-  demoModeActive: false,
-  demoModel: null,
-  demoHistorySamples: [],
-  demoTimerSeconds: 0,
-  demoCaloriesKcal: 0,
   gradeUpdateIntervalSeconds: DEFAULT_GRADE_INTERVAL_SECONDS,
   lastSlowUiAt: 0,
   lastRiderDot: null,
@@ -311,7 +308,10 @@ export const els = {
   trainerSettingsBtn: document.querySelector("#trainerSettingsBtn"),
   trainerSettings: document.querySelector("#trainerSettings"),
   connectHrBtn: document.querySelector("#connectHrBtn"),
-  demoModeBtn: document.querySelector("#demoModeBtn"),
+  simulationModeSelect: document.querySelector("#simulationModeSelect"),
+  simulationWorkoutOption: document.querySelector("#simulationWorkoutOption"),
+  simulationStatus: document.querySelector("#simulationStatus"),
+  simulationSpeedControl: document.querySelector("#simulationSpeedControl"),
   resizeRecordingWindowBtn: document.querySelector("#resizeRecordingWindowBtn"),
   theaterHudTogglesLabel: document.querySelector(".theater-hud-toggles-label"),
   theaterHideClockInput: document.querySelector("#theaterHideClockInput"),
@@ -321,7 +321,7 @@ export const els = {
   theaterHideDemoChipInput: document.querySelector("#theaterHideDemoChipInput"),
   theaterHideControlsInput: document.querySelector("#theaterHideControlsInput"),
   theaterHideMinimapInput: document.querySelector("#theaterHideMinimapInput"),
-  demoBanner: document.querySelector("#demoBanner"),
+  simulationBanner: document.querySelector("#simulationBanner"),
   restingHeartRateInput: document.querySelector("#restingHeartRateInput"),
   maxHeartRateInput: document.querySelector("#maxHeartRateInput"),
   ftpInput: document.querySelector("#ftpInput"),

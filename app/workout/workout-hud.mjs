@@ -41,13 +41,13 @@ export function syncWorkoutHud(steps, total) {
 }
 
 export function currentWorkoutHudStep() {
-  const session = state.workoutErg;
+  const session = state.simulation?.workout ?? state.workoutErg;
   return session && !session.paused ? session.steps[session.index] : null;
 }
 
 export function updateWorkoutHud() {
-  const result = state.workoutResult;
-  const session = state.workoutErg;
+  const session = state.simulation?.workout ?? state.workoutErg;
+  const result = session ? null : state.workoutResult;
   updateWorkoutControls();
   updateNextWorkoutStep(session);
   els.workoutHudMiniChart.hidden = Boolean(result || session);
@@ -123,6 +123,8 @@ function updateWorkoutControls() {
   if (play.dataset.state !== playState) play.dataset.state = playState;
   const label = countdown ? `Starting in ${countdown.seconds} seconds` : action;
   setButtonLabel(play, label);
+  play.hidden = Boolean(state.simulation?.model);
+  els.workoutErgInput.disabled = Boolean(state.simulation?.model);
   play.disabled = Boolean(countdown);
   els.workoutHudCountdown.hidden = !countdown;
   if (countdown) setText(els.workoutHudCountdown, String(countdown.seconds));
@@ -164,7 +166,7 @@ function updateNextWorkoutStep(session) {
   if (!showNext) return;
 
   setText(els.workoutHudNextName, next.name);
-  const preview = previewNextWorkoutStep(next, state.ftpWatts);
+  const preview = previewNextWorkoutStep(next, state.simulation?.workout?.ftp ?? state.ftpWatts);
   setText(els.workoutHudNextDuration, preview.duration);
   setText(els.workoutHudNextPower, preview.power);
   els.workoutHudNextPower.parentElement.hidden = !preview.power;

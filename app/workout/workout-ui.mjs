@@ -3,6 +3,7 @@ import { WORKOUT_PREVIEW_STEP_LIMIT, WORKOUT_PROFILE_STEP_LIMIT } from "../core/
 import { els, state } from "../core/state.mjs";
 import { readJson, removeStored, writeJsonCommitted } from "../storage/storage.mjs";
 import { saveSettings } from "../storage/persistence.mjs";
+import { handleSimulationWorkoutChange, updateSimulationControls } from "../simulation/simulation.mjs";
 import { setPickerSelection } from "../top-bar/selection-picker.mjs";
 import { decodeFitWorkout } from "./fit-workout.mjs";
 import { decodeMyWhooshJson, decodeMyWhooshXml } from "./mywhoosh-workout.mjs";
@@ -54,6 +55,7 @@ export async function importWorkout(event) {
     }
     stopWorkoutErg();
     state.workout = workout;
+    handleSimulationWorkoutChange();
     state.workoutAutoStartAttempted = false;
     renderWorkout();
     els.workoutGalleryDialog.close();
@@ -87,6 +89,7 @@ export async function clearWorkout() {
     }
     stopWorkoutErg();
     state.workout = null;
+    handleSimulationWorkoutChange();
     state.workoutAutoStartAttempted = false;
     setWorkoutError("");
     renderWorkout();
@@ -100,6 +103,7 @@ export async function clearWorkout() {
 }
 
 export function renderWorkout() {
+  updateSimulationControls();
   const workout = state.workout;
   els.workoutCard.hidden = !workout;
   els.clearWorkoutBtn.hidden = !workout;

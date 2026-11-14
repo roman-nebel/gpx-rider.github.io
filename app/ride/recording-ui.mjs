@@ -20,7 +20,7 @@ import { resetRide } from "./movement.mjs";
 export function updateRecordingUi() {
   // The bucket only grows while the rider is actually moving — mirror that
   // with the pulsing RECORDING indicator on the FIT buffer card.
-  els.recIndicator.hidden = !state.pedaling || state.demoModeActive;
+  els.recIndicator.hidden = !state.pedaling;
 
   const summary = rideLogSummary();
   els.recDistanceStat.textContent = formatDistance(summary.distanceMeters, state.distanceUnits);

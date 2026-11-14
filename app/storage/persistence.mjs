@@ -12,11 +12,10 @@ import {
   syncCenterRiderButton,
   updateCameraSettingsLabels,
 } from "../camera/camera-ui.mjs";
-import { syncDemoModeUi } from "../demo/demo-mode.mjs";
+import { updateSimulationControls } from "../simulation/simulation.mjs";
 import { resetGalleryMetadataExportForRoute } from "../gallery-ui/gallery-export.mjs";
 import { clamp, roundCoordinate } from "../core/geo.mjs";
 import { normalizeHudOrder } from "../hud/map-hud.mjs";
-import { updateStartButton } from "../ride/movement.mjs";
 import { enterOverviewMode } from "../camera/overview-camera.mjs";
 import { renderProfile } from "../route/profile-ui.mjs";
 import { updateRideUi } from "../ride/ride-ui.mjs";
@@ -411,19 +410,16 @@ export function restoreSavedRide() {
     : null;
   state.lastGalleryMetadataRefreshMs = 0;
   state.progressMeters = clamp(Number(savedRide.progressMeters) || 0, 0, routeTotalDistance(state.route));
-  state.simulating = false;
   state.lastTick = 0;
 
   state.overviewActive = true;
   resetGalleryMetadataExportForRoute();
   enterOverviewMode({ instant: true });
-  updateStartButton();
   renderRoute();
   renderProfile();
   updateRouteOverview();
   updateRideUi({ force: true });
-  els.startBtn.disabled = false;
-  syncDemoModeUi();
+  updateSimulationControls();
 }
 
 export function saveRideThrottled() {
