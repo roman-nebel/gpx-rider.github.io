@@ -2105,22 +2105,10 @@ body {
   color: var(--muted);
 }
 
-.workout-chart-plot {
-  position: relative;
-}
-
 .workout-chart-plot svg {
   display: block;
   width: 100%;
   height: auto;
-}
-
-.workout-chart-unit {
-  position: absolute;
-  inset: 2px auto auto 2px;
-  padding: 0 3px;
-  border-radius: 3px;
-  background: var(--bg);
 }
 
 .workout-chart-grid {
@@ -2158,6 +2146,7 @@ body {
   display: flex;
   justify-content: space-between;
   gap: 4px 12px;
+  margin-top: 4px;
 }
 
 .workout-steps {

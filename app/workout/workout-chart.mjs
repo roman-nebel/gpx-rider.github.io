@@ -33,8 +33,8 @@ function drawPlot(profile, unit, ftp, index) {
   });
   const scale = unit === "% FTP" ? 100 : unit === "W" ? ftp : null;
   const defaultMaxPower = scale ? scale * WORKOUT_PROFILE_FTP_CEILING : 1;
-  const maxPower = profile.intervals.reduce((max, { power }) =>
-    power?.unit === unit && unit ? Math.max(max, power.start, power.end) : max, defaultMaxPower);
+  const maxPower = Math.ceil(profile.intervals.reduce((max, { power }) =>
+    power?.unit === unit && unit ? Math.max(max, power.start, power.end) : max, defaultMaxPower));
   const y = (power) => BASE - power / maxPower * (BASE - 6);
   const freePowerTop = y(scale ?? maxPower / WORKOUT_PROFILE_FTP_CEILING);
   const freePowerId = `workout-free-power-${index}`;
@@ -58,8 +58,9 @@ function drawPlot(profile, unit, ftp, index) {
 
   for (const [intervalIndex, { start, end, power }] of profile.intervals.entries()) {
     const left = start / profile.extent * WIDTH;
-    const width = (end - start) / profile.extent * WIDTH;
-    const right = left + width - Math.min(3.5, width * 0.25);
+    const endX = end / profile.extent * WIDTH;
+    const gap = end < profile.extent ? Math.min(3.5, (endX - left) * 0.25) : 0;
+    const right = endX - gap;
     if (!power) {
       svg.append(svgElement("rect", {
         x: left, y: freePowerTop, width: right - left, height: BASE - freePowerTop,
@@ -111,15 +112,14 @@ function drawPlot(profile, unit, ftp, index) {
     svg.append(value, reference);
   }
 
+  if (unit) {
+    const label = svgElement("text", { x: 3, y: 11, class: "workout-chart-ftp-label" });
+    const ceiling = maxPower.toLocaleString("en-US");
+    label.textContent = unit === "% FTP" ? `${ceiling}%` : `${ceiling} W`;
+    svg.append(label);
+  }
   const plot = document.createElement("div");
   plot.className = "workout-chart-plot";
-  if (unit) {
-    const label = document.createElement("span");
-    label.className = "workout-chart-unit";
-    const ceiling = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(maxPower);
-    label.textContent = unit === "% FTP" ? `${ceiling}%` : `${ceiling} W`;
-    plot.append(label);
-  }
   plot.append(svg);
   return plot;
 }
