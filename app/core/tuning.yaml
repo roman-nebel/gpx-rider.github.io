@@ -1056,8 +1056,7 @@ climb_detection:
 
 # --- Virtual rider ---------------------------------------------------------------
 #
-# Virtual rider profile used by Simulation. The profile is separate from the
-# rider's stored settings. Workout mode uses the saved FTP when available.
+# Base profile for the modeled athlete. The Advanced preset uses these values.
 demo_ride:
   # Fixed showcase rider values. ftp_watts and max_heart_rate_bpm drive the
   # training meters; the weights drive the grade-to-speed physics model.
@@ -1067,8 +1066,6 @@ demo_ride:
   max_heart_rate_bpm: 180
   resting_heart_rate_bpm: 86
   threshold_heart_rate_bpm: 155
-  # Upper bound for virtual rider history samples kept for the profile.
-  max_history_samples: 3600
 
   # Target power model: flats sit below threshold, climbs add work, descents
   # back off. Smoothing keeps power from jumping at every GPX grade wiggle.
@@ -1086,8 +1083,8 @@ demo_ride:
   # the same way power is, plus a little noise so it doesn't read as a
   # perfectly flat line — exercises the cadence zone meter (green/yellow/red)
   # across a route's grade changes.
-  # Response of modeled cadence to workout power relative to free-ride power.
-  workout_cadence_power_exponent: 0.25
+  # Response of modeled cadence to imposed power relative to free-ride power.
+  cadence_power_exponent: 0.25
   flat_cadence_rpm: 88
   cadence_rpm_per_grade_percent: -1.5
   min_cadence_rpm: 55
@@ -1114,6 +1111,19 @@ demo_ride:
   heart_rate_fall_tau_seconds: 78
   low_effort_return_delay_seconds: 120
   heart_rate_noise_bpm: 1
+
+# Simulation-only athlete selection, shared by all modes.
+simulation_athlete:
+  # Preset selected when there is no saved preference.
+  default: advanced
+  # Each preset overrides the base mass, FTP, cadence, heart-rate response and
+  # aerodynamic drag. Free-ride power scales with the preset FTP.
+  presets:
+    untrained: { rider_weight_kg: 90, ftp_watts: 105, flat_cadence_rpm: 68, resting_heart_rate_bpm: 82, threshold_heart_rate_bpm: 163, drag_area_square_meters: 0.58 }
+    beginner: { rider_weight_kg: 82, ftp_watts: 165, flat_cadence_rpm: 77, resting_heart_rate_bpm: 74, threshold_heart_rate_bpm: 160, drag_area_square_meters: 0.52 }
+    advanced: {}
+    professional: { rider_weight_kg: 74, ftp_watts: 350, flat_cadence_rpm: 94, resting_heart_rate_bpm: 53, threshold_heart_rate_bpm: 162, drag_area_square_meters: 0.36 }
+    tour: { rider_weight_kg: 68, ftp_watts: 410, flat_cadence_rpm: 99, resting_heart_rate_bpm: 45, threshold_heart_rate_bpm: 165, drag_area_square_meters: 0.32 }
 
 # --- Virtual road speed during ERG -------------------------------------------
 erg_road_speed:

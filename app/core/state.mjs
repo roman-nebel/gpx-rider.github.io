@@ -41,6 +41,7 @@ import {
   DEFAULT_THEATER_HIDE_CLOCK,
   DEFAULT_THEATER_HIDE_CONTROLS,
   DEFAULT_THEATER_HIDE_DEMO_CHIP,
+  DEFAULT_SIMULATION_ATHLETE,
   DEFAULT_THEATER_HIDE_DOCK,
   DEFAULT_THEATER_HIDE_METERS,
   DEFAULT_THEATER_HIDE_MINIMAP,
@@ -60,6 +61,7 @@ export const state = {
   // the live "current climb" / "next climb" status.
   climbs: [],
   progressMeters: 0,
+  simulationAthlete: DEFAULT_SIMULATION_ATHLETE, // Persisted athlete preset for simulation.
   simulationMode: "fixed", // Selected mode for the next simulation start.
   simulationNotice: "", // Most recent simulation transition shown in the sidebar.
   simulation: null, // Active simulation, with its own virtual telemetry and workout clock.
@@ -308,6 +310,9 @@ export const els = {
   trainerSettingsBtn: document.querySelector("#trainerSettingsBtn"),
   trainerSettings: document.querySelector("#trainerSettings"),
   connectHrBtn: document.querySelector("#connectHrBtn"),
+  simulationAthleteSelect: document.querySelector("#simulationAthleteSelect"),
+  resetSimulationBtn: document.querySelector("#resetSimulationBtn"),
+  downloadSimulationFitBtn: document.querySelector("#downloadSimulationFitBtn"),
   simulationModeSelect: document.querySelector("#simulationModeSelect"),
   simulationWorkoutOption: document.querySelector("#simulationWorkoutOption"),
   simulationStatus: document.querySelector("#simulationStatus"),

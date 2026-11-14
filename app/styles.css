@@ -2696,6 +2696,37 @@ progress.ascent-progress::-moz-progress-bar {
 
 /* ---- simulation ------------------------------------------------------------------ */
 
+.simulation-heading {
+  gap: 8px;
+}
+
+.simulation-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.simulation-actions .btn {
+  gap: 5px;
+  padding-inline: 8px;
+}
+
+.simulation-selectors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.simulation-field {
+  display: grid;
+  gap: 6px;
+}
+
+.simulation-field select {
+  min-width: 0;
+  width: 100%;
+}
+
 .simulation-control {
   display: flex;
   align-items: center;
@@ -2709,8 +2740,7 @@ progress.ascent-progress::-moz-progress-bar {
   text-transform: uppercase;
 }
 
-.simulation-control input,
-.simulation-control select {
+.simulation-control input {
   flex: 1;
 }
 

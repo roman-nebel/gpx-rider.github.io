@@ -307,6 +307,8 @@ export const CLIMB_MIN_AVERAGE_GRADE_FOR_LENGTH = req("climb_detection", "min_av
 
 // Virtual rider
 export const DEMO_RIDE = req("demo_ride");
+export const DEFAULT_SIMULATION_ATHLETE = req("simulation_athlete", "default");
+export const SIMULATION_ATHLETE_PRESETS = req("simulation_athlete", "presets");
 
 // Ride recording
 export const RIDE_SAMPLE_INTERVAL_MS = req("ride_recording", "sample_interval_ms");

@@ -15,8 +15,12 @@ import { updateTrainingMeters } from "./training-zones.mjs";
 import { HEART_RATE_REFRESH_MS } from "../core/tuning.mjs";
 import { formatEnergy, formatSpeed } from "../core/units.mjs";
 
+function simulationUsesVirtualDevices() {
+  return state.simulation !== null && state.simulation.mode !== "fixed";
+}
+
 export function handleTrainerTelemetry(telemetry) {
-  if (telemetry && state.simulation?.model) stopSimulation("Trainer connected. Simulation stopped.");
+  if (telemetry && simulationUsesVirtualDevices()) stopSimulation("Trainer connected. Simulation stopped.");
   // Live telemetry is the one dependable "actually connected" signal.
   els.trainerDot.classList.toggle("connected", Boolean(telemetry));
 
@@ -55,21 +59,21 @@ export function handleTrainerStatus(text, { onlyClearError = false } = {}) {
     els.trainerSettings.hidden = true;
     els.trainerSettingsBtn.setAttribute("aria-expanded", "false");
   }
-  if (connected && state.simulation?.model) stopSimulation("Trainer connected. Simulation stopped.");
+  if (connected && simulationUsesVirtualDevices()) stopSimulation("Trainer connected. Simulation stopped.");
   else updateSimulationControls();
   if (onlyClearError && els.trainerStat.textContent !== "BLE error") return;
   els.trainerStat.textContent = text;
 }
 
 export function handleStrapHeartRate(bpm) {
-  if (Number.isFinite(bpm) && state.simulation?.model) stopSimulation("Heart rate monitor connected. Simulation stopped.");
+  if (Number.isFinite(bpm) && simulationUsesVirtualDevices()) stopSimulation("Heart rate monitor connected. Simulation stopped.");
   state.strapHeartRateBpm = Number.isFinite(bpm) ? bpm : null;
   refreshHeartRateUi();
   syncHeartRateRefreshLoop();
 }
 
 export function handleHeartRateStatus(text) {
-  if (isHeartRateConnected() && state.simulation?.model) stopSimulation("Heart rate monitor connected. Simulation stopped.");
+  if (isHeartRateConnected() && simulationUsesVirtualDevices()) stopSimulation("Heart rate monitor connected. Simulation stopped.");
   else updateSimulationControls();
   state.heartRateStatusText = text;
   refreshHeartRateUi();
@@ -141,7 +145,7 @@ export function updateTelemetryUi() {
   const heartRate = currentHeartRate();
   const heartRateText = Number.isFinite(heartRate) ? `${heartRate} bpm` : "--";
   const caloriesText = formatEnergy(currentCaloriesKcal() ?? NaN, state.energyUnits);
-  const trainerConnected = state.trainerSpeedKph !== null || state.trainerPowerWatts !== null;
+  const trainerConnected = Boolean(isTrainerConnected() || state.trainerSpeedKph !== null || state.trainerPowerWatts !== null);
   const heartRateConnected = isHeartRateConnected();
 
   els.powerStat.textContent = powerText;

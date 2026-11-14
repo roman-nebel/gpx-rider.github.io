@@ -55,7 +55,7 @@ pages, `styles.css`, `gallery.json`, and `assets/` stay at the app root.
 | `app/gallery-ui/` | Gallery | `gallery.mjs` (fullscreen ride-gallery overlay; cards from `app/gallery.json`, per-card on-demand 3D preview via each route's `metadata.json#previewCamera`), `gallery-export.mjs` (Export to gallery card: metadata.json snippet with the live camera, clipboard copy) |
 | `app/landing/` | Landing page | `landing.mjs` (public landing page behavior: hero replay over a live 3D map with a faked HUD, then summit orbit, loops; knobs in `LANDING_HERO`, `core/tuning.mjs`), `landing-route.mjs` (static route data the hero replays — marketing data, not app runtime) |
 | `app/demo/` | Virtual rider | `demo.mjs` (pure power, speed, cadence, heart rate, and calories model; tested) |
-| `app/simulation/` | Simulation | `simulation.mjs` (mode selector, session lifecycle, movement ticks, timed workout playback, and HUD chip) |
+| `app/simulation/` | Simulation | `simulation.mjs` (mode selector, session lifecycle, movement ticks, timed workout playback, and HUD chip), `simulation-recorder.mjs` (latest simulated activity, sampled and persisted for FIT export) |
 
 ## Code organization system — how to keep this codebase clean
 
@@ -183,8 +183,10 @@ in place).
   *pedaling* (trainer-reported speed, always wins) or *Simulation*. The
   Simulation card starts and stops Fixed speed, Virtual rider, or Workout
   mode. Workout mode plays timed power targets and uses the virtual rider
-  model on free-ride steps. Virtual telemetry stays separate from hardware
-  telemetry, the real ETA estimator, and the FIT buffer. Starting to pedal
+  model on free-ride steps. All modes use the selected athlete preset. Fixed
+  speed uses the inverse of the road speed solver to model required power.
+  Virtual telemetry stays separate from hardware telemetry and the real ETA
+  estimator. The latest simulation has its own persisted FIT recording. Starting to pedal
   auto-stops a running simulation. Connecting a trainer or heart rate monitor
   also stops either virtual mode. Pedaling detection uses hysteresis
   (`PEDALING_START_KPH` / `PEDALING_STOP_KPH` in `tuning.mjs`).
@@ -769,7 +771,9 @@ Records saved by older versions in localStorage are migrated into
 IndexedDB on first load; browsers without working IndexedDB fall back to
 localStorage transparently. Keys: `gpx-rider:settings`,
 `gpx-rider:last-ride` (route + progress), `gpx-rider:selected-workout`
-(imported workout), `gpx-rider:ride-log` (recorded samples), `gpx-rider:last-trainer`, `gpx-rider:last-heart-rate`. The one
+(imported workout), `gpx-rider:ride-log` (recorded samples),
+`gpx-rider:simulation-log` (latest simulated activity), `gpx-rider:last-trainer`,
+and `gpx-rider:last-heart-rate`. The one
 deliberate exception is `gpx-rider:maps-api-key`, which stays in
 localStorage (handled directly in `map-init.mjs`): saving it reloads the page
 immediately, and only a synchronous write is guaranteed to survive that.

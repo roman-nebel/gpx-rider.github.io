@@ -610,21 +610,39 @@
           </details>
 
           <section class="panel-card sidebar-section">
-            <div class="panel-card-head">
+            <div class="panel-card-head simulation-heading">
               <h2>Simulation</h2>
-              <button id="startBtn" type="button" class="btn btn-accent" disabled>
-                <svg class="icon-sim-play" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
-                <svg class="icon-sim-stop" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
-                <span id="startBtnLabel">Start</span>
-              </button>
+              <div class="simulation-actions">
+                <button id="resetSimulationBtn" type="button" class="btn btn-ghost btn-sm"
+                  aria-label="Reset simulation recording" title="Reset simulation recording" disabled>Reset</button>
+                <button id="downloadSimulationFitBtn" type="button" class="btn btn-outline-blue btn-sm"
+                  title="Download a FIT file" disabled>Export simulation data</button>
+                <button id="startBtn" type="button" class="btn btn-accent btn-sm" disabled>
+                  <svg class="icon-sim-play" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
+                  <svg class="icon-sim-stop" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
+                  <span id="startBtnLabel">Start</span>
+                </button>
+              </div>
             </div>
-            <div class="simulation-control">
-              <label for="simulationModeSelect" class="speed-label">Mode</label>
-              <select id="simulationModeSelect" aria-describedby="simulationStatus">
-                <option value="fixed">Fixed speed</option>
-                <option value="virtual">Virtual rider</option>
-                <option id="simulationWorkoutOption" value="workout" disabled>Workout mode</option>
-              </select>
+            <div class="simulation-selectors">
+              <div class="simulation-field">
+                <label for="simulationModeSelect" class="speed-label">Mode</label>
+                <select id="simulationModeSelect" aria-describedby="simulationStatus">
+                  <option value="fixed">Fixed speed</option>
+                  <option value="virtual">Virtual rider</option>
+                  <option id="simulationWorkoutOption" value="workout" disabled>Workout mode</option>
+                </select>
+              </div>
+              <div class="simulation-field">
+                <label for="simulationAthleteSelect" class="speed-label">Athlete</label>
+                <select id="simulationAthleteSelect">
+                  <option value="untrained">Untrained</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="professional">Professional</option>
+                  <option value="tour">Tour de France rider</option>
+                </select>
+              </div>
             </div>
             <div id="simulationSpeedControl" class="simulation-control">
               <label for="speedInput" class="speed-label">Speed</label>

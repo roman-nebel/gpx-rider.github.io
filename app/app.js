@@ -27,7 +27,8 @@ import {
   updateOverviewModeFromControl,
 } from "./camera/camera-ui.mjs";
 import { registerCameraDebugHud, toggleCameraDebugCollapsed } from "./camera/camera-debug.mjs";
-import { registerSimulationHud, selectSimulationMode, toggleSimulation, updateSimulationSpeed } from "./simulation/simulation.mjs";
+import { registerSimulationHud, selectSimulationAthlete, selectSimulationMode, toggleSimulation, updateSimulationSpeed } from "./simulation/simulation.mjs";
+import { persistSimulationRecording, restoreSimulationRecording } from "./simulation/simulation-recorder.mjs";
 import { copyGalleryMetadata, syncGalleryMetadataExportAvailability, updateGalleryMetadataExport } from "./gallery-ui/gallery-export.mjs";
 import { initGallery, openRouteGallery } from "./gallery-ui/gallery.mjs";
 import { connectHeartRate, initHeartRate, reconnectSavedHeartRate } from "./trainer/heartrate.mjs";
@@ -53,7 +54,7 @@ import {
   handleProfilePointerUp,
 } from "./route/profile-ui.mjs";
 import { persistRideLog, restoreRideLog, rideLogSummary } from "./ride/recorder.mjs";
-import { confirmResetRide, downloadFitFile, downloadWorkoutFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
+import { confirmResetRide, confirmResetSimulation, downloadFitFile, downloadSimulationFit, downloadWorkoutFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
 import { loadGpxFile, loadGpxFromUrl } from "./route/route-load.mjs";
 import {
   openSettings,
@@ -145,6 +146,7 @@ async function startApp() {
   restoreSettings();
   restoreWorkout();
   restoreRideLog();
+  restoreSimulationRecording();
   state.powerCaloriesKcal = rideLogSummary().caloriesKcal ?? 0;
   updateRecordingUi();
   els.mapsApiKeyInput.value = getStoredMapsApiKey();
@@ -259,6 +261,9 @@ function bindEvents() {
   els.trainerSettingsBtn.addEventListener("click", toggleTrainerSettings);
   els.connectHrBtn.addEventListener("click", connectHeartRate);
   els.simulationModeSelect.addEventListener("change", selectSimulationMode);
+  els.simulationAthleteSelect.addEventListener("change", selectSimulationAthlete);
+  els.downloadSimulationFitBtn.addEventListener("click", downloadSimulationFit);
+  els.resetSimulationBtn.addEventListener("click", confirmResetSimulation);
   els.resizeRecordingWindowBtn.addEventListener("click", toggleTheaterMode);
   els.startBtn.addEventListener("click", toggleSimulation);
   els.resetBtn.addEventListener("click", confirmResetRide);
@@ -321,5 +326,6 @@ function bindEvents() {
   window.addEventListener("beforeunload", () => {
     saveRide();
     persistRideLog();
+    persistSimulationRecording();
   });
 }

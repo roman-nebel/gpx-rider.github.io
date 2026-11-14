@@ -1,14 +1,15 @@
 // Runs the selected simulation in the ride's movement loop and owns its controls.
 
 import { els, state } from "../core/state.mjs";
-import { DEMO_RIDE, WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
-import { advanceDemoRide, createDemoRideModel, sampleDemoRide } from "../demo/demo.mjs";
+import { WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
+import { advanceDemoRide, createDemoRideModel, normalizeSimulationAthlete, simulationAthlete } from "../demo/demo.mjs";
 import { registerHudComponent } from "../hud/screen-manager.mjs";
+import { createSimulationRecording, persistSimulationRecording, recordSimulationTick } from "./simulation-recorder.mjs";
 import { ensureMovementLoop } from "../ride/movement.mjs";
 import { updateRideUi } from "../ride/ride-ui.mjs";
 import { updateSpeedOutput } from "../settings/settings-ui.mjs";
 import { advanceAlongRoad, gradeAt, interpolateRoutePoint, roadDistanceAt, routeTotalDistance } from "../route/route.mjs";
-import { saveRide } from "../storage/persistence.mjs";
+import { saveRide, saveSettings } from "../storage/persistence.mjs";
 import { isHeartRateConnected } from "../trainer/heartrate.mjs";
 import { isTrainerConnected } from "../trainer/trainer.mjs";
 import { expandTimedWorkoutSteps, normalizeWorkoutStep, workoutTargetWatts } from "../workout/workout-step.mjs";
@@ -28,29 +29,39 @@ export function selectSimulationMode(event) {
   updateSimulationControls("");
 }
 
+export function selectSimulationAthlete(event) {
+  if (state.simulation) return;
+  state.simulationAthlete = normalizeSimulationAthlete(event.currentTarget.value);
+  saveSettings();
+  updateSimulationControls("");
+}
+
 export function updateSimulationSpeed() {
   updateSpeedOutput();
   saveRide();
-  if (state.simulation?.mode === "fixed" || !state.pedaling) updateRideUi({ force: true });
+  if (state.simulation?.mode === "fixed") {
+    advanceVirtualRider(state.simulation, 0, gradeAt(state.route, state.progressMeters));
+  }
+  if (!state.pedaling) updateRideUi({ force: true });
 }
 
 export function toggleSimulation() {
   if (state.simulation) {
-    stopSimulation("Simulation stopped.");
+    stopSimulation();
     return;
   }
   const mode = state.simulationMode;
   const steps = mode === "workout" ? timedWorkoutSteps() : null;
   if (simulationUnavailable(mode, steps)) return;
-  const workout = steps ? { steps, index: 0, elapsed: 0, ftp: state.ftpWatts || DEMO_RIDE.ftp_watts } : null;
+  const config = simulationAthlete(state.simulationAthlete);
+  const workout = steps ? { steps, index: 0, elapsed: 0, ftp: config.ftp_watts } : null;
   if (state.progressMeters >= routeTotalDistance(state.route)) state.progressMeters = 0;
-  const model = mode === "fixed" ? null : createDemoRideModel();
-  const config = workout ? { ...DEMO_RIDE, ftp_watts: workout.ftp } : DEMO_RIDE;
-  state.simulation = { mode, model, config, telemetry: null, workout };
-  if (model) {
-    const grade = gradeAt(state.route, state.progressMeters);
-    advanceVirtualRider(state.simulation, 0, grade);
-  }
+  const model = createDemoRideModel(config);
+  const recording = createSimulationRecording(Date.now());
+  const simulation = { mode, model, config, telemetry: null, workout, recording };
+  state.simulation = simulation;
+  advanceVirtualRider(simulation, 0, gradeAt(state.route, state.progressMeters));
+  recordSimulationPosition(simulation, 0);
   updateSimulationControls("");
   state.lastTick = performance.now();
   ensureMovementLoop();
@@ -59,7 +70,10 @@ export function toggleSimulation() {
 }
 
 export function stopSimulation(message = "", { refresh = true } = {}) {
-  if (!state.simulation) return;
+  const simulation = state.simulation;
+  if (!simulation) return;
+  recordSimulationPosition(simulation, 0, true);
+  persistSimulationRecording();
   state.simulation = null;
   updateSimulationControls(message);
   if (refresh) {
@@ -80,7 +94,6 @@ export function handleSimulationWorkoutChange() {
     if (active) {
       state.simulation.mode = "virtual";
       state.simulation.workout = null;
-      state.simulation.config = DEMO_RIDE;
     }
   }
   updateSimulationControls(active ? "Continuing with Virtual rider." : "");
@@ -94,6 +107,8 @@ export function updateSimulationControls(message = state.simulationNotice) {
   const unavailable = simulation ? "" : simulationUnavailable(simulationMode, steps);
   els.simulationModeSelect.value = simulationMode;
   els.simulationModeSelect.disabled = Boolean(simulation);
+  els.simulationAthleteSelect.value = state.simulationAthlete;
+  els.simulationAthleteSelect.disabled = Boolean(simulation);
   els.simulationWorkoutOption.disabled = !steps;
   els.simulationSpeedControl.hidden = simulationMode !== "fixed";
   els.startBtn.disabled = !simulation && Boolean(unavailable);
@@ -101,9 +116,9 @@ export function updateSimulationControls(message = state.simulationNotice) {
   els.startBtn.classList.toggle("sim-running", Boolean(simulation));
 
   const workoutHint = state.workout && !steps ? "Workout mode requires timed steps." : "";
-  const ftpHint = simulationMode === "workout" && !state.ftpWatts
-    ? `Using the virtual rider's FTP of ${DEMO_RIDE.ftp_watts} W.` : "";
-  const status = message || unavailable || (!simulation ? workoutHint || ftpHint : "");
+  const athleteHint = !simulation && simulationMode === "workout"
+    ? `Workout FTP: ${simulationAthlete(state.simulationAthlete).ftp_watts} W.` : "";
+  const status = message || unavailable || (!simulation ? workoutHint || athleteHint : "");
   if (els.simulationStatus.textContent !== status) els.simulationStatus.textContent = status;
   els.simulationStatus.hidden = !status;
   els.simulationBanner.hidden = !simulation;
@@ -134,13 +149,8 @@ export function simulationSpeedKph() {
   return simulation.telemetry?.speedKph ?? 0;
 }
 
-export function advanceSimulation(elapsedSeconds, now, finishMeters) {
+export function advanceSimulation(elapsedSeconds, finishMeters) {
   const simulation = state.simulation;
-  if (simulation.mode === "fixed") {
-    const { progress } = advanceAlongRoad(state.route, state.progressMeters, simulationSpeedKph() / 3.6 * elapsedSeconds);
-    state.progressMeters = progress;
-    return false;
-  }
 
   let remaining = elapsedSeconds;
   let metersAdvanced = 0;
@@ -153,7 +163,7 @@ export function advanceSimulation(elapsedSeconds, now, finishMeters) {
     const distanceLeft = finishRoadMeters - roadDistanceAt(state.route, state.progressMeters);
     // Integrate distance at the speed at the start of this slice, then
     // advance the virtual rider to get the speed for the next slice.
-    const speedMps = simulation.model.speedKph / 3.6;
+    const speedMps = (simulation.mode === "fixed" ? simulationSpeedKph() : simulation.model.speedKph) / 3.6;
     const secondsToFinish = distanceLeft / speedMps;
     const seconds = Math.min(remaining, stepRemaining, secondsToFinish);
     advanceVirtualRider(simulation, seconds, grade);
@@ -173,14 +183,20 @@ export function advanceSimulation(elapsedSeconds, now, finishMeters) {
     }
   }
 
-  sampleDemoRide(simulation.model, {
+  recordSimulationPosition(simulation, metersAdvanced);
+  return Boolean(workout && workout.index === workout.steps.length);
+}
+
+function recordSimulationPosition(simulation, metersAdvanced, final = false) {
+  recordSimulationTick(simulation.recording, {
     point: interpolateRoutePoint(state.route, state.progressMeters),
     routeProgressMeters: state.progressMeters,
     metersAdvanced,
     telemetry: simulation.telemetry,
-    nowSeconds: (performance.timeOrigin + now) / 1000,
+    elapsedSeconds: simulation.model.elapsedSeconds,
+    caloriesKcal: simulation.model.caloriesKcal,
+    final,
   });
-  return Boolean(workout && workout.index === workout.steps.length);
 }
 
 function advanceVirtualRider(simulation, seconds, grade) {
@@ -191,6 +207,7 @@ function advanceVirtualRider(simulation, seconds, grade) {
     elapsedSeconds: seconds,
     gradePercent: grade,
     targetPowerWatts: target,
+    fixedSpeedKph: simulation.mode === "fixed" ? simulationSpeedKph() : null,
     config: simulation.config,
   });
 }

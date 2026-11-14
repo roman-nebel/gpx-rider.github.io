@@ -12,6 +12,7 @@ import {
   syncCenterRiderButton,
   updateCameraSettingsLabels,
 } from "../camera/camera-ui.mjs";
+import { normalizeSimulationAthlete } from "../demo/demo.mjs";
 import { updateSimulationControls } from "../simulation/simulation.mjs";
 import { resetGalleryMetadataExportForRoute } from "../gallery-ui/gallery-export.mjs";
 import { clamp, roundCoordinate } from "../core/geo.mjs";
@@ -62,6 +63,7 @@ const RIDE_STORAGE_KEY = "gpx-rider:last-ride";
 
 export function restoreSettings() {
   const settings = readJson(SETTINGS_STORAGE_KEY);
+  state.simulationAthlete = normalizeSimulationAthlete(settings?.simulationAthlete);
   const zoom = Number(settings?.cameraZoom ?? settings?.cameraDistanceMeters);
   const angle = Number(settings?.cameraAngleDegrees);
   const behind = Number(settings?.cameraBehindMeters);
@@ -355,6 +357,7 @@ export function saveSettings() {
     maxHeartRateBpm: state.maxHeartRateBpm,
     ftpWatts: state.ftpWatts,
     workoutAutoStart: state.workoutAutoStart,
+    simulationAthlete: state.simulationAthlete,
     showMinimap: state.showMinimap,
     mapLabelsEnabled: state.mapLabelsEnabled,
     cameraDebugEnabled: state.cameraDebugEnabled,

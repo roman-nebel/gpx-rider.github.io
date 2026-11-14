@@ -7,7 +7,7 @@ import {
   demoSpeedForPower,
   demoTargetCadenceRpm,
   demoTargetPowerWatts,
-  sampleDemoRide,
+  simulationAthlete,
 } from "../app/demo/demo.mjs";
 
 // A pinned rider profile so the tests exercise the physics/HR model, never
@@ -19,7 +19,6 @@ const TEST_RIDE = {
   max_heart_rate_bpm: 180,
   resting_heart_rate_bpm: 86,
   threshold_heart_rate_bpm: 155,
-  max_history_samples: 3600,
   flat_power_watts: 205,
   climb_watts_per_grade_percent: 13.5,
   descent_watts_per_grade_percent: 24,
@@ -28,7 +27,7 @@ const TEST_RIDE = {
   power_smoothing_tau_seconds: 7,
   flat_cadence_rpm: 88,
   cadence_rpm_per_grade_percent: -1.5,
-  workout_cadence_power_exponent: 0.25,
+  cadence_power_exponent: 0.25,
   min_cadence_rpm: 55,
   max_cadence_rpm: 105,
   cadence_smoothing_tau_seconds: 5,
@@ -139,14 +138,26 @@ test("workout power overrides grade-based power, including a zero-watt target", 
   assert.ok(freeRide.powerWatts > 0);
 });
 
-test("virtual ride history begins at the current route position and tracks all distance between samples", () => {
+test("fixed speed uses the required road power and coasts when gravity is enough", () => {
   const model = createDemoRideModel(TEST_RIDE);
-  const telemetry = advanceDemoRide(model, { elapsedSeconds: 0, gradePercent: 0, config: TEST_RIDE });
-  const point = { lat: 50, lng: 14, ele: 300 };
-  sampleDemoRide(model, { point, routeProgressMeters: 750, metersAdvanced: 0, telemetry, nowSeconds: 1000 });
-  sampleDemoRide(model, { point, routeProgressMeters: 754, metersAdvanced: 4, telemetry, nowSeconds: 1000.5 });
-  sampleDemoRide(model, { point, routeProgressMeters: 760, metersAdvanced: 6, telemetry, nowSeconds: 1001 });
+  const atSpeed = (grade) => advanceDemoRide(model, {
+    elapsedSeconds: 1, gradePercent: grade, fixedSpeedKph: 30, config: TEST_RIDE,
+  });
+  const flat = atSpeed(0);
+  const uphill = atSpeed(6);
+  const downhill = atSpeed(-8);
+  assert.equal(flat.speedKph, 30);
+  assert.ok(flat.powerWatts > 0);
+  assert.ok(uphill.powerWatts > flat.powerWatts);
+  assert.equal(downhill.speedKph, 30);
+  assert.equal(downhill.powerWatts, 0);
+  assert.equal(downhill.cadenceRpm, 0);
+});
 
-  assert.deepEqual(model.historySamples.map(({ routeProgressMeters, distance }) => [routeProgressMeters, distance]),
-    [[750, 0], [760, 10]]);
+test("athlete profiles change sustainable power and cadence", () => {
+  const beginner = simulationAthlete("beginner");
+  const elite = simulationAthlete("tour");
+  assert.ok(beginner.ftp_watts < elite.ftp_watts);
+  assert.ok(demoTargetPowerWatts(4, beginner) < demoTargetPowerWatts(4, elite));
+  assert.ok(demoTargetCadenceRpm(4, beginner) < demoTargetCadenceRpm(4, elite));
 });

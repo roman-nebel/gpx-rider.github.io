@@ -17,7 +17,6 @@ import {
   CADENCE_ZONE_YELLOW_MAX_RPM,
   CADENCE_ZONE_YELLOW_MIN_RPM,
   DEFAULT_RESTING_HEART_RATE_BPM,
-  DEMO_RIDE,
   GRADE_METER_MAX_PERCENT,
   GRADE_METER_MIN_PERCENT,
   HEART_RATE_ZONE_DEFINITIONS,
@@ -180,15 +179,15 @@ export function currentPowerZones() {
 }
 
 function effectiveFtpWatts() {
-  return state.simulation?.model ? state.simulation.workout?.ftp ?? DEMO_RIDE.ftp_watts : state.ftpWatts;
+  return state.simulation?.config.ftp_watts ?? state.ftpWatts;
 }
 
 function effectiveMaxHeartRateBpm() {
-  return state.simulation?.model ? DEMO_RIDE.max_heart_rate_bpm : state.maxHeartRateBpm;
+  return state.simulation?.config.max_heart_rate_bpm ?? state.maxHeartRateBpm;
 }
 
 function effectiveRestingHeartRateBpm() {
-  return state.simulation?.model ? DEMO_RIDE.resting_heart_rate_bpm : state.restingHeartRateBpm;
+  return state.simulation?.config.resting_heart_rate_bpm ?? state.restingHeartRateBpm;
 }
 
 function calculateHeartRateZones(maxHr, restingHr = DEFAULT_RESTING_HEART_RATE_BPM) {

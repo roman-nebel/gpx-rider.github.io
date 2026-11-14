@@ -3,6 +3,7 @@
 import { closeOverviewModeMenu, syncOverviewControls } from "../camera/camera-ui.mjs";
 import { syncFocusedClimbList } from "../route/climbs-ui.mjs";
 import { advanceSimulation, simulationSpeedKph, stopSimulation, updateSimulationControls } from "../simulation/simulation.mjs";
+import { persistSimulationRecording } from "../simulation/simulation-recorder.mjs";
 import { cyclingSpeedForPower } from "./cycling-speed.mjs";
 import { recordEstimatorTick } from "./eta.mjs";
 import { ensureCameraFlightLoop } from "../camera/follow-camera.mjs";
@@ -142,6 +143,7 @@ export function handleVisibilityChange() {
   if (document.hidden) {
     saveRide();
     persistRideLog();
+    persistSimulationRecording();
   }
 }
 
@@ -154,6 +156,11 @@ function handleMovementStopped() {
 export function resetRide() {
   if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
   stopSimulation("", { refresh: false });
+  resetRoutePosition();
+  void sendTrainerGrade(0);
+}
+
+export function resetRoutePosition({ skipTrainerGrade = false } = {}) {
   updateSimulationControls("");
   state.progressMeters = 0;
   state.lastTick = performance.now();
@@ -163,9 +170,8 @@ export function resetRide() {
     if (state.overviewActive) enterOverviewMode();
     else returnToRiderCamera();
   }
-  updateRideUi({ force: true });
+  updateRideUi({ force: true, skipTrainerGrade });
   saveRide();
-  void sendTrainerGrade(0);
 }
 
 function tick(now) {
@@ -181,7 +187,7 @@ function tick(now) {
   state.lastTick = now;
   const totalDistance = routeTotalDistance(state.route);
   let workoutComplete = false;
-  if (state.simulation) workoutComplete = advanceSimulation(elapsedSeconds, now, totalDistance);
+  if (state.simulation) workoutComplete = advanceSimulation(elapsedSeconds, totalDistance);
   else advanceRealRide(now, elapsedSeconds);
 
   if (state.progressMeters >= totalDistance) {
@@ -271,6 +277,7 @@ function updateErgRoadSpeed(now, elapsedSeconds, grade) {
 export function seekToMeters(meters) {
   if (!state.route.length) return;
   const wasMoving = isMoving();
+  stopSimulation("Simulation stopped before seeking.", { refresh: false });
   state.progressMeters = clamp(meters, 0, routeTotalDistance(state.route));
   state.ergRoadSpeedKph = null;
   state.lastTick = performance.now();

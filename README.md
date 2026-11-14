@@ -57,9 +57,9 @@ It is built for people who want to:
 5. Start pedaling. Trainer speed moves the rider along the route, while the current GPX grade is sent back to the trainer.
 6. Use **Full ride .FIT** to export the recorded ride.
 
-In the **Simulation** card, choose **Fixed speed** to preview the route at the slider speed, or **Virtual rider** for modeled power, speed, cadence, heart rate, and calories. **Workout mode** uses the selected workout's timed power targets and switches to virtual rider power on free-ride steps. It uses your saved FTP when available and the virtual rider's FTP otherwise. Clearing a workout during playback continues in **Virtual rider**.
+The **Simulation** card offers five athlete presets, from **Untrained** to **Tour de France rider**. **Fixed speed** holds the slider speed and estimates the power, cadence, and heart rate needed for the terrain. **Virtual rider** sets the effort and lets speed vary with grade. **Workout mode** uses the selected workout's timed power targets and the simulated athlete's FTP for relative targets. Free-ride steps use the virtual rider model. Clearing the workout during playback continues in **Virtual rider**.
 
-Use **Start** and **Stop** for all three modes. Stop the simulation to change modes. Real pedaling takes over from Fixed speed. Connecting a trainer or heart rate monitor ends either virtual mode. Simulation data stays out of FIT recordings.
+Use **Start** and **Stop** for all three modes. Real pedaling takes over from Fixed speed. Connecting a trainer or heart rate monitor ends either virtual mode. After stopping, **Export simulation data** downloads the latest simulated ride with a simulation label in the file and filename. **Reset** deletes that recording and returns the rider to the route start.
 
 ## Structured workouts
 

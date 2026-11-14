@@ -1,8 +1,25 @@
 // Models a virtual rider's power, speed, cadence, heart rate, and energy use.
-import { clamp, roundCoordinate } from "../core/geo.mjs";
-import { CYCLING_GROSS_EFFICIENCY, DEMO_RIDE } from "../core/tuning.mjs";
-import { cyclingSpeedForPower } from "../ride/cycling-speed.mjs";
+import { clamp } from "../core/geo.mjs";
+import { CYCLING_GROSS_EFFICIENCY, DEFAULT_SIMULATION_ATHLETE, DEMO_RIDE, SIMULATION_ATHLETE_PRESETS } from "../core/tuning.mjs";
+import { cyclingPowerForSpeed, cyclingSpeedForPower } from "../ride/cycling-speed.mjs";
 import { activeCaloriesFromPower } from "../core/units.mjs";
+
+export function normalizeSimulationAthlete(id) {
+  return Object.hasOwn(SIMULATION_ATHLETE_PRESETS, id) ? id : DEFAULT_SIMULATION_ATHLETE;
+}
+
+export function simulationAthlete(id) {
+  const config = { ...DEMO_RIDE, ...SIMULATION_ATHLETE_PRESETS[normalizeSimulationAthlete(id)] };
+  const powerScale = config.ftp_watts / DEMO_RIDE.ftp_watts;
+  return {
+    ...config,
+    flat_power_watts: config.flat_power_watts * powerScale,
+    climb_watts_per_grade_percent: config.climb_watts_per_grade_percent * powerScale,
+    descent_watts_per_grade_percent: config.descent_watts_per_grade_percent * powerScale,
+    min_power_watts: config.min_power_watts * powerScale,
+    max_power_watts: config.max_power_watts * powerScale,
+  };
+}
 
 export function createDemoRideModel(config = DEMO_RIDE) {
   return {
@@ -18,8 +35,6 @@ export function createDemoRideModel(config = DEMO_RIDE) {
     fallDelaySeconds: 0,
     lowEffortSeconds: 0,
     caloriesKcal: 0,
-    distanceMeters: 0,
-    historySamples: [],
   };
 }
 
@@ -45,6 +60,7 @@ export function advanceDemoRide(model, {
   elapsedSeconds,
   gradePercent,
   targetPowerWatts = null,
+  fixedSpeedKph = null,
   config = DEMO_RIDE,
 }) {
   const dt = Math.max(0, elapsedSeconds);
@@ -52,16 +68,19 @@ export function advanceDemoRide(model, {
 
   const freeRidePower = demoTargetPowerWatts(gradePercent, config);
   const previousPower = model.powerWatts;
+  if (fixedSpeedKph !== null) targetPowerWatts = cyclingPowerForSpeed(fixedSpeedKph, gradePercent, config);
   model.powerWatts = targetPowerWatts ?? smoothToward(
     previousPower, freeRidePower, dt, config.power_smoothing_tau_seconds,
   );
 
-  const targetSpeedKph = demoSpeedForPower(model.powerWatts, gradePercent, config);
-  model.speedKph = smoothToward(model.speedKph || targetSpeedKph, targetSpeedKph, dt, config.speed_smoothing_tau_seconds);
+  const targetSpeedKph = fixedSpeedKph ?? demoSpeedForPower(model.powerWatts, gradePercent, config);
+  model.speedKph = fixedSpeedKph ?? smoothToward(
+    model.speedKph || targetSpeedKph, targetSpeedKph, dt, config.speed_smoothing_tau_seconds,
+  );
 
   let targetCadenceRpm = demoTargetCadenceRpm(gradePercent, config);
   if (targetPowerWatts !== null) {
-    targetCadenceRpm *= Math.pow(model.powerWatts / freeRidePower, config.workout_cadence_power_exponent);
+    targetCadenceRpm *= Math.pow(model.powerWatts / freeRidePower, config.cadence_power_exponent);
   }
   model.cadenceRpm = smoothToward(model.cadenceRpm, targetCadenceRpm, dt, config.cadence_smoothing_tau_seconds);
   model.cadenceNoiseRpm = (Math.random() * 2 - 1) * config.cadence_noise_rpm;
@@ -77,25 +96,6 @@ export function advanceDemoRide(model, {
     )),
     heartRateBpm: Math.round(model.heartRateBpm),
   };
-}
-
-export function sampleDemoRide(model, {
-  point, routeProgressMeters, metersAdvanced, telemetry, nowSeconds = Date.now() / 1000, config = DEMO_RIDE,
-}) {
-  model.distanceMeters += metersAdvanced;
-  const timestamp = Math.floor(nowSeconds);
-  if (model.historySamples.at(-1)?.t === timestamp) return;
-  model.historySamples.push({
-    t: timestamp,
-    lat: roundCoordinate(point.lat),
-    lng: roundCoordinate(point.lng),
-    ele: point.ele,
-    distance: model.distanceMeters,
-    ...telemetry,
-    caloriesKcal: model.caloriesKcal,
-    routeProgressMeters,
-  });
-  if (model.historySamples.length > config.max_history_samples) model.historySamples.shift();
 }
 
 function updateDemoHeartRate(model, elapsedSeconds, config) {
