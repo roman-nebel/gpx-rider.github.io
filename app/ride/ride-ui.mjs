@@ -31,7 +31,7 @@ import {
   updateRiderDot,
 } from "../map/route-render.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
-import { currentCaloriesKcal, currentRideTimerSeconds, updateRideSpeedUi } from "./telemetry-ui.mjs";
+import { currentCaloriesKcal, currentRideTimerSeconds, updateTelemetryUi } from "./telemetry-ui.mjs";
 import { updateWorkoutHud } from "../workout/workout-hud.mjs";
 import { queueTrainerGradeSample } from "../trainer/trainer.mjs";
 import { updateTrainingMeters } from "./training-zones.mjs";
@@ -63,7 +63,7 @@ export function updateRideUi(options = {}) {
   if (!options.force && isMoving() && now - state.lastSlowUiAt < SLOW_UI_INTERVAL_MS) return;
   state.lastSlowUiAt = now;
   updateWorkoutHud();
-  updateRideSpeedUi();
+  updateTelemetryUi();
 
   const horizontalDistance = routeTotalDistance(state.route);
   const totalDistance = roadDistanceAt(state.route, horizontalDistance);
@@ -132,7 +132,7 @@ export function updateRideUi(options = {}) {
   updateTrainingMeters(grade);
 
   updateRecordingUi();
-  if (!state.demoModeActive) {
+  if (!state.simulatorEnabled && !options.skipTrainerGrade) {
     queueTrainerGradeSample(grade, {
       force: options.force,
       intervalSeconds: state.gradeUpdateIntervalSeconds,
@@ -158,13 +158,9 @@ function updateAscentProgress(ascentSoFar, totalAscent) {
 function currentEtaSeconds(remainingMeters, totalAscent, totalDescent) {
   if (remainingMeters <= 0) return 0;
 
-  // The simulation rides at a constant slider speed — plain arithmetic is
-  // exact there, no model needed.
-  if (state.simulating && !state.pedaling) {
-    return remainingMeters / (Number(els.speedInput.value) / 3.6);
-  }
-
   const speed = currentRideSpeedKph();
+  if (state.simulatorEnabled) return speed > 0 ? remainingMeters / (speed / 3.6) : null;
+
   return estimateRemainingSeconds(state.rideEstimator, {
     remainingMeters,
     remainingAscentMeters: Math.max(0, totalAscent - ascentAt(state.route, state.progressMeters)),

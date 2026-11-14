@@ -41,7 +41,7 @@ It is built for people who want to:
 - **Structured workouts** — import FIT Workout files or MyWhoosh XML and JSON, preview the plan, and follow timed power targets with a compatible trainer.
 - **Cinematic camera system** — switch among follow, first-person, static, orbit, fly-by, fly-over, and satellite views with physically flown transitions between the route overview and rider.
 - **FIT export** — record rides locally and download standards-compliant `.fit` files classified as virtual cycling activities.
-- **Simulation and demo modes** — preview a route at a chosen speed, or drive the complete UI with synthetic trainer and heart-rate data.
+- **Simulation** — preview a route at a fixed speed, ride with simulated telemetry, or follow a timed workout with a virtual rider.
 - **Recording view** — frame the map at an exact recording size and choose which HUD components appear in the recording.
 - **Local-first persistence** — routes, progress, recordings, settings, camera preferences, and remembered sensors survive reloads without an account.
 - **Zero build step** — vanilla HTML, CSS, and JavaScript ES modules. No framework, bundler, npm packages, or `node_modules`.
@@ -57,7 +57,9 @@ It is built for people who want to:
 5. Start pedaling. Trainer speed moves the rider along the route, while the current GPX grade is sent back to the trainer.
 6. Use **Full ride .FIT** to export the recorded ride.
 
-Not on the bike? Use the Simulation card's **Start** button to preview the route at a fixed speed. Real pedaling automatically stops a running simulation and takes priority.
+Turn on **Simulator** in **Live Data** to show the simulation controls. Simulator offers five athlete presets, from **Untrained** to **Tour de France rider**. **Fixed speed** holds the slider speed and estimates the power, cadence, and heart rate needed for the terrain. **Virtual rider** sets the effort and lets speed vary with grade. **Workout mode** uses the selected workout's timed power targets and the simulated athlete's FTP for relative targets. Free-ride steps use the virtual rider model. Clearing the workout during playback continues in **Virtual rider**.
+
+Use **Start** and **Stop** for all three modes. While Simulator is on, Live Data uses the simulated rider even when devices are connected. Turning it off stops simulation and returns Live Data to your devices. After stopping, **Export simulation data** downloads the latest simulated ride with a simulation label in the file and filename. **Reset simulation** deletes that recording and returns the rider to the route start.
 
 ## Structured workouts
 
@@ -85,7 +87,7 @@ Drag across any part of the elevation profile to select a custom segment. The ap
 
 During a trainer ride, ETA measures the rider's pace through *flat-equivalent distance*: climbing is charged, descending is credited, and the result is projected across the terrain still ahead. It learns only from real pedaling, so artificial simulation speed never contaminates the estimate.
 
-Simulation ETA remains a straightforward remaining-distance calculation at the selected speed.
+Simulation ETA uses the remaining road distance and the current simulated speed.
 
 ## Camera and HUD
 
@@ -136,7 +138,7 @@ The HUD belongs to the map viewport and remains a standard ride screen in both w
 - The minimap and map controls remain available on the ride surface.
 - The data dock can collapse to a compact strip when more map is wanted.
 
-The separate **Recording view** fixes the map to a consistent output size and lets you hide selected components—clock, meters, bottom dock, climb banner, demo chip, controls, or minimap—without changing the normal ride screen.
+The separate **Recording view** fixes the map to a consistent output size and lets you hide selected components—clock, meters, bottom dock, climb banner, simulation chip, controls, or minimap—without changing the normal ride screen.
 
 ### Camera diagnostics
 
@@ -199,7 +201,7 @@ The pure framing and page codec is isolated in [`app/trainer/fec.mjs`](app/train
 ### Architecture
 
 - **Zero build step, vanilla ES modules, no package dependencies.** The deployed `app/` directory is static HTML, CSS, JavaScript, and assets.
-- Code is organized by feature: camera, route processing, ride execution, trainer hardware, map rendering, HUD, persistence, gallery, and demo mode.
+- Code is organized by feature: camera, route processing, ride execution, trainer hardware, map rendering, HUD, persistence, gallery, and simulation.
 - Pure geometry, routing, climb, ETA, units, FIT, and simulation logic is separated from browser and DOM coordination and tested with Node's built-in test runner.
 - A deliberately thin `app.js` performs startup and event wiring; it does not contain feature logic.
 - Shared mutable application state lives in one documented foundation module.

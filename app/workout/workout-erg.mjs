@@ -1,7 +1,7 @@
 // Runs the selected timed workout and hands power targets to the trainer's ERG controller.
 import { els, state } from "../core/state.mjs";
 import { WORKOUT_ERG_POWER_TIMEOUT_MS, WORKOUT_ERG_UPDATE_MS, WORKOUT_START_COUNTDOWN_SECONDS } from "../core/tuning.mjs";
-import { currentHeartRate, updateRideSpeedUi } from "../ride/telemetry-ui.mjs";
+import { realHeartRate, updateRideSpeedUi } from "../ride/telemetry-ui.mjs";
 import { closeRecordedWorkout, recordWorkoutPause } from "../ride/recorder.mjs";
 import { updateRecordingUi } from "../ride/recording-ui.mjs";
 import { ensureMovementLoop, resetRide } from "../ride/movement.mjs";
@@ -19,6 +19,10 @@ import { expandTimedWorkoutSteps, normalizeWorkoutStep, workoutTargetWatts } fro
 const ERG_HINT = "Let the trainer adjust resistance to match each step.";
 
 export function toggleWorkoutErg() {
+  if (state.simulatorEnabled) {
+    els.workoutErgInput.checked = Boolean(state.workoutErg || state.workoutCountdown);
+    return;
+  }
   if (!els.workoutErgInput.checked) {
     stopWorkoutErg();
     return;
@@ -27,8 +31,12 @@ export function toggleWorkoutErg() {
 }
 
 function startWorkoutErg() {
-  if (state.workoutCountdown) return;
-  if (!state.workout || state.route.length < 2) {
+  if (state.workoutCountdown || state.simulatorEnabled) return;
+  if (!state.workout) {
+    rejectWorkoutStart("Select a workout to use ERG.");
+    return;
+  }
+  if (state.route.length < 2) {
     rejectWorkoutStart("Load a route before starting a workout.");
     return;
   }
@@ -61,7 +69,7 @@ function startWorkoutErg() {
 
 export function autoStartWorkout() {
   if (!state.workoutAutoStart || state.workoutAutoStartAttempted || !state.workout ||
-      state.workoutErg || state.workoutCountdown || state.demoModeActive || state.route.length < 2 ||
+      state.workoutErg || state.workoutCountdown || state.route.length < 2 ||
       state.progressMeters >= routeTotalDistance(state.route) || !trainerSupportsTargetPower()) return;
   state.workoutAutoStartAttempted = true;
   startWorkoutErg();
@@ -159,7 +167,7 @@ export function handleWorkoutErgRejection(message) {
 export function recordingWorkoutSession(now) {
   const session = state.workoutErg;
   const sampleAt = state.trainerPowerSampleAt;
-  if (!session || session.paused || !state.pedaling || state.demoModeActive || sampleAt === null ||
+  if (!session || session.paused || !state.pedaling || sampleAt === null ||
       now - sampleAt > WORKOUT_ERG_POWER_TIMEOUT_MS || state.trainerPowerWatts <= 0 ||
       state.trainerCadenceRpm === 0) return null;
   return session;
@@ -175,7 +183,7 @@ export function updateWorkoutErg(now, elapsedSeconds) {
 
   const telemetry = {
     power: state.trainerPowerWatts,
-    heartRate: currentHeartRate(),
+    heartRate: realHeartRate(),
     cadence: state.trainerCadenceRpm,
     ftp: state.ftpWatts,
   };

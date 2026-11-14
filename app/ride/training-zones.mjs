@@ -1,5 +1,5 @@
 // Training zones & meters: heart-rate / power zone calculation from the rider
-// profile (demo mode substitutes its own profile), the fullscreen zone meters
+// profile (the virtual rider supplies its own values), the fullscreen zone meters
 // (power / HR / grade), the settings-panel zone summaries, and the zone help
 // popovers.
 
@@ -7,7 +7,7 @@ import { clamp } from "../core/geo.mjs";
 import { gradeColor, gradeColorZones } from "../route/profile.mjs";
 import { registerHudComponent } from "../hud/screen-manager.mjs";
 import { els, state } from "../core/state.mjs";
-import { currentHeartRate } from "./telemetry-ui.mjs";
+import { currentHeartRate, currentRideCadenceRpm, currentRidePowerWatts } from "./telemetry-ui.mjs";
 import {
   CADENCE_METER_MAX_RPM,
   CADENCE_METER_MIN_RPM,
@@ -17,7 +17,6 @@ import {
   CADENCE_ZONE_YELLOW_MAX_RPM,
   CADENCE_ZONE_YELLOW_MIN_RPM,
   DEFAULT_RESTING_HEART_RATE_BPM,
-  DEMO_RIDE,
   GRADE_METER_MAX_PERCENT,
   GRADE_METER_MIN_PERCENT,
   HEART_RATE_ZONE_DEFINITIONS,
@@ -35,9 +34,9 @@ export function registerTrainingMetersHud() {
 }
 
 export function updateTrainingMeters(grade) {
-  const power = state.trainerPowerWatts;
+  const power = currentRidePowerWatts();
   const heartRate = currentHeartRate();
-  const cadence = state.trainerCadenceRpm;
+  const cadence = currentRideCadenceRpm();
   const ftpWatts = effectiveFtpWatts();
   const maxHeartRateBpm = effectiveMaxHeartRateBpm();
   const gradeValue = Number.isFinite(grade) ? grade : null;
@@ -122,10 +121,10 @@ export function updateTrainingMeters(grade) {
 export function updateWorkoutMeterTargets(heartRateZones, heartRate) {
   const step = currentWorkoutHudStep();
   const context = {
-    ftp: state.ftpWatts,
-    maxHeartRate: state.maxHeartRateBpm,
+    ftp: effectiveFtpWatts(),
+    maxHeartRate: effectiveMaxHeartRateBpm(),
     heartRateZones: step && (heartRateZones ?? currentHeartRateZones()),
-    elapsed: state.workoutErg?.elapsed ?? 0,
+    elapsed: state.simulation?.workout?.elapsed ?? state.workoutErg?.elapsed ?? 0,
   };
   const powerTarget = workoutMeterTarget(step, "W", context);
   const ramp = powerTarget?.ramp;
@@ -134,9 +133,9 @@ export function updateWorkoutMeterTargets(heartRateZones, heartRate) {
     const text = ramp.map(Math.round).join("→");
     if (els.zonePowerRamp.textContent !== text) els.zonePowerRamp.textContent = text;
   }
-  updateMeterTarget(els.zonePowerTarget, els.zonePowerDeviation, state.trainerPowerWatts,
+  updateMeterTarget(els.zonePowerTarget, els.zonePowerDeviation, currentRidePowerWatts(),
     powerTarget, WORKOUT_HUD_TARGET_TOLERANCE.power);
-  updateMeterTarget(els.zoneCadenceTarget, els.zoneCadenceDeviation, state.trainerCadenceRpm,
+  updateMeterTarget(els.zoneCadenceTarget, els.zoneCadenceDeviation, currentRideCadenceRpm(),
     workoutMeterTarget(step, "rpm", context), WORKOUT_HUD_TARGET_TOLERANCE.cadence);
   updateMeterTarget(els.zoneHeartRateTarget, els.zoneHeartRateDeviation, heartRate ?? currentHeartRate(),
     workoutMeterTarget(step, "bpm", context), WORKOUT_HUD_TARGET_TOLERANCE.heart_rate);
@@ -179,15 +178,15 @@ export function currentPowerZones() {
 }
 
 function effectiveFtpWatts() {
-  return state.demoModeActive ? DEMO_RIDE.ftp_watts : state.ftpWatts;
+  return state.simulation?.config.ftp_watts ?? state.ftpWatts;
 }
 
 function effectiveMaxHeartRateBpm() {
-  return state.demoModeActive ? DEMO_RIDE.max_heart_rate_bpm : state.maxHeartRateBpm;
+  return state.simulation?.config.max_heart_rate_bpm ?? state.maxHeartRateBpm;
 }
 
 function effectiveRestingHeartRateBpm() {
-  return state.demoModeActive ? DEMO_RIDE.resting_heart_rate_bpm : state.restingHeartRateBpm;
+  return state.simulation?.config.resting_heart_rate_bpm ?? state.restingHeartRateBpm;
 }
 
 function calculateHeartRateZones(maxHr, restingHr = DEFAULT_RESTING_HEART_RATE_BPM) {

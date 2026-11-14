@@ -16,7 +16,7 @@
           <div id="mapViewport" class="map-viewport">
             <div id="map" aria-label="Route map"></div>
             <div id="minimap" aria-label="Minimap showing rider position on the route"></div>
-            <div id="demoBanner" class="demo-banner" hidden>Demo mode: synthetic trainer + HR, FIT recording paused</div>
+            <div id="simulationBanner" class="simulation-banner" hidden></div>
             <div class="map-actions">
               <button id="screenshotBtn" type="button" class="map-action-btn" title="Save a JPG of the map view" aria-label="Save a JPG of the map view">
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
@@ -329,7 +329,49 @@
           </header>
 
           <section class="panel-card sidebar-section" aria-labelledby="liveDataTitle">
-            <h2 id="liveDataTitle">Live data</h2>
+            <div class="panel-card-head">
+              <h2 id="liveDataTitle">Live Data</h2>
+              <div class="simulator-switch">
+                <label for="simulatorInput" class="setting-row-label">Simulator</label>
+                <label class="switch">
+                  <input id="simulatorInput" type="checkbox" role="switch" aria-controls="simulationControls">
+                  <span class="switch-track"><span class="switch-knob"></span></span>
+                </label>
+              </div>
+            </div>
+            <div id="simulationControls" class="sidebar-subgroup" hidden>
+              <div class="simulation-selectors">
+                <div class="simulation-field">
+                  <label for="simulationModeSelect" class="speed-label">Mode</label>
+                  <select id="simulationModeSelect" aria-describedby="simulationStatus">
+                    <option value="fixed">Fixed speed</option>
+                    <option value="virtual">Virtual rider</option>
+                    <option id="simulationWorkoutOption" value="workout" disabled>Workout mode</option>
+                  </select>
+                </div>
+                <div class="simulation-field">
+                  <label for="simulationAthleteSelect" class="speed-label">Athlete</label>
+                  <select id="simulationAthleteSelect">
+                    <option value="untrained">Untrained</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="advanced">Advanced</option>
+                    <option value="professional">Professional</option>
+                    <option value="tour">Tour de France rider</option>
+                  </select>
+                </div>
+                <button id="startBtn" type="button" class="btn btn-accent btn-sm" disabled>
+                  <svg class="icon-sim-play" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
+                  <svg class="icon-sim-stop" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
+                  <span id="startBtnLabel">Start</span>
+                </button>
+              </div>
+              <div id="simulationSpeedControl" class="simulation-control">
+                <label for="speedInput" class="speed-label">Speed</label>
+                <input id="speedInput" type="range" min="8" max="100" step="1" value="24">
+                <output id="speedOutput" for="speedInput">24 km/h</output>
+              </div>
+              <p id="simulationStatus" class="setting-row-hint" role="status" hidden></p>
+            </div>
             <div class="stat-grid live-stats" aria-live="polite">
               <div class="stat-tile">
                 <span class="stat-label">Ridden</span>
@@ -468,18 +510,8 @@
             <p id="workoutError" class="panel-card-hint workout-error" role="alert" hidden></p>
             <section id="workoutCard" class="workout-card" aria-label="Workout" hidden>
               <p id="workoutFtpWarning" class="panel-card-hint workout-warning" role="status" hidden>
-                FTP is missing. Ride steps with a % FTP target at your own effort. Set FTP in the rider profile to see their power targets.
+                Set FTP in your rider profile to see power targets for steps based on % FTP.
               </p>
-              <div class="setting-row">
-                <div class="setting-row-text">
-                  <span id="workoutErgLabel" class="setting-row-label">Hold target power (ERG)</span>
-                  <span id="workoutErgStatus" class="setting-row-hint" role="status">Let the trainer adjust resistance to match each step.</span>
-                </div>
-                <label class="switch">
-                  <input id="workoutErgInput" type="checkbox" aria-labelledby="workoutErgLabel" aria-describedby="workoutErgStatus">
-                  <span class="switch-track"><span class="switch-knob"></span></span>
-                </label>
-              </div>
               <div id="workoutCardActions" class="workout-card-actions" hidden>
                 <button id="pauseWorkoutBtn" type="button" class="btn btn-ghost btn-sm" hidden>Pause</button>
                 <button id="endWorkoutBtn" type="button" class="btn btn-ghost btn-sm" hidden>End workout</button>
@@ -519,33 +551,45 @@
 
           <section class="panel-card sidebar-section">
             <h2>Devices</h2>
-            <div class="connection-row">
-              <div class="connection-info">
-                <span id="trainerDot" class="status-dot"></span>
-                <div>
-                  <div class="connection-name">Smart trainer</div>
-                  <div id="trainerStat" class="connection-status">Idle</div>
+            <div class="sidebar-subgroup">
+              <div class="connection-row">
+                <div class="connection-info">
+                  <span id="trainerDot" class="status-dot"></span>
+                  <div>
+                    <div class="connection-name">Smart trainer</div>
+                    <div id="trainerStat" class="connection-status">Idle</div>
+                  </div>
+                </div>
+                <div class="connection-actions">
+                  <button id="trainerSettingsBtn" type="button" class="icon-btn" aria-label="Trainer settings" title="Trainer settings" aria-controls="trainerSettings" aria-expanded="false" hidden>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  </button>
+                  <button id="connectBtn" type="button" class="btn btn-outline-blue btn-sm">Connect</button>
                 </div>
               </div>
-              <div class="connection-actions">
-                <button id="trainerSettingsBtn" type="button" class="icon-btn" aria-label="Trainer settings" title="Trainer settings" aria-controls="trainerSettings" aria-expanded="false" hidden>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                </button>
-                <button id="connectBtn" type="button" class="btn btn-outline-blue btn-sm">Connect</button>
-              </div>
-            </div>
-            <div id="trainerSettings" class="sidebar-subgroup" hidden>
-              <div class="setting-slider">
-                <div class="setting-slider-head">
-                  <label for="gradeIntervalInput">Grade update interval</label>
-                  <output id="gradeIntervalOutput" for="gradeIntervalInput">2 s</output>
+              <div id="trainerSettings" class="sidebar-subgroup trainer-settings" hidden>
+                <div id="trainerErg" class="setting-row" hidden>
+                  <div class="setting-row-text">
+                    <span id="workoutErgLabel" class="setting-row-label">Hold target power (ERG)</span>
+                    <span id="workoutErgStatus" class="setting-row-hint" role="status">Let the trainer adjust resistance to match each step.</span>
+                  </div>
+                  <label class="switch">
+                    <input id="workoutErgInput" type="checkbox" aria-labelledby="workoutErgLabel" aria-describedby="workoutErgStatus">
+                    <span class="switch-track"><span class="switch-knob"></span></span>
+                  </label>
                 </div>
-                <input id="gradeIntervalInput" type="range" min="1" max="5" step="1" value="2">
+                <div class="setting-slider">
+                  <div class="setting-slider-head">
+                    <label for="gradeIntervalInput">Grade update interval</label>
+                    <output id="gradeIntervalOutput" for="gradeIntervalInput">2 s</output>
+                  </div>
+                  <input id="gradeIntervalInput" type="range" min="1" max="5" step="1" value="2">
+                </div>
+                <p class="settings-note">
+                  How often the route's grade is sent to the trainer. Longer
+                  intervals smooth resistance changes on noisy GPX files.
+                </p>
               </div>
-              <p class="settings-note">
-                How often the route's grade is sent to the trainer. Longer
-                intervals smooth resistance changes on noisy GPX files.
-              </p>
             </div>
             <div class="connection-row">
               <div class="connection-info">
@@ -609,68 +653,41 @@
             </div>
           </details>
 
-          <section class="panel-card sidebar-section">
-            <h2>Simulation &amp; demo</h2>
-            <div class="sidebar-subgroup">
-              <div class="panel-card-head simulation-head">
-                <div>
-                  <span class="panel-card-title">Simulation</span>
-                  <p class="panel-card-hint">Auto-ride the route with no trainer</p>
-                </div>
-                <button id="startBtn" type="button" class="btn btn-accent" disabled>
-                  <svg class="icon-sim-play" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
-                  <svg class="icon-sim-stop" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
-                  <span id="startBtnLabel">Start</span>
-                </button>
-              </div>
-              <div class="speed-control">
-                <label for="speedInput" class="speed-label">Speed</label>
-                <input id="speedInput" type="range" min="8" max="100" step="1" value="24">
-                <output id="speedOutput" for="speedInput">24 km/h</output>
-              </div>
+          <section class="panel-card sidebar-section recording-view-card">
+            <div class="panel-card-head">
+              <h2>Recording view</h2>
+              <button id="resizeRecordingWindowBtn" type="button" class="btn btn-ghost" title="Frame the map at the recording size" aria-pressed="false">Recording view</button>
             </div>
-            <div class="demo-card">
-              <div class="demo-card-top">
-                <div>
-                  <span class="panel-card-title">Demo mode</span>
-                  <p class="panel-card-hint">Simulated trainer and heart rate for recording the app</p>
-                </div>
-                <div class="demo-card-actions">
-                  <button id="resizeRecordingWindowBtn" type="button" class="btn btn-ghost" title="Frame the map at the recording size" aria-pressed="false">Recording view</button>
-                  <button id="demoModeBtn" type="button" class="btn btn-outline-blue" aria-pressed="false" disabled>Demo mode</button>
-                </div>
-              </div>
-              <div class="theater-hud-toggles" role="group" aria-labelledby="theaterHideLabel">
-                <span id="theaterHideLabel" class="panel-card-title">Hide in recording view</span>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideClockInput" type="checkbox">
-                  <span>Top-left chip</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideMetersInput" type="checkbox">
-                  <span>Meters</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideDockInput" type="checkbox">
-                  <span>Bottom panel</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideClimbBannerInput" type="checkbox">
-                  <span>Climb banner</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideDemoChipInput" type="checkbox">
-                  <span>Demo mode chip</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideControlsInput" type="checkbox">
-                  <span>Controls</span>
-                </label>
-                <label class="theater-hud-toggle">
-                  <input id="theaterHideMinimapInput" type="checkbox">
-                  <span>Minimap</span>
-                </label>
-              </div>
+            <div class="theater-hud-toggles" role="group" aria-labelledby="theaterHideLabel">
+              <span id="theaterHideLabel" class="panel-card-title">Hide in recording view</span>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideClockInput" type="checkbox">
+                <span>Top-left chip</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideMetersInput" type="checkbox">
+                <span>Meters</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideDockInput" type="checkbox">
+                <span>Bottom panel</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideClimbBannerInput" type="checkbox">
+                <span>Climb banner</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideDemoChipInput" type="checkbox">
+                <span>Simulation chip</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideControlsInput" type="checkbox">
+                <span>Controls</span>
+              </label>
+              <label class="theater-hud-toggle">
+                <input id="theaterHideMinimapInput" type="checkbox">
+                <span>Minimap</span>
+              </label>
             </div>
           </section>
 

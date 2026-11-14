@@ -303,7 +303,7 @@ function writeWorkoutLaps(writer, boundaries, summary, endTime, hasPausedLaps) {
   return count;
 }
 
-export function encodeFitActivity({ samples, summary, workout, workoutLaps = [] }) {
+export function encodeFitActivity({ samples, summary, workout, workoutLaps = [], simulated = false }) {
   if (!samples?.length) throw new Error("No ride samples to encode.");
 
   const startFit = toFitTimestamp(summary.startTimeMs / 1000);
@@ -313,7 +313,7 @@ export function encodeFitActivity({ samples, summary, workout, workoutLaps = [] 
   const hasPausedLaps = Boolean(workout?.steps?.length && workoutLaps.some(({ paused }) => paused));
 
   writeDefinition(writer, 0, GLOBAL_MSG.fileId, FILE_ID_FIELDS);
-  writeData(writer, 0, FILE_ID_FIELDS, [FILE_TYPE_ACTIVITY, null, null, startFit, APP_NAME]);
+  writeData(writer, 0, FILE_ID_FIELDS, [FILE_TYPE_ACTIVITY, null, null, startFit, simulated ? "GPX Rider Sim" : APP_NAME]);
   if (workout?.steps?.length) writeWorkout(writer, workout);
   if (hasPausedLaps) writeWorkoutPauseField(writer);
 
@@ -352,11 +352,13 @@ export function encodeFitActivity({ samples, summary, workout, workoutLaps = [] 
     ]);
   }
 
-  writeDefinition(writer, 4, GLOBAL_MSG.session, SESSION_FIELDS);
-  writeData(writer, 4, SESSION_FIELDS, [
+  // FIT session field 110 is sport_profile_name.
+  const sessionFields = simulated ? [...SESSION_FIELDS, [110, BASE_TYPE.string, 32]] : SESSION_FIELDS;
+  writeDefinition(writer, 4, GLOBAL_MSG.session, sessionFields);
+  writeData(writer, 4, sessionFields, [
     endFit, startFit, elapsedMs, timerMs, distanceCm, calories,
     SPORT_CYCLING, SUB_SPORT_VIRTUAL_ACTIVITY, 0, lapCount || 1,
-    EVENT_SESSION, EVENT_TYPE_STOP,
+    EVENT_SESSION, EVENT_TYPE_STOP, "GPX Rider Simulation",
   ]);
 
   writeDefinition(writer, 5, GLOBAL_MSG.activity, ACTIVITY_FIELDS);
