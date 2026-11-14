@@ -29,7 +29,7 @@ import {
 import { registerCameraDebugHud, toggleCameraDebugCollapsed } from "./camera/camera-debug.mjs";
 import { registerDemoBannerHud, toggleDemoMode } from "./demo/demo-mode.mjs";
 import { copyGalleryMetadata, syncGalleryMetadataExportAvailability, updateGalleryMetadataExport } from "./gallery-ui/gallery-export.mjs";
-import { initGallery } from "./gallery-ui/gallery.mjs";
+import { initGallery, openRouteGallery } from "./gallery-ui/gallery.mjs";
 import { connectHeartRate, initHeartRate, reconnectSavedHeartRate } from "./trainer/heartrate.mjs";
 import { getStoredMapsApiKey, initMap, registerMinimapHud, saveMapsApiKey } from "./map/map-init.mjs";
 import {
@@ -41,7 +41,7 @@ import {
   toggleHudDock,
   toggleMapFullscreen,
 } from "./hud/map-hud.mjs";
-import { handleVisibilityChange, resetRide, toggleSimulation } from "./ride/movement.mjs";
+import { handleVisibilityChange, toggleSimulation } from "./ride/movement.mjs";
 import { restoreSavedRide, restoreSettings, saveRide } from "./storage/persistence.mjs";
 import {
   cancelProfileSelection,
@@ -53,12 +53,13 @@ import {
   handleProfilePointerUp,
 } from "./route/profile-ui.mjs";
 import { persistRideLog, restoreRideLog, rideLogSummary } from "./ride/recorder.mjs";
-import { confirmClearRideData, downloadFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
+import { confirmResetRide, downloadFitFile, downloadWorkoutFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
 import { loadGpxFile, loadGpxFromUrl } from "./route/route-load.mjs";
 import {
   openSettings,
   resetRenderingToDefaults,
   selectSettingsTab,
+  toggleTrainerSettings,
   toggleProfileSeries,
   updateDisplaySettingsFromControls,
   updateGradeIntervalFromControl,
@@ -70,6 +71,11 @@ import {
 } from "./settings/settings-ui.mjs";
 import { els, state, updateProgressLabel } from "./core/state.mjs";
 import { initStorage } from "./storage/storage.mjs";
+import { registerWorkoutHud } from "./workout/workout-hud.mjs";
+import {
+  endWorkout, handleWorkoutErgRejection, toggleWorkoutErg, toggleWorkoutPause, useWorkoutHudPlay,
+} from "./workout/workout-erg.mjs";
+import { clearWorkout, importWorkout, openWorkoutGallery, restoreWorkout, updateWorkoutAutoStart } from "./workout/workout-ui.mjs";
 import { registerClimbBannerHud } from "./route/climbs-ui.mjs";
 import { initScreenManager } from "./hud/screen-manager.mjs";
 import {
@@ -106,6 +112,7 @@ async function startApp() {
 
   initTrainer({
     onTelemetry: handleTrainerTelemetry,
+    onPowerRejected: handleWorkoutErgRejection,
     onStatus: handleTrainerStatus,
     onMessage: updateProgressLabel,
   });
@@ -130,12 +137,14 @@ async function startApp() {
   initScreenManager(els.mapViewport);
   initTheaterModeUi();
   registerClimbBannerHud();
+  registerWorkoutHud();
   registerDemoBannerHud();
   registerTrainingMetersHud();
   registerCameraDebugHud();
   registerMinimapHud();
 
   restoreSettings();
+  restoreWorkout();
   restoreRideLog();
   state.powerCaloriesKcal = rideLogSummary().caloriesKcal ?? 0;
   updateRecordingUi();
@@ -187,6 +196,16 @@ function bindEvents() {
     }
   });
   els.gpxFile.addEventListener("change", loadGpxFile);
+  els.routePicker.addEventListener("click", openRouteGallery);
+  els.workoutPicker.addEventListener("click", openWorkoutGallery);
+  els.workoutErgInput.addEventListener("change", toggleWorkoutErg);
+  els.workoutAutoStartInput.addEventListener("change", updateWorkoutAutoStart);
+  els.pauseWorkoutBtn.addEventListener("click", toggleWorkoutPause);
+  els.endWorkoutBtn.addEventListener("click", endWorkout);
+  els.workoutHudPlayBtn.addEventListener("click", useWorkoutHudPlay);
+  els.workoutHudEndBtn.addEventListener("click", endWorkout);
+  els.workoutFile.addEventListener("change", importWorkout);
+  els.clearWorkoutBtn.addEventListener("click", clearWorkout);
   els.speedInput.addEventListener("input", () => {
     updateSpeedOutput();
     saveRide();
@@ -241,13 +260,14 @@ function bindEvents() {
   els.routeGradeColorsInput.addEventListener("change", updateRenderingSettingsFromControls);
   els.resetRenderingBtn.addEventListener("click", resetRenderingToDefaults);
   els.connectBtn.addEventListener("click", connectTrainer);
+  els.trainerSettingsBtn.addEventListener("click", toggleTrainerSettings);
   els.connectHrBtn.addEventListener("click", connectHeartRate);
   els.demoModeBtn.addEventListener("click", toggleDemoMode);
   els.resizeRecordingWindowBtn.addEventListener("click", toggleTheaterMode);
   els.startBtn.addEventListener("click", toggleSimulation);
-  els.resetBtn.addEventListener("click", resetRide);
+  els.resetBtn.addEventListener("click", confirmResetRide);
   els.downloadFitBtn.addEventListener("click", downloadFitFile);
-  els.clearRideDataBtn.addEventListener("click", confirmClearRideData);
+  els.downloadWorkoutFitBtn.addEventListener("click", downloadWorkoutFitFile);
   els.profile.addEventListener("mousemove", handleProfileHover);
   els.profile.addEventListener("mouseleave", handleProfileLeave);
   els.profile.addEventListener("pointerdown", handleProfilePointerDown);
@@ -296,7 +316,7 @@ function bindEvents() {
     // (natively) and must not also kick the rider out of fullscreen.
     if (
       event.key === "Escape" && state.mapFullscreen &&
-      !els.settingsDialog.open && !els.galleryDialog.open
+      !els.settingsDialog.open && !els.galleryDialog.open && !els.workoutGalleryDialog.open
     ) exitMapFullscreen();
   });
   document.addEventListener("click", closeOverviewModeMenuOnOutsideClick);

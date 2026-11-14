@@ -1,0 +1,97 @@
+import { normalizeWorkoutStep, workoutMeterTarget, workoutTargetWatts } from "../app/workout/workout-step.mjs";
+import { WORKOUT_PROFILE_STEP_LIMIT } from "../app/core/tuning.mjs";
+import { previewWorkoutStep } from "../app/workout/workout-preview.mjs";
+import assert from "node:assert/strict";
+import test from "node:test";
+import { buildWorkoutProfile as buildProfile, workoutZoneBands } from "../app/workout/workout-profile.mjs";
+
+function buildWorkoutProfile(steps, ftp) {
+  return buildProfile(steps.map(normalizeWorkoutStep), ftp);
+}
+
+test("uses time for workout widths and preserves descending ramps without FTP", () => {
+  const steps = [
+    { durationSeconds: 480, power: [0.65, 0.45] },
+    { durationSeconds: 120, power: null },
+    { 1: 0, 2: 60000, 3: 4, 5: 1170, 6: 1190 },
+  ];
+  const profile = buildWorkoutProfile(steps, null);
+  assert.equal(profile.extent, 660);
+  assert.deepEqual(profile.units, ["% FTP", "W"]);
+  assert.deepEqual(profile.intervals[0], {
+    start: 0, end: 480, power: { start: 65, end: 45, unit: "% FTP", relative: true, low: undefined, zone: undefined },
+  });
+  assert.equal(profile.intervals[1].power, null);
+  assert.equal(profile.intervals[2].power.low, 170);
+  assert.deepEqual(buildWorkoutProfile(steps, 200).units, ["W"]);
+});
+
+test("expands counted FIT repeats and uses step order for open-ended workouts", () => {
+  const timed = { 1: 0, 2: 60000, 3: 4, 5: 80, 6: 80 };
+  const repeat = { 1: 6, 2: 0, 4: 3 };
+  const expanded = buildWorkoutProfile([timed, repeat], 200);
+  assert.equal(expanded.extent, 180);
+  assert.equal(expanded.intervals.length, 3);
+  const open = buildWorkoutProfile([timed, { 1: 5, 3: 2 }], 200);
+  assert.equal(open.timed, false);
+  assert.equal(open.extent, 2);
+});
+
+test("a numbered FIT power zone requires FTP in both the list and chart", () => {
+  const step = normalizeWorkoutStep({ 1: 0, 2: 60000, 3: 4, 4: 3 });
+  assert.equal(previewWorkoutStep(step, null).detail, "1 min · Free ride");
+  assert.equal(previewWorkoutStep(step, null).needsFtp, true);
+  assert.equal(previewWorkoutStep(step, 200).detail, "1 min · Power Zone 3");
+  assert.equal(buildProfile([step], null).intervals[0].power.relative, true);
+});
+
+test("limits chart size for timed and open-ended source workouts", () => {
+  const step = normalizeWorkoutStep({ 1: 0, 2: 60000, 3: 2 });
+  const steps = Array(WORKOUT_PROFILE_STEP_LIMIT + 1).fill(step);
+  assert.equal(buildProfile(steps, 200), null);
+  steps[0] = normalizeWorkoutStep({ 1: 5, 3: 2 });
+  assert.equal(buildProfile(steps, 200), null);
+});
+
+test("keeps step order when repeat expansion exceeds the chart limit", () => {
+  const step = normalizeWorkoutStep({ 1: 0, 2: 60000, 3: 2 });
+  const repeat = normalizeWorkoutStep({ 1: 6, 2: 0, 4: WORKOUT_PROFILE_STEP_LIMIT + 1 });
+  const chart = buildProfile([step, repeat], 200);
+  assert.equal(chart.timed, false);
+  assert.equal(chart.intervals.length, 2);
+});
+
+test("ERG interpolates ramps and uses the midpoint of a FIT target range", () => {
+  const ramp = normalizeWorkoutStep({ durationSeconds: 120, power: [0.9, 0.5] });
+  const range = normalizeWorkoutStep({ 1: 0, 2: 60000, 3: 4, 5: 1180, 6: 1220 });
+  const free = normalizeWorkoutStep({ durationSeconds: 60, power: null });
+  assert.equal(workoutTargetWatts(ramp, 200, 60), 140);
+  assert.equal(workoutTargetWatts(ramp, null, 60), null);
+  assert.equal(workoutTargetWatts(range, null, 0), 200);
+  assert.equal(workoutTargetWatts(free, 200, 0), null);
+});
+
+
+test("workout HUD resolves heart-rate percentages and preserves target ranges", () => {
+  const step = normalizeWorkoutStep({ 1: 0, 2: 60000, 3: 1, 5: 70, 6: 80, 19: 3, 21: 85, 22: 95 });
+  const context = { maxHeartRate: 180 };
+  assert.deepEqual(workoutMeterTarget(step, "bpm", context), { min: 126, max: 144 });
+  assert.deepEqual(workoutMeterTarget(step, "rpm", context), { min: 85, max: 95 });
+  assert.equal(workoutMeterTarget(step, "W", context), null);
+});
+
+test("a ramp meter keeps the ordered endpoints alongside its live target", () => {
+  const step = normalizeWorkoutStep({ durationSeconds: 60, power: [0.8, 0.6] });
+  assert.deepEqual(workoutMeterTarget(step, "W", { ftp: 250, elapsed: 30 }),
+    { min: 175, max: 175, ramp: [200, 150] });
+  assert.equal(workoutMeterTarget(step, "W", { ftp: null, elapsed: 30 }), null);
+});
+
+
+test("ramps cross power zones at the same point on either chart, in either direction", () => {
+  const rise = workoutZoneBands({ start: 50, end: 100, unit: "% FTP" }, null);
+  const fall = workoutZoneBands({ start: 250, end: 125, unit: "W" }, 250);
+  assert.deepEqual(rise.map(({ end }) => Math.round(end * 100)), [10, 50, 80, 100]);
+  assert.deepEqual(fall.map(({ end }) => Math.round(end * 100)), [20, 50, 90, 100]);
+  assert.deepEqual(fall.map(({ color }) => color), rise.map(({ color }) => color).reverse());
+});

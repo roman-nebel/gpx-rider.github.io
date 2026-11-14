@@ -134,3 +134,80 @@ test("activity local_timestamp is shifted by the local UTC offset", () => {
   const expectedOffsetSeconds = (-new Date(endMs).getTimezoneOffset() * 60) || 0;
   assert.equal(localTimestamp - timestamp, expectedOffsetSeconds);
 });
+
+function fitMessages(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const definitions = new Map();
+  const messages = [];
+  let offset = bytes[0];
+  while (offset < bytes.length - 2) {
+    const header = bytes[offset++];
+    if (header & 0x40) {
+      const number = view.getUint16(offset + 2, true);
+      const fieldCount = bytes[offset + 4];
+      offset += 5;
+      const fields = Array.from({ length: fieldCount }, () => {
+        const field = bytes.slice(offset, offset + 3);
+        offset += 3;
+        return field;
+      });
+      definitions.set(header & 0xf, { number, fields });
+      continue;
+    }
+    const { number, fields } = definitions.get(header);
+    const values = Object.fromEntries(fields.map(([field, size, type]) => {
+      const start = offset;
+      offset += size;
+      if (type === 0x07) return [field, new TextDecoder().decode(bytes.subarray(start, offset)).split("\0")[0]];
+      const value = size === 4 ? view.getUint32(start, true)
+        : size === 2 ? view.getUint16(start, true) : bytes[start];
+      return [field, value];
+    }));
+    messages.push({ number, values });
+  }
+  assert.equal(offset, bytes.length - 2);
+  return (number) => messages.filter((message) => message.number === number).map(({ values }) => values);
+}
+
+test("embeds an imported FIT workout and links repeated laps to the original step", () => {
+  const ride = sampleRide();
+  const repeat = { 1: 6, 2: 0, 4: 2 };
+  const target = { 0: "Effort", 1: 0, 2: 1000, 3: 4, 4: 0, 5: 1200, 6: 1220, 19: 1, 21: 150, 22: 160 };
+  ride.workout = { name: "Intervals", steps: [target, repeat] };
+  ride.workoutLaps = [
+    { stepIndex: 0, startMs: START_MS + 500, timerSeconds: 0.5, distanceMeters: 5, caloriesKcal: 10 },
+    { stepIndex: 0, startMs: START_MS + 1500, timerSeconds: 1.5, distanceMeters: 17, caloriesKcal: 30 },
+  ];
+  const messages = fitMessages(encodeFitActivity(ride));
+  assert.equal(messages(0)[0][0], 4);
+  assert.deepEqual(messages(26), [{ 4: 2, 6: 2, 8: "Intervals" }]);
+  const [effort, loop] = messages(27);
+  for (const [field, value] of Object.entries(target)) assert.equal(effort[field], value);
+  assert.equal(effort[254], 0);
+  assert.equal(loop[254], 1);
+  for (const [field, value] of Object.entries(repeat)) assert.equal(loop[field], value);
+  const laps = messages(19);
+  assert.deepEqual(laps.map((lap) => lap[71]), [65535, 0, 0]);
+  assert.deepEqual(laps.map((lap) => lap[254]), [0, 1, 2]);
+  assert.deepEqual(laps.map((lap) => lap[8]), [500, 1000, 500]);
+  assert.deepEqual(laps.map((lap) => lap[9]), [500, 1200, 800]);
+  assert.equal(messages(18)[0][26], 3);
+  assert.equal(messages(18)[0][6], 58);
+});
+
+test("embeds a selected MyWhoosh workout even without executed steps", () => {
+  const ride = sampleRide();
+  ride.workout = { name: "Build", steps: [
+    { name: "Ramp down", durationSeconds: 60, power: [0.9, 0.55], cadenceRpm: 90 },
+    { name: "Free ride", durationSeconds: 120, power: null },
+  ] };
+  const messages = fitMessages(encodeFitActivity(ride));
+  const [ramp, free] = messages(27);
+  assert.deepEqual([ramp[5], ramp[6], ramp[19], ramp[21], ramp[22]], [55, 90, 3, 90, 90]);
+  assert.equal(ramp[8], "Power ramp: 90% FTP to 55% FTP");
+  assert.equal(free[3], 2);
+  assert.equal(messages(19).length, 1);
+  assert.equal(messages(19)[0][71], undefined);
+  assert.equal(messages(20).length, ride.samples.length);
+  assert.equal(fitMessages(encodeFitActivity(sampleRide()))(26).length, 0);
+});

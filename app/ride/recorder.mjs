@@ -7,6 +7,7 @@
 import { roundCoordinate } from "../core/geo.mjs";
 import { readJson, removeStored, writeJson } from "../storage/storage.mjs";
 import { RIDE_PERSIST_INTERVAL_MS, RIDE_SAMPLE_INTERVAL_MS } from "../core/tuning.mjs";
+import { workoutFitRange } from "./workout-fit-slice.mjs";
 
 const RIDE_LOG_STORAGE_KEY = "gpx-rider:ride-log";
 
@@ -20,6 +21,14 @@ function emptyLog() {
     timerSeconds: 0,
     distanceMeters: 0,
     samples: [],
+    workout: null,
+    workoutLaps: [],
+    selectedWorkout: null,
+    matchesWorkout: false,
+    workoutSession: null,
+    workoutStep: null,
+    lastTickAtMs: null,
+    lastTickCalories: null,
     lastSampleAtMs: 0,
     lastPersistAtMs: 0,
     persistBroken: false,
@@ -34,6 +43,15 @@ export function restoreRideLog() {
   log.timerSeconds = Number(saved.timerSeconds) || 0;
   log.distanceMeters = Number(saved.distanceMeters) || 0;
   log.samples = saved.samples.filter(Array.isArray);
+  log.workout = saved.workout ?? null;
+  log.workoutLaps = saved.workoutLaps ?? [];
+  const lastSample = log.samples.at(-1);
+  log.lastTickAtMs = saved.lastTickAtMs ?? (lastSample ? lastSample[0] * 1000 : null);
+  log.lastTickCalories = Object.hasOwn(saved, "lastTickCalories") ? saved.lastTickCalories : lastSample?.[8] ?? null;
+  const lastRunBoundary = log.workoutLaps.findLast(({ startsRun, endsRun }) => startsRun || endsRun);
+  if (lastRunBoundary?.startsRun && lastRunBoundary.workoutStartMs != null && log.lastTickAtMs !== null) {
+    appendWorkoutBoundary(null, log.lastTickAtMs, { endsRun: true });
+  }
 }
 
 export function recordRideTick({
@@ -46,13 +64,19 @@ export function recordRideTick({
   caloriesKcal,
   routeProgressMeters,
   cadenceRpm,
+  workout,
+  workoutSession,
+  workoutPaused = workoutSession?.paused === true,
 }) {
   const now = Date.now();
   if (log.startedAtMs === null) log.startedAtMs = now;
+  const lapChanged = recordWorkoutBoundary(workout, workoutSession, workoutPaused, now - elapsedSeconds * 1000);
   log.timerSeconds += Math.max(0, elapsedSeconds);
   log.distanceMeters += Math.max(0, metersAdvanced);
+  log.lastTickAtMs = now;
+  log.lastTickCalories = Number.isFinite(caloriesKcal) ? caloriesKcal : null;
 
-  if (now - log.lastSampleAtMs < RIDE_SAMPLE_INTERVAL_MS) return;
+  if (!lapChanged && now - log.lastSampleAtMs < RIDE_SAMPLE_INTERVAL_MS) return;
   log.lastSampleAtMs = now;
 
   log.samples.push([
@@ -69,7 +93,58 @@ export function recordRideTick({
     Number.isFinite(cadenceRpm) ? Math.round(cadenceRpm) : null,
   ]);
 
-  if (now - log.lastPersistAtMs >= RIDE_PERSIST_INTERVAL_MS) persistRideLog();
+  if (lapChanged || now - log.lastPersistAtMs >= RIDE_PERSIST_INTERVAL_MS) persistRideLog();
+}
+
+function recordWorkoutBoundary(workout, session, workoutPaused, startMs) {
+  if (workout !== log.selectedWorkout) {
+    log.selectedWorkout = workout;
+    // FIT Activity has room for one plan. Keep the one that owns recorded laps.
+    if (workout && !log.workoutLaps.length) log.workout = workout;
+    log.matchesWorkout = Boolean(workout) && (log.workout === workout ||
+      JSON.stringify(log.workout) === JSON.stringify(workout));
+  }
+  const activeSession = log.matchesWorkout ? session ?? null : null;
+  const paused = Boolean(activeSession && workoutPaused);
+  const step = paused ? null : activeSession?.index ?? null;
+  const startsRun = Boolean(activeSession && activeSession !== log.workoutSession);
+  const previous = log.workoutLaps.at(-1);
+  if (!startsRun && step === log.workoutStep &&
+      (step !== null || previous?.stepIndex == null)) return false;
+
+  if (startsRun) log.workoutSession = activeSession;
+  log.workoutStep = step;
+  appendWorkoutBoundary(activeSession?.steps[step]?.sourceIndex ?? null,
+    activeSession ? Math.max(startMs, activeSession.startedAtMs ?? startMs) : log.lastTickAtMs ?? startMs,
+    { startsRun, paused, workoutStartMs: startsRun ? activeSession.startedAtMs : undefined });
+  return true;
+}
+
+function appendWorkoutBoundary(stepIndex, startMs, details = {}) {
+  log.workoutLaps.push({
+    stepIndex,
+    ...details,
+    sampleIndex: log.samples.length,
+    startMs: Math.max(log.startedAtMs, startMs),
+    timerSeconds: log.timerSeconds,
+    distanceMeters: log.distanceMeters,
+    caloriesKcal: log.timerSeconds === 0 ? 0 : log.lastTickCalories,
+  });
+}
+
+export function closeRecordedWorkout(session) {
+  if (!session || log.workoutSession !== session) return;
+  log.workoutSession = null;
+  log.workoutStep = null;
+  appendWorkoutBoundary(null, Date.now(), { endsRun: true });
+  persistRideLog();
+}
+
+export function recordWorkoutPause(session) {
+  if (log.workoutSession !== session) return;
+  log.workoutStep = session.paused ? null : session.index;
+  appendWorkoutBoundary(session.steps[log.workoutStep]?.sourceIndex ?? null, Date.now(), { paused: session.paused });
+  persistRideLog();
 }
 
 export function persistRideLog() {
@@ -81,9 +156,13 @@ export function persistRideLog() {
 
   const persisted = writeJson(RIDE_LOG_STORAGE_KEY, {
     startedAtMs: log.startedAtMs,
-    timerSeconds: Math.round(log.timerSeconds),
-    distanceMeters: Math.round(log.distanceMeters),
+    timerSeconds: log.timerSeconds,
+    distanceMeters: log.distanceMeters,
     samples: log.samples,
+    workout: log.workout,
+    workoutLaps: log.workoutLaps,
+    lastTickAtMs: log.lastTickAtMs,
+    lastTickCalories: log.lastTickCalories,
   });
   if (persisted) {
     log.persistBroken = false;
@@ -97,15 +176,15 @@ export function persistRideLog() {
 }
 
 export function rideLogSummary() {
-  const lastSample = log.samples.at(-1);
   const caloriesKcal = findLastCalories();
   return {
     sampleCount: log.samples.length,
     distanceMeters: log.distanceMeters,
     timerSeconds: log.timerSeconds,
     startedAtMs: log.startedAtMs,
-    elapsedSeconds: lastSample && log.startedAtMs
-      ? Math.max(log.timerSeconds, lastSample[0] - log.startedAtMs / 1000)
+    endTimeMs: log.lastTickAtMs,
+    elapsedSeconds: log.lastTickAtMs !== null && log.startedAtMs
+      ? Math.max(log.timerSeconds, (log.lastTickAtMs - log.startedAtMs) / 1000)
       : log.timerSeconds,
     heartRateSampleCount: log.samples.reduce((count, sample) => count + (sample[7] !== null ? 1 : 0), 0),
     caloriesKcal,
@@ -138,6 +217,31 @@ export function rideLogSamples() {
 
 export function hasRideData() {
   return log.samples.length > 0;
+}
+
+export function rideLogWorkout() {
+  return {
+    workout: log.workout,
+    workoutLaps: log.workoutLaps,
+  };
+}
+
+export function rideLogWorkoutFitRange() {
+  if (!log.workout) return null;
+  return workoutFitRange(log.workoutLaps, log.samples.length, ({ startMs, distanceMeters }) => {
+    // Older logs did not store sample offsets. Disambiguate rounded timestamps
+    // using the cumulative distance just before the boundary.
+    const timestamp = Math.round(startMs / 1000);
+    let low = 0;
+    let high = log.samples.length;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      const sample = log.samples[middle];
+      if (sample[0] < timestamp || sample[4] <= distanceMeters) low = middle + 1;
+      else high = middle;
+    }
+    return low;
+  });
 }
 
 export function clearRideLog() {

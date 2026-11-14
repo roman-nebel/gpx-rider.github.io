@@ -80,6 +80,12 @@ export function parseAntFrame(bytes) {
   };
 }
 
+// FE-C page 49 carries the target in quarter-watt units in bytes 6–7.
+export function encodeTargetPowerPage(watts) {
+  const raw = Math.round(clamp(watts, 0, 1000) * 4);
+  return Uint8Array.of(0x31, 0xff, 0xff, 0xff, 0xff, 0xff, raw & 0xff, raw >> 8);
+}
+
 // Encode FE-C page 51 (Track Resistance): the terrain grade the trainer should
 // simulate, plus a rolling-resistance coefficient. Grade is clamped to the
 // FE-C range so one bad elevation point can't send an out-of-range command.

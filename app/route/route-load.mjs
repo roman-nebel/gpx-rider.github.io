@@ -1,7 +1,8 @@
 // Route loading: GPX file/URL intake, applying parsed GPX to the app state,
-// and the once-per-load route overview (name chip, difficulty classification,
+// and the once-per-load route overview (selected name, difficulty classification,
 // climbs list).
 
+import { stopWorkoutErg } from "../workout/workout-erg.mjs";
 import { detectClimbs } from "./climbs.mjs";
 import { focusClimb, syncFocusedClimbList } from "./climbs-ui.mjs";
 import { clearDemoHistory, stopDemoMode, syncDemoModeUi } from "../demo/demo-mode.mjs";
@@ -24,13 +25,29 @@ import { renderRoute } from "../map/route-render.mjs";
 import { prefetchTerrainAround } from "../map/terrain-tiles.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
 import { formatAltitude, formatDistance } from "../core/units.mjs";
+import { setPickerSelection } from "../top-bar/selection-picker.mjs";
 
 export async function loadGpxFile(event) {
-  const [file] = event.target.files;
+  const input = event.currentTarget;
+  const [file] = input.files;
   if (!file) return;
+  input.value = "";
+  input.disabled = true;
+  els.routeImportError.hidden = true;
 
-  const text = await file.text();
-  applyGpxText(text, { fallbackName: filenameToRouteName(file.name) });
+  try {
+    const text = await file.text();
+    if (!applyGpxText(text, { fallbackName: filenameToRouteName(file.name) })) {
+      throw new Error("That GPX file does not contain enough track points.");
+    }
+    els.galleryDialog.close();
+  } catch (error) {
+    els.routeImportError.textContent = `Import failed. ${error.message}`;
+    els.routeImportError.hidden = false;
+    if (els.galleryDialog.open) els.routeImportError.scrollIntoView({ block: "nearest" });
+  } finally {
+    input.disabled = false;
+  }
 }
 
 // Gallery rides pass their curated title as `overrideName`, which wins over
@@ -46,14 +63,15 @@ function filenameToRouteName(filename) {
   return filename.replace(/\.[^./\\]+$/, "").trim() || null;
 }
 
-export function applyGpxText(text, { overrideName = null, fallbackName = null, galleryMetadata = null } = {}) {
+function applyGpxText(text, { overrideName = null, fallbackName = null, galleryMetadata = null } = {}) {
   const { points: route, name: gpxName } = parseGpx(text);
 
   if (route.length < 2) {
     updateProgressLabel("That GPX file does not contain enough track points.");
-    return;
+    return false;
   }
 
+  if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
   stopDemoMode({ silent: true });
   clearDemoHistory();
   state.route = enrichRoute(route);
@@ -93,23 +111,23 @@ export function applyGpxText(text, { overrideName = null, fallbackName = null, g
   saveRide();
 
   els.startBtn.disabled = false;
-  els.resetBtn.disabled = false;
   syncDemoModeUi();
+  return true;
 }
 
-// Route name (top-bar GPX chip), classification (difficulty stat tile) and
+// Route name (top-bar picker), classification (difficulty stat tile) and
 // detected climbs, shown once a GPX loads. All are cheap single passes over
 // the whole route and only depend on its fixed distance/elevation totals,
 // so this runs once per load rather than on every ride-progress tick like
 // updateRideUi.
 export function updateRouteOverview() {
-  els.gpxChip.hidden = !state.routeName;
-  els.gpxChipName.textContent = state.routeName ?? "";
+  setPickerSelection(els.routePicker, state.route.length ? state.routeName || "Untitled route" : null);
 
   if (!state.route.length) {
     state.climbs = [];
     els.climbsSection.hidden = true;
     els.difficultyStat.textContent = "--";
+    els.difficultyInfo.hidden = true;
     els.difficultyDetail.textContent = "";
     return;
   }
@@ -117,6 +135,7 @@ export function updateRouteOverview() {
   const totalDistance = roadDistanceAt(state.route, routeTotalDistance(state.route));
   const totalAscent = routeTotalAscent(state.route);
   const classification = classifyRoute(totalDistance, totalAscent);
+  els.difficultyInfo.hidden = !classification;
   if (classification) {
     els.difficultyStat.textContent = classification.difficulty;
     els.difficultyDetail.textContent =
@@ -134,18 +153,22 @@ export function updateRouteOverview() {
       const index_ = document.createElement("span");
       index_.className = "climb-index";
       index_.textContent = `${index + 1}.`;
-      const label = document.createElement("span");
-      label.textContent =
+      const range = document.createElement("span");
+      range.className = "climb-range";
+      range.textContent =
         `${formatDistance(climb.startDistanceMeters, state.distanceUnits, 1)} → ` +
-        `${formatDistance(climb.endDistanceMeters, state.distanceUnits, 1)} · ` +
-        `${formatDistance(climb.lengthMeters, state.distanceUnits, 1)} · ` +
-        `${formatAltitude(climb.gainMeters, state.distanceUnits)}`;
-      const line = document.createElement("span");
-      line.append(index_, document.createTextNode(" "), label);
+        `${formatDistance(climb.endDistanceMeters, state.distanceUnits, 1)} ` +
+        `(${formatDistance(climb.lengthMeters, state.distanceUnits, 1)})`;
+      const gain = document.createElement("span");
+      gain.className = "climb-gain";
+      gain.textContent = formatAltitude(climb.gainMeters, state.distanceUnits);
       const grade = document.createElement("span");
       grade.className = "climb-grade";
-      grade.textContent = `${climb.averageGradePercent.toFixed(1)}%`;
-      item.append(line, grade);
+      grade.textContent = `(${climb.averageGradePercent.toFixed(1)}%)`;
+      const summary = document.createElement("span");
+      summary.className = "climb-summary";
+      summary.append(index_, document.createTextNode(" "), gain, document.createTextNode(" "), grade);
+      item.append(summary, range);
       // Click (or keyboard-activate) a climb to jump to its foot. From the
       // overview surface this also drills into the configured climb camera and
       // highlights that segment; during a ride it keeps the normal route style.

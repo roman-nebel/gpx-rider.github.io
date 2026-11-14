@@ -169,6 +169,7 @@ export function restoreSettings() {
   }
 
   const ftpWatts = Number(settings?.ftpWatts);
+  if (typeof settings?.workoutAutoStart === "boolean") state.workoutAutoStart = settings.workoutAutoStart;
   if (Number.isFinite(ftpWatts) && ftpWatts > 0 && ftpWatts <= 1000) {
     state.ftpWatts = Math.round(ftpWatts);
   }
@@ -354,6 +355,7 @@ export function saveSettings() {
     restingHeartRateBpm: state.restingHeartRateBpm,
     maxHeartRateBpm: state.maxHeartRateBpm,
     ftpWatts: state.ftpWatts,
+    workoutAutoStart: state.workoutAutoStart,
     showMinimap: state.showMinimap,
     mapLabelsEnabled: state.mapLabelsEnabled,
     cameraDebugEnabled: state.cameraDebugEnabled,
@@ -421,7 +423,6 @@ export function restoreSavedRide() {
   updateRouteOverview();
   updateRideUi({ force: true });
   els.startBtn.disabled = false;
-  els.resetBtn.disabled = false;
   syncDemoModeUi();
 }
 

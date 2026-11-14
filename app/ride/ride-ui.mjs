@@ -5,13 +5,13 @@
 
 import { updateCameraSettingsLabels } from "../camera/camera-ui.mjs";
 import { isFirstPersonCameraView } from "../camera/camera-ui.mjs";
-import { updateClimbStatus, updateFullscreenClimbBanner } from "../route/climbs-ui.mjs";
+import { highlightCurrentClimb, updateFullscreenClimbBanner } from "../route/climbs-ui.mjs";
 import { estimateRemainingSeconds } from "./eta.mjs";
 import { updateMapCamera } from "../camera/follow-camera.mjs";
 import { updateGalleryMetadataExport } from "../gallery-ui/gallery-export.mjs";
 import { clamp } from "../core/geo.mjs";
 import { updateFullscreenClock } from "../hud/map-hud.mjs";
-import { isMoving } from "./movement.mjs";
+import { currentRideSpeedKph, isMoving } from "./movement.mjs";
 import { renderProfile } from "../route/profile-ui.mjs";
 import { updateRecordingUi } from "./recording-ui.mjs";
 import {
@@ -31,7 +31,8 @@ import {
   updateRiderDot,
 } from "../map/route-render.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
-import { currentCaloriesKcal, currentRideTimerSeconds } from "./telemetry-ui.mjs";
+import { currentCaloriesKcal, currentRideTimerSeconds, updateRideSpeedUi } from "./telemetry-ui.mjs";
+import { updateWorkoutHud } from "../workout/workout-hud.mjs";
 import { queueTrainerGradeSample } from "../trainer/trainer.mjs";
 import { updateTrainingMeters } from "./training-zones.mjs";
 import { SLOW_UI_INTERVAL_MS } from "../core/tuning.mjs";
@@ -61,6 +62,8 @@ export function updateRideUi(options = {}) {
   const now = performance.now();
   if (!options.force && isMoving() && now - state.lastSlowUiAt < SLOW_UI_INTERVAL_MS) return;
   state.lastSlowUiAt = now;
+  updateWorkoutHud();
+  updateRideSpeedUi();
 
   const horizontalDistance = routeTotalDistance(state.route);
   const totalDistance = roadDistanceAt(state.route, horizontalDistance);
@@ -95,7 +98,7 @@ export function updateRideUi(options = {}) {
     `${formatDistance(riddenDistance, state.distanceUnits)} of ${formatDistance(totalDistance, state.distanceUnits)}`,
   );
   updateAscentProgress(ascentSoFar, totalAscent);
-  updateClimbStatus(point);
+  highlightCurrentClimb();
   renderProfile(horizontalDistance ? state.progressMeters / horizontalDistance : 0);
   updateMinimapPosition(point);
   updateCameraSettingsLabels();
@@ -114,14 +117,15 @@ export function updateRideUi(options = {}) {
   // Fullscreen dock extras: the road-ahead readouts and the two progress bars
   // that sit beside the profile, plus the clock chip and climb banner.
   els.fsRoadRouteName.textContent = state.routeName || "Route";
+  els.fsRoadRouteName.title = state.routeName || "";
   els.fsRoadRouteProps.textContent =
     `${formatDistance(totalDistance, state.distanceUnits, 1)} · ` +
     `${formatAltitude(totalAscent, state.distanceUnits)} ascent`;
   els.fsDistLabel.textContent =
-    `${riddenText} / ${formatDistance(totalDistance, state.distanceUnits, 1)}`;
+    `${riddenText.split(" ")[0]}/${formatDistance(totalDistance, state.distanceUnits, 1)}`;
   els.fsDistFill.style.width = `${clamp(progress, 0, 1) * 100}%`;
   els.fsClimbLabel.textContent =
-    `${ascentText} / ${formatAltitude(totalAscent, state.distanceUnits)}`;
+    `${ascentText.split(" ")[0]}/${formatAltitude(totalAscent, state.distanceUnits)}`;
   els.fsClimbFill.style.width = `${(totalAscent ? clamp(ascentSoFar / totalAscent, 0, 1) : 0) * 100}%`;
   updateFullscreenClock(riddenText, ascentText);
   updateFullscreenClimbBanner(point);
@@ -160,14 +164,15 @@ function currentEtaSeconds(remainingMeters, totalAscent, totalDescent) {
     return remainingMeters / (Number(els.speedInput.value) / 3.6);
   }
 
+  const speed = currentRideSpeedKph();
   return estimateRemainingSeconds(state.rideEstimator, {
     remainingMeters,
     remainingAscentMeters: Math.max(0, totalAscent - ascentAt(state.route, state.progressMeters)),
     remainingDescentMeters: Math.max(0, totalDescent - descentAt(state.route, state.progressMeters)),
-    // Before enough pedaling history exists: project the trainer speed while
+    // Before enough pedaling history exists: project the current road speed while
     // pedaling, otherwise preview at the simulation slider speed.
-    fallbackSpeedKph: state.pedaling && Number.isFinite(state.trainerSpeedKph)
-      ? state.trainerSpeedKph
+    fallbackSpeedKph: state.pedaling && Number.isFinite(speed)
+      ? speed
       : Number(els.speedInput.value),
   });
 }

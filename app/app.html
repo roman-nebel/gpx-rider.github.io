@@ -11,32 +11,6 @@
   </head>
   <body>
     <main class="app-shell">
-      <header class="top-bar">
-        <div class="top-bar-group">
-          <a class="brand" href="./" aria-label="Go to site home">
-            <span class="brand-dot"></span>
-            <span id="brandName" class="brand-name">GPX Rider</span>
-          </a>
-          <span class="top-bar-divider"></span>
-          <div id="gpxChip" class="gpx-chip" hidden>
-            <span class="gpx-chip-tag">GPX</span>
-            <span id="gpxChipName" class="gpx-chip-name">--</span>
-          </div>
-          <label class="file-picker btn btn-ghost">
-            <input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml">
-            <span>Open GPX file…</span>
-          </label>
-          <button id="browseGalleryBtn" type="button" class="btn btn-blue" hidden>
-            Browse gallery
-            <span id="browseGalleryCount" class="count-badge">0</span>
-          </button>
-        </div>
-        <button id="settingsBtn" type="button" class="btn btn-ghost">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          Settings
-        </button>
-      </header>
-
       <div class="app-body">
         <section class="map-pane">
           <div id="mapViewport" class="map-viewport">
@@ -95,8 +69,7 @@
               <button id="centerRiderBtn" type="button" class="map-action-btn" title="Keep rider centered" aria-label="Keep rider centered" aria-pressed="true">
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1.5" x2="12" y2="4.5"></line><line x1="12" y1="19.5" x2="12" y2="22.5"></line><line x1="1.5" y1="12" x2="4.5" y2="12"></line><line x1="19.5" y1="12" x2="22.5" y2="12"></line><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"></circle></svg>
               </button>
-              <!-- Fullscreen hides the top bar (and its Settings button), so
-                   surface Settings here — only while fullscreen. -->
+              <!-- Keep Settings available on the map, including fullscreen. -->
               <button id="mapSettingsShortcutBtn" type="button" class="map-action-btn map-action-btn-settings" title="Settings" aria-label="Open settings">
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
               </button>
@@ -131,26 +104,41 @@
 
             <div id="fullscreenTrainingMeters" class="fs-training-meters" hidden aria-live="polite">
               <div id="powerMeter" class="fs-zone-meter" data-zone-meter="power">
-                <span class="fs-zone-label">Power</span>
-                <strong id="zonePowerValue">--</strong>
-                <span id="zonePowerMeta" class="fs-zone-meta">FTP --</span>
+                <span class="fs-zone-label">Power, <span class="fs-zone-unit">W</span></span>
+                <div class="fs-zone-readings">
+                  <strong id="zonePowerValue">--</strong>
+                  <span id="zonePowerDeviation" class="fs-zone-deviation" hidden></span>
+                  <span id="zonePowerTarget" class="fs-zone-target" hidden></span>
+                </div>
+                <div class="fs-zone-meta-row">
+                  <span id="zonePowerMeta" class="fs-zone-meta">FTP --</span>
+                  <span id="zonePowerRamp" class="fs-zone-ramp" hidden></span>
+                </div>
                 <div class="fs-zone-track"><div id="zonePowerFill" class="fs-zone-fill"></div></div>
               </div>
               <div id="heartRateMeter" class="fs-zone-meter" data-zone-meter="heartRate">
-                <span class="fs-zone-label">Heart rate</span>
-                <strong id="zoneHeartRateValue">--</strong>
+                <span class="fs-zone-label">Heart rate, <span class="fs-zone-unit">bpm</span></span>
+                <div class="fs-zone-readings">
+                  <strong id="zoneHeartRateValue">--</strong>
+                  <span id="zoneHeartRateDeviation" class="fs-zone-deviation" hidden></span>
+                  <span id="zoneHeartRateTarget" class="fs-zone-target" hidden></span>
+                </div>
                 <span id="zoneHeartRateMeta" class="fs-zone-meta">Max --</span>
                 <div class="fs-zone-track"><div id="zoneHeartRateFill" class="fs-zone-fill"></div></div>
               </div>
               <div id="gradeMeter" class="fs-zone-meter" data-zone-meter="grade">
-                <span class="fs-zone-label">Grade</span>
+                <span class="fs-zone-label">Grade, <span class="fs-zone-unit">%</span></span>
                 <strong id="zoneGradeValue">--</strong>
                 <span id="zoneGradeMeta" class="fs-zone-meta">Live road</span>
                 <div class="fs-zone-track"><div id="zoneGradeFill" class="fs-zone-fill"></div></div>
               </div>
               <div id="cadenceMeter" class="fs-zone-meter" data-zone-meter="cadence">
-                <span class="fs-zone-label">Cadence</span>
-                <strong id="zoneCadenceValue">--</strong>
+                <span class="fs-zone-label">Cadence, <span class="fs-zone-unit">rpm</span></span>
+                <div class="fs-zone-readings">
+                  <strong id="zoneCadenceValue">--</strong>
+                  <span id="zoneCadenceDeviation" class="fs-zone-deviation" hidden></span>
+                  <span id="zoneCadenceTarget" class="fs-zone-target" hidden></span>
+                </div>
                 <span id="zoneCadenceMeta" class="fs-zone-meta">Cadence</span>
                 <div class="fs-zone-track"><div id="zoneCadenceFill" class="fs-zone-fill"></div></div>
               </div>
@@ -212,6 +200,50 @@
               </div>
             </div>
 
+            <section id="workoutHud" class="fs-clock workout-step-chip" aria-label="Workout" hidden>
+              <div class="workout-current-row">
+                <div class="workout-current-main">
+                  <strong id="workoutHudCurrent" class="workout-step-text"></strong>
+                  <div id="workoutHudStepTrack" class="workout-step-track">
+                    <progress id="workoutHudStepProgress" max="1" value="0" aria-label="Current step progress"></progress>
+                  </div>
+                  <div id="workoutHudMiniChart" class="workout-step-track workout-mini-chart" aria-hidden="true" hidden></div>
+                </div>
+                <span id="workoutHudRemaining" class="workout-step-metrics workout-step-remaining"></span>
+                <div class="workout-hud-actions">
+                  <button id="workoutHudPlayBtn" type="button" class="btn btn-accent workout-hud-action" aria-label="Start workout" title="Start workout">
+                    <span class="workout-start-label">Start</span>
+                    <svg class="workout-play-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
+                    <svg class="workout-pause-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 2h3v8H2zm5 0h3v8H7z"></path></svg>
+                    <span id="workoutHudCountdown" class="workout-step-metrics" aria-hidden="true" hidden></span>
+                  </button>
+                  <button id="workoutHudEndBtn" type="button" class="icon-btn workout-hud-action" aria-label="End workout" title="End workout" hidden>
+                    <svg viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
+                  </button>
+                </div>
+              </div>
+              <p id="workoutHudStartError" class="workout-hud-start-error" role="alert" hidden></p>
+              <dl id="workoutHudSummary" class="workout-step-summary" hidden></dl>
+              <section id="workoutHudNext" class="workout-next-step" aria-label="Next workout step" hidden>
+                <span class="workout-next-label">Up next</span>
+                <div class="workout-next-row">
+                  <div class="workout-next-main">
+                    <strong id="workoutHudNextName" class="workout-step-text"></strong>
+                    <div class="workout-step-metrics workout-next-detail">
+                      <span id="workoutHudNextHeartRate" class="workout-next-icon workout-next-heart-rate" role="img" aria-label="Heart rate target" title="Heart rate target" hidden></span>
+                      <span id="workoutHudNextCadence" class="workout-next-icon workout-next-cadence" role="img" aria-label="Cadence target" title="Cadence target" hidden></span>
+                      <span id="workoutHudNextSpeed" class="workout-next-icon workout-next-speed" role="img" aria-label="Speed target" title="Speed target" hidden></span>
+                      <span class="workout-next-power" hidden>
+                        <span class="workout-next-icon workout-next-bolt" role="img" aria-label="Power target" title="Power target"></span>
+                        <span id="workoutHudNextPower"></span>
+                      </span>
+                    </div>
+                  </div>
+                  <span id="workoutHudNextDuration" class="workout-step-metrics workout-step-remaining"></span>
+                </div>
+              </section>
+            </section>
+
             <!-- bottom data dock: metric tiles + the road-ahead profile -->
             <div id="fullscreenOverlayBottom" class="fs-dock" hidden>
               <div class="fs-dock-top-tools">
@@ -268,6 +300,15 @@
                       <div class="fs-bar-head"><span>CLIMBING</span><span id="fsClimbLabel" class="fs-bar-value fs-bar-value-accent">--</span></div>
                       <div class="fs-bar-track"><div id="fsClimbFill" class="fs-bar-fill fs-bar-fill-amber"></div></div>
                     </div>
+                    <div id="workoutHudTrack" class="fs-bar workout-hud-track" hidden>
+                      <div class="fs-bar-head">
+                        <span>Workout</span>
+                        <span id="workoutHudTime" class="fs-bar-value"></span>
+                      </div>
+                      <div class="fs-bar-track workout-timeline">
+                        <div id="workoutHudChart" class="workout-timeline-segments"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -275,99 +316,209 @@
           </div>
         </section>
 
-        <aside class="control-pane">
-          <div class="stat-grid stat-grid-4">
-            <div class="stat-tile">
-              <span class="stat-label">Distance</span>
-              <strong id="distanceStat" class="stat-value">--</strong>
-            </div>
-            <div class="stat-tile">
-              <span class="stat-label">Ascent</span>
-              <strong id="ascentStat" class="stat-value">--</strong>
-            </div>
-            <div class="stat-tile">
-              <span class="stat-label">Descent</span>
-              <strong id="descentStat" class="stat-value">--</strong>
-            </div>
-            <div class="stat-tile">
-              <span class="stat-label">Difficulty</span>
-              <strong id="difficultyStat" class="stat-value">--</strong>
-              <span id="difficultyDetail" class="stat-detail"></span>
-            </div>
-          </div>
+        <aside class="control-pane" aria-label="Ride controls">
+          <header class="sidebar-header">
+            <a class="brand" href="./" aria-label="Go to site home">
+              <span class="brand-dot"></span>
+              <span id="brandName" class="brand-name">GPX Rider</span>
+            </a>
+            <button id="settingsBtn" type="button" class="btn btn-ghost">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              Settings
+            </button>
+          </header>
 
-          <div class="panel-card">
-            <div class="panel-card-head">
-              <span class="panel-card-title">Detected climbs</span>
-            </div>
-            <canvas id="profile" aria-label="Elevation profile"></canvas>
-            <div id="climbsSection" class="climbs-section" hidden>
-              <div id="climbStatus" class="climb-status" aria-live="polite">
-                <strong id="climbStatusHeadline">--</strong>
-                <span id="climbStatusDetail">--</span>
-              </div>
-              <ol id="climbsList" class="climbs-list"></ol>
-            </div>
-          </div>
-
-          <div class="panel-card">
-            <div class="panel-card-head">
-              <div>
-                <span class="panel-card-title">Ride</span>
-                <p class="panel-card-hint" id="progressLabel">Load a route to begin</p>
-              </div>
-              <button id="resetBtn" type="button" class="btn btn-ghost btn-sm" disabled>Reset</button>
-            </div>
-            <div class="progress-wrap">
-              <progress id="progress" max="1" value="0"></progress>
-              <progress id="ascentProgress" class="ascent-progress" max="1" value="0" hidden></progress>
-              <span id="ascentProgressLabel" class="progress-note" hidden>--</span>
-            </div>
-            <div class="stat-grid stat-grid-live" aria-live="polite">
+          <section class="panel-card sidebar-section" aria-labelledby="liveDataTitle">
+            <h2 id="liveDataTitle">Live data</h2>
+            <div class="stat-grid live-stats" aria-live="polite">
               <div class="stat-tile">
                 <span class="stat-label">Ridden</span>
-                <strong id="riddenStat" class="stat-value stat-value-sm">--</strong>
+                <strong id="riddenStat" class="stat-value">--</strong>
               </div>
               <div class="stat-tile">
                 <span class="stat-label">Remaining</span>
-                <strong id="remainingStat" class="stat-value stat-value-sm">--</strong>
+                <strong id="remainingStat" class="stat-value">--</strong>
               </div>
               <div class="stat-tile">
                 <span class="stat-label">ETA</span>
-                <strong id="etaStat" class="stat-value stat-value-sm">--</strong>
+                <strong id="etaStat" class="stat-value">--</strong>
               </div>
               <div class="stat-tile">
                 <span class="stat-label">Ascent left</span>
-                <strong id="ascentLeftStat" class="stat-value stat-value-sm">--</strong>
+                <strong id="ascentLeftStat" class="stat-value">--</strong>
               </div>
               <div class="stat-tile">
                 <span class="stat-label">Grade</span>
-                <strong id="gradeStat" class="stat-value stat-value-sm">--</strong>
+                <strong id="gradeStat" class="stat-value">--</strong>
               </div>
               <div class="stat-tile">
                 <span class="stat-label">Altitude</span>
-                <strong id="altitudeStat" class="stat-value stat-value-sm">--</strong>
+                <strong id="altitudeStat" class="stat-value">--</strong>
               </div>
               <div class="stat-tile">
                 <span class="stat-label">Power</span>
-                <strong id="powerStat" class="stat-value stat-value-sm">--</strong>
+                <strong id="powerStat" class="stat-value">--</strong>
               </div>
               <div class="stat-tile">
                 <span class="stat-label">Speed</span>
-                <strong id="speedStat" class="stat-value stat-value-sm">--</strong>
+                <strong id="speedStat" class="stat-value">--</strong>
               </div>
               <div class="stat-tile">
                 <span class="stat-label">Heart rate</span>
-                <strong id="heartRateStat" class="stat-value stat-value-sm">--</strong>
+                <strong id="heartRateStat" class="stat-value">--</strong>
               </div>
               <div class="stat-tile">
                 <span class="stat-label">Calories</span>
-                <strong id="caloriesStat" class="stat-value stat-value-sm">--</strong>
+                <strong id="caloriesStat" class="stat-value">--</strong>
               </div>
             </div>
-          </div>
+            <div class="button-row fit-export-actions">
+              <button id="downloadFitBtn" type="button" class="btn btn-accent" disabled>Export full ride</button>
+              <button id="downloadWorkoutFitBtn" type="button" class="btn btn-outline-blue" disabled>Export workout only</button>
+              <button id="resetBtn" type="button" class="btn btn-outline-danger" disabled>Reset ride</button>
+            </div>
+          </section>
 
-          <div class="panel-card panel-card-flush panel-card-zone-help">
+          <section class="panel-card sidebar-section">
+            <div class="sidebar-section-head">
+              <h2>Route</h2>
+              <button id="routePicker" type="button" class="btn btn-outline-blue btn-sm selection-picker" aria-haspopup="dialog" aria-controls="galleryDialog" data-label="Route">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><path d="M8.5 18H17a3 3 0 0 0 0-6H7a3 3 0 0 1 0-6h8.5"></path></svg>
+                <span class="selection-picker-name">Select route</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>
+              </button>
+            </div>
+            <div class="stat-grid route-stats">
+              <div class="stat-tile">
+                <span class="stat-label">Distance</span>
+                <strong id="distanceStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Ascent</span>
+                <strong id="ascentStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Descent</span>
+                <strong id="descentStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Difficulty</span>
+                <div class="difficulty-value">
+                  <strong id="difficultyStat" class="stat-value">--</strong>
+                  <span id="difficultyInfo" class="difficulty-info" tabindex="0" aria-label="Difficulty details" aria-describedby="difficultyDetail" hidden>
+                    <span aria-hidden="true">i</span>
+                    <span id="difficultyDetail" class="difficulty-tooltip" role="tooltip"></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="sidebar-subgroup">
+              <span class="panel-card-title">Route progress</span>
+              <div class="progress-wrap">
+                <progress id="progress" max="1" value="0" aria-label="Distance progress"></progress>
+                <span id="progressLabel" class="progress-note">Load a route to begin</span>
+                <progress id="ascentProgress" class="ascent-progress" max="1" value="0" aria-label="Climbing progress" hidden></progress>
+                <span id="ascentProgressLabel" class="progress-note" hidden>--</span>
+              </div>
+            </div>
+            <canvas id="profile" aria-label="Elevation profile"></canvas>
+            <details id="climbsSection" class="climbs-section sidebar-details" hidden>
+              <summary>Climbs</summary>
+              <ol id="climbsList" class="climbs-list"></ol>
+            </details>
+            <details class="sidebar-details">
+              <summary>Export to gallery</summary>
+              <div class="sidebar-detail-body">
+                <div class="gallery-export-card">
+                  <div class="panel-card-head">
+                    <div>
+                      <p class="panel-card-hint">Frame the map, then save this as metadata.json in the ride folder</p>
+                    </div>
+                    <button id="copyGalleryMetadataBtn" type="button" class="btn btn-ghost btn-sm" disabled>Copy JSON</button>
+                  </div>
+                  <div class="gallery-export-fields">
+                    <label>
+                      <span>Title</span>
+                      <input id="galleryTitleInput" type="text" placeholder="Route title" disabled>
+                    </label>
+                    <label>
+                      <span>Description</span>
+                      <textarea id="galleryDescriptionInput" rows="4" placeholder="Markdown is supported" disabled></textarea>
+                    </label>
+                    <label>
+                      <span>metadata.json</span>
+                      <textarea id="galleryMetadataOutput" class="gallery-metadata-output" rows="12" spellcheck="false" readonly></textarea>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </details>
+          </section>
+
+          <section class="panel-card sidebar-section">
+            <div class="sidebar-section-head">
+              <h2>Workout</h2>
+              <button id="clearWorkoutBtn" type="button" class="btn btn-ghost btn-sm" aria-label="Remove workout" hidden>Remove</button>
+              <button id="workoutPicker" type="button" class="btn btn-outline-blue btn-sm selection-picker" aria-haspopup="dialog" aria-controls="workoutGalleryDialog" data-label="Workout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6v12M18 6v12M3 9v6m18-6v6M6 12h12"></path></svg>
+                <span class="selection-picker-name">Select workout</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>
+              </button>
+            </div>
+            <p id="workoutError" class="panel-card-hint workout-error" role="alert" hidden></p>
+            <section id="workoutCard" class="workout-card" aria-label="Workout" hidden>
+              <p id="workoutFtpWarning" class="panel-card-hint workout-warning" role="status" hidden>
+                FTP is missing. Ride steps with a % FTP target at your own effort. Set FTP in the rider profile to see their power targets.
+              </p>
+              <div class="setting-row">
+                <div class="setting-row-text">
+                  <span id="workoutErgLabel" class="setting-row-label">Hold target power (ERG)</span>
+                  <span id="workoutErgStatus" class="setting-row-hint" role="status">Let the trainer adjust resistance to match each step.</span>
+                </div>
+                <label class="switch">
+                  <input id="workoutErgInput" type="checkbox" aria-labelledby="workoutErgLabel" aria-describedby="workoutErgStatus">
+                  <span class="switch-track"><span class="switch-knob"></span></span>
+                </label>
+              </div>
+              <div id="workoutCardActions" class="workout-card-actions" hidden>
+                <button id="pauseWorkoutBtn" type="button" class="btn btn-ghost btn-sm" hidden>Pause</button>
+                <button id="endWorkoutBtn" type="button" class="btn btn-ghost btn-sm" hidden>End workout</button>
+              </div>
+              <div class="setting-row">
+                <label for="workoutAutoStartInput" class="setting-row-label">Start workout when pedaling</label>
+                <label class="switch">
+                  <input id="workoutAutoStartInput" type="checkbox">
+                  <span class="switch-track"><span class="switch-knob"></span></span>
+                </label>
+              </div>
+              <div id="workoutChart" class="workout-chart"></div>
+              <details class="sidebar-details">
+                <summary>Workout steps <span id="workoutStepCount" class="workout-step-count"></span></summary>
+                <ol id="workoutSteps" class="workout-steps sidebar-detail-body"></ol>
+              </details>
+            </section>
+            <div class="sidebar-subgroup">
+              <div class="panel-card-head">
+                <div>
+                  <span class="panel-card-title">Ride recording</span>
+                  <p class="panel-card-hint">Collected automatically while you ride, stored in this browser</p>
+                </div>
+                <span id="recIndicator" class="recording-indicator" hidden>
+                  <span class="recording-pulse"></span>Recording
+                </span>
+              </div>
+              <dl class="stat-grid rec-stats">
+                <div class="stat-tile"><dt class="stat-label">Distance</dt><dd id="recDistanceStat" class="stat-value">--</dd></div>
+                <div class="stat-tile"><dt class="stat-label">Time</dt><dd id="recTimeStat" class="stat-value">--</dd></div>
+                <div class="stat-tile"><dt class="stat-label">Points</dt><dd id="recPointsStat" class="stat-value">0</dd></div>
+                <div class="stat-tile"><dt class="stat-label">Heart rate</dt><dd id="recHeartRateStat" class="stat-value">--</dd></div>
+                <div class="stat-tile"><dt class="stat-label">Energy</dt><dd id="recCaloriesStat" class="stat-value">--</dd></div>
+              </dl>
+            </div>
+          </section>
+
+          <section class="panel-card sidebar-section">
+            <h2>Devices</h2>
             <div class="connection-row">
               <div class="connection-info">
                 <span id="trainerDot" class="status-dot"></span>
@@ -376,7 +527,25 @@
                   <div id="trainerStat" class="connection-status">Idle</div>
                 </div>
               </div>
-              <button id="connectBtn" type="button" class="btn btn-outline-blue btn-sm">Connect</button>
+              <div class="connection-actions">
+                <button id="trainerSettingsBtn" type="button" class="icon-btn" aria-label="Trainer settings" title="Trainer settings" aria-controls="trainerSettings" aria-expanded="false" hidden>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+                <button id="connectBtn" type="button" class="btn btn-outline-blue btn-sm">Connect</button>
+              </div>
+            </div>
+            <div id="trainerSettings" class="sidebar-subgroup" hidden>
+              <div class="setting-slider">
+                <div class="setting-slider-head">
+                  <label for="gradeIntervalInput">Grade update interval</label>
+                  <output id="gradeIntervalOutput" for="gradeIntervalInput">2 s</output>
+                </div>
+                <input id="gradeIntervalInput" type="range" min="1" max="5" step="1" value="2">
+              </div>
+              <p class="settings-note">
+                How often the route's grade is sent to the trainer. Longer
+                intervals smooth resistance changes on noisy GPX files.
+              </p>
             </div>
             <div class="connection-row">
               <div class="connection-info">
@@ -388,165 +557,123 @@
               </div>
               <button id="connectHrBtn" type="button" class="btn btn-outline-blue btn-sm">Connect</button>
             </div>
-            <div class="rider-zone-form">
-              <label>
-                <span>Resting HR</span>
-                <input id="restingHeartRateInput" type="number" inputmode="numeric" min="30" max="140" value="60">
-              </label>
-              <label>
-                <span>Max HR</span>
-                <input id="maxHeartRateInput" type="number" inputmode="numeric" min="80" max="240" value="180">
-              </label>
-              <label>
-                <span>FTP</span>
-                <input id="ftpInput" type="number" inputmode="numeric" min="1" max="1000" placeholder="W">
-              </label>
-            </div>
-            <div class="zone-editor">
-              <p class="zone-editor-note">Heart-rate zones use Heart Rate Reserve from resting and max HR. FTP calculates power zones.</p>
-              <div class="zone-editor-section">
-                <div class="zone-editor-title">Heart-rate zones <button id="heartRateZoneHelpBtn" type="button" class="zone-help-btn" aria-label="Heart-rate zone help" aria-expanded="false" aria-controls="heartRateZoneHelp" data-zone-help-trigger>?</button></div>
-                <div id="heartRateZoneSummary" class="zone-summary">--</div>
-                <div id="heartRateZoneHelp" class="zone-help-popover" hidden>
-                  <strong>Z1 Recovery</strong><span>Easy effort. Good for warmups, cooldowns, and very light rides.</span>
-                  <strong>Z2 Endurance</strong><span>Comfortable aerobic effort. You should be able to talk in full sentences.</span>
-                  <strong>Z3 Tempo</strong><span>Moderately hard. Sustainable, but talking becomes shorter.</span>
-                  <strong>Z4 Threshold</strong><span>Hard effort near your limit for longer intervals.</span>
-                  <strong>Z5 Max</strong><span>Very hard effort for short intervals.</span>
+          </section>
+
+          <details class="panel-card sidebar-section sidebar-profile">
+            <summary>
+              My profile
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+            </summary>
+            <div class="sidebar-detail-body">
+              <div class="rider-zone-form">
+                <label>
+                  <span>Resting HR</span>
+                  <input id="restingHeartRateInput" type="number" inputmode="numeric" min="30" max="140" value="60">
+                </label>
+                <label>
+                  <span>Max HR</span>
+                  <input id="maxHeartRateInput" type="number" inputmode="numeric" min="80" max="240" value="180">
+                </label>
+                <label>
+                  <span>FTP</span>
+                  <input id="ftpInput" type="number" inputmode="numeric" min="1" max="1000" placeholder="W">
+                </label>
+              </div>
+              <div class="zone-editor">
+                <p class="zone-editor-note">Heart-rate zones use Heart Rate Reserve from resting and max HR. FTP calculates power zones.</p>
+                <div class="zone-editor-section">
+                  <div class="zone-editor-title">Heart-rate zones <button id="heartRateZoneHelpBtn" type="button" class="zone-help-btn" aria-label="Heart-rate zone help" aria-expanded="false" aria-controls="heartRateZoneHelp" data-zone-help-trigger>?</button></div>
+                  <div id="heartRateZoneSummary" class="zone-summary">--</div>
+                  <div id="heartRateZoneHelp" class="zone-help-popover" hidden>
+                    <strong>Z1 Recovery</strong><span>Easy effort. Good for warmups, cooldowns, and very light rides.</span>
+                    <strong>Z2 Endurance</strong><span>Comfortable aerobic effort. You should be able to talk in full sentences.</span>
+                    <strong>Z3 Tempo</strong><span>Moderately hard. Sustainable, but talking becomes shorter.</span>
+                    <strong>Z4 Threshold</strong><span>Hard effort near your limit for longer intervals.</span>
+                    <strong>Z5 Max</strong><span>Very hard effort for short intervals.</span>
+                  </div>
+                </div>
+                <div class="zone-editor-section">
+                  <div class="zone-editor-title">Power zones <button id="powerZoneHelpBtn" type="button" class="zone-help-btn" aria-label="Power zone help" aria-expanded="false" aria-controls="powerZoneHelp" data-zone-help-trigger>?</button></div>
+                  <div id="powerZoneSummary" class="zone-summary">--</div>
+                  <div id="powerZoneHelp" class="zone-help-popover" hidden>
+                    <strong>Z1 Active Recovery</strong><span>&lt; 55% FTP</span>
+                    <strong>Z2 Endurance</strong><span>56% - 75% FTP</span>
+                    <strong>Z3 Tempo</strong><span>76% - 90% FTP</span>
+                    <strong>Z4 Lactate Threshold</strong><span>91% - 105% FTP</span>
+                    <strong>Z5 VO2max</strong><span>106% - 120% FTP</span>
+                    <strong>Z6 Anaerobic Capacity</strong><span>121% - 150% FTP</span>
+                    <strong>Z7 Neuromuscular Power</strong><span>&gt; 150% FTP</span>
+                  </div>
                 </div>
               </div>
-              <div class="zone-editor-section">
-                <div class="zone-editor-title">Power zones <button id="powerZoneHelpBtn" type="button" class="zone-help-btn" aria-label="Power zone help" aria-expanded="false" aria-controls="powerZoneHelp" data-zone-help-trigger>?</button></div>
-                <div id="powerZoneSummary" class="zone-summary">--</div>
-                <div id="powerZoneHelp" class="zone-help-popover" hidden>
-                  <strong>Z1 Active Recovery</strong><span>&lt; 55% FTP</span>
-                  <strong>Z2 Endurance</strong><span>56% - 75% FTP</span>
-                  <strong>Z3 Tempo</strong><span>76% - 90% FTP</span>
-                  <strong>Z4 Lactate Threshold</strong><span>91% - 105% FTP</span>
-                  <strong>Z5 VO2max</strong><span>106% - 120% FTP</span>
-                  <strong>Z6 Anaerobic Capacity</strong><span>121% - 150% FTP</span>
-                  <strong>Z7 Neuromuscular Power</strong><span>&gt; 150% FTP</span>
+            </div>
+          </details>
+
+          <section class="panel-card sidebar-section">
+            <h2>Simulation &amp; demo</h2>
+            <div class="sidebar-subgroup">
+              <div class="panel-card-head simulation-head">
+                <div>
+                  <span class="panel-card-title">Simulation</span>
+                  <p class="panel-card-hint">Auto-ride the route with no trainer</p>
+                </div>
+                <button id="startBtn" type="button" class="btn btn-accent" disabled>
+                  <svg class="icon-sim-play" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
+                  <svg class="icon-sim-stop" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
+                  <span id="startBtnLabel">Start</span>
+                </button>
+              </div>
+              <div class="speed-control">
+                <label for="speedInput" class="speed-label">Speed</label>
+                <input id="speedInput" type="range" min="8" max="100" step="1" value="24">
+                <output id="speedOutput" for="speedInput">24 km/h</output>
+              </div>
+            </div>
+            <div class="demo-card">
+              <div class="demo-card-top">
+                <div>
+                  <span class="panel-card-title">Demo mode</span>
+                  <p class="panel-card-hint">Simulated trainer and heart rate for recording the app</p>
+                </div>
+                <div class="demo-card-actions">
+                  <button id="resizeRecordingWindowBtn" type="button" class="btn btn-ghost" title="Frame the map at the recording size" aria-pressed="false">Recording view</button>
+                  <button id="demoModeBtn" type="button" class="btn btn-outline-blue" aria-pressed="false" disabled>Demo mode</button>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div class="panel-card">
-            <div class="panel-card-head">
-              <div>
-                <span class="panel-card-title">FIT data buffer</span>
-                <p class="panel-card-hint">Collected automatically while you ride, stored in this browser</p>
-              </div>
-              <span id="recIndicator" class="recording-indicator" hidden>
-                <span class="recording-pulse"></span>Recording
-              </span>
-            </div>
-            <dl class="rec-stats">
-              <div><dt>distance</dt><dd id="recDistanceStat">--</dd></div>
-              <div><dt>time</dt><dd id="recTimeStat">--</dd></div>
-              <div><dt>points</dt><dd id="recPointsStat">0</dd></div>
-              <div><dt>heart rate</dt><dd id="recHeartRateStat">--</dd></div>
-              <div><dt>energy</dt><dd id="recCaloriesStat">--</dd></div>
-            </dl>
-            <div class="button-row">
-              <button id="downloadFitBtn" type="button" class="btn btn-accent" disabled>Download .FIT</button>
-              <button id="clearRideDataBtn" type="button" class="btn btn-outline-danger" disabled>Reset buffer</button>
-            </div>
-          </div>
-
-          <div class="panel-card">
-            <div class="panel-card-head">
-              <div>
-                <span class="panel-card-title">Simulation</span>
-                <p class="panel-card-hint">Auto-ride the route with no trainer</p>
-              </div>
-              <button id="startBtn" type="button" class="btn btn-accent" disabled>
-                <svg class="icon-sim-play" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
-                <svg class="icon-sim-stop" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
-                <span id="startBtnLabel">Start</span>
-              </button>
-            </div>
-            <div class="speed-control">
-              <label for="speedInput" class="speed-label">Speed</label>
-              <input id="speedInput" type="range" min="8" max="100" step="1" value="24">
-              <output id="speedOutput" for="speedInput">24 km/h</output>
-            </div>
-          </div>
-
-          <div class="panel-card gallery-export-card">
-            <div class="panel-card-head">
-              <div>
-                <span class="panel-card-title">Export to gallery</span>
-                <p class="panel-card-hint">Frame the map, then save this as metadata.json in the ride folder</p>
-              </div>
-              <button id="copyGalleryMetadataBtn" type="button" class="btn btn-ghost btn-sm" disabled>Copy JSON</button>
-            </div>
-            <div class="gallery-export-fields">
-              <label>
-                <span>Title</span>
-                <input id="galleryTitleInput" type="text" placeholder="Route title" disabled>
-              </label>
-              <label>
-                <span>Description</span>
-                <textarea id="galleryDescriptionInput" rows="4" placeholder="Markdown is supported" disabled></textarea>
-              </label>
-              <label>
-                <span>metadata.json</span>
-                <textarea id="galleryMetadataOutput" class="gallery-metadata-output" rows="12" spellcheck="false" readonly></textarea>
-              </label>
-            </div>
-          </div>
-
-          <div class="help-note">
-            <span class="help-note-mark">?</span>
-            <div>No route file of your own? Plan any route for free at
-              <a href="https://mapy.com" target="_blank" rel="noopener">mapy.com</a>
-              and export it as GPX — a route is just a series of points and elevations, no account needed.</div>
-          </div>
-
-          <div class="panel-card demo-card">
-            <div class="demo-card-top">
-              <div>
-                <span class="panel-card-title">Demo mode</span>
-                <p class="panel-card-hint">Synthetic trainer and HR for recording the app</p>
-              </div>
-              <div class="demo-card-actions">
-                <button id="resizeRecordingWindowBtn" type="button" class="btn btn-ghost" title="Frame the map at the recording size" aria-pressed="false">Recording view</button>
-                <button id="demoModeBtn" type="button" class="btn btn-outline-blue" aria-pressed="false" disabled>Demo mode</button>
+              <div class="theater-hud-toggles" role="group" aria-labelledby="theaterHideLabel">
+                <span id="theaterHideLabel" class="panel-card-title">Hide in recording view</span>
+                <label class="theater-hud-toggle">
+                  <input id="theaterHideClockInput" type="checkbox">
+                  <span>Top-left chip</span>
+                </label>
+                <label class="theater-hud-toggle">
+                  <input id="theaterHideMetersInput" type="checkbox">
+                  <span>Meters</span>
+                </label>
+                <label class="theater-hud-toggle">
+                  <input id="theaterHideDockInput" type="checkbox">
+                  <span>Bottom panel</span>
+                </label>
+                <label class="theater-hud-toggle">
+                  <input id="theaterHideClimbBannerInput" type="checkbox">
+                  <span>Climb banner</span>
+                </label>
+                <label class="theater-hud-toggle">
+                  <input id="theaterHideDemoChipInput" type="checkbox">
+                  <span>Demo mode chip</span>
+                </label>
+                <label class="theater-hud-toggle">
+                  <input id="theaterHideControlsInput" type="checkbox">
+                  <span>Controls</span>
+                </label>
+                <label class="theater-hud-toggle">
+                  <input id="theaterHideMinimapInput" type="checkbox">
+                  <span>Minimap</span>
+                </label>
               </div>
             </div>
-            <div class="theater-hud-toggles">
-              <span class="theater-hud-toggles-label">Hide in recording view</span>
-              <label class="theater-hud-toggle">
-                <input id="theaterHideClockInput" type="checkbox">
-                <span>Top-left chip</span>
-              </label>
-              <label class="theater-hud-toggle">
-                <input id="theaterHideMetersInput" type="checkbox">
-                <span>Meters</span>
-              </label>
-              <label class="theater-hud-toggle">
-                <input id="theaterHideDockInput" type="checkbox">
-                <span>Bottom panel</span>
-              </label>
-              <label class="theater-hud-toggle">
-                <input id="theaterHideClimbBannerInput" type="checkbox">
-                <span>Climb banner</span>
-              </label>
-              <label class="theater-hud-toggle">
-                <input id="theaterHideDemoChipInput" type="checkbox">
-                <span>Demo mode chip</span>
-              </label>
-              <label class="theater-hud-toggle">
-                <input id="theaterHideControlsInput" type="checkbox">
-                <span>Controls</span>
-              </label>
-              <label class="theater-hud-toggle">
-                <input id="theaterHideMinimapInput" type="checkbox">
-                <span>Minimap</span>
-              </label>
-            </div>
-          </div>
+          </section>
+
           <p id="terrainAttribution" class="panel-credits" hidden></p>
         </aside>
       </div>
@@ -567,7 +694,7 @@
             <span>Rendering</span>
           </button>
           <button type="button" class="settings-tab" data-settings-tab="hud"
-            data-panel-title="HUD &amp; data fields" data-panel-subtitle="Choose which tiles appear on the fullscreen ride HUD.">
+            data-panel-title="HUD &amp; data fields" data-panel-subtitle="Choose which metrics appear on the map.">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
             <span>HUD &amp; data fields</span>
           </button>
@@ -575,11 +702,6 @@
             data-panel-title="Units" data-panel-subtitle="Display units — internal values always stay metric.">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
             <span>Units</span>
-          </button>
-          <button type="button" class="settings-tab" data-settings-tab="trainer"
-            data-panel-title="Trainer &amp; sensors" data-panel-subtitle="How the smart trainer receives the route's grade.">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"></path></svg>
-            <span>Trainer &amp; sensors</span>
           </button>
           <button type="button" class="settings-tab" data-settings-tab="screenshots"
             data-panel-title="Screenshots" data-panel-subtitle="Size and framing of the 📷 map screenshots.">
@@ -852,20 +974,6 @@
             </div>
           </section>
 
-          <section class="settings-panel" data-settings-panel="trainer" hidden>
-            <div class="setting-slider">
-              <div class="setting-slider-head">
-                <label for="gradeIntervalInput">Grade update interval</label>
-                <output id="gradeIntervalOutput" for="gradeIntervalInput">2 s</output>
-              </div>
-              <input id="gradeIntervalInput" type="range" min="1" max="5" step="1" value="2">
-            </div>
-            <p class="settings-note">
-              How often the route's grade is sent to the trainer. Longer
-              intervals smooth resistance changes on noisy GPX files.
-            </p>
-          </section>
-
           <section class="settings-panel" data-settings-panel="screenshots" hidden>
             <div class="setting-row">
               <div class="setting-row-text">
@@ -954,20 +1062,47 @@
     </dialog>
 
     <dialog id="galleryDialog" class="gallery-dialog" aria-labelledby="galleryTitle">
-      <header class="gallery-head">
+      <header class="gallery-head route-gallery-head">
         <div class="gallery-head-title">
-          <span id="galleryTitle" class="gallery-title">Route gallery</span>
-          <span id="galleryCount" class="gallery-count">0 ROUTES</span>
+          <h2 id="galleryTitle" class="gallery-title">Route gallery</h2>
+          <span id="galleryCount" class="gallery-count" hidden></span>
         </div>
-        <div class="gallery-head-actions">
-          <span id="galleryAttribution" class="gallery-attribution"></span>
-          <button id="galleryCloseBtn" type="button" class="icon-btn" title="Close gallery" aria-label="Close gallery">
+        <p class="gallery-import-hint">No route file of your own? Plan any route for free at <a href="https://mapy.com/" target="_blank" rel="noopener">mapy.com</a> and export it as GPX file.</p>
+        <label class="file-picker btn btn-blue">
+          <input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" autofocus>
+          Import route
+        </label>
+        <form method="dialog">
+          <button type="submit" class="icon-btn" title="Close gallery" aria-label="Close route gallery">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
           </button>
+        </form>
+      </header>
+      <div class="gallery-scroll">
+        <p id="routeImportError" class="gallery-import-error" role="alert" hidden></p>
+        <p id="galleryStatus" class="gallery-message" role="status">Loading routes…</p>
+        <div class="gallery-grid" id="galleryGrid"></div>
+      </div>
+    </dialog>
+
+    <dialog id="workoutGalleryDialog" class="gallery-dialog" aria-labelledby="workoutGalleryTitle">
+      <header class="gallery-head">
+        <h2 id="workoutGalleryTitle" class="gallery-title">Workout gallery</h2>
+        <div class="gallery-head-actions">
+          <label class="file-picker btn btn-blue">
+            <input id="workoutFile" type="file" accept=".fit,.xml,.json">
+            Import workout
+          </label>
+          <form method="dialog">
+            <button type="submit" class="icon-btn" title="Close gallery" aria-label="Close workout gallery">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
+            </button>
+          </form>
         </div>
       </header>
       <div class="gallery-scroll">
-        <div class="gallery-grid" id="galleryGrid"></div>
+        <p id="workoutImportError" class="gallery-import-error" role="alert" hidden></p>
+        <p class="gallery-message">No workouts in the gallery yet.</p>
       </div>
     </dialog>
 

@@ -50,6 +50,7 @@ pages, `styles.css`, `gallery.json`, and `assets/` stay at the app root.
 | `app/settings/` | Settings | `settings-ui.mjs` (settings dialog shell + every non-camera panel: units, rider profile, display & HUD toggles, rendering, screenshot settings) |
 | `app/storage/` | Storage & persistence | `storage.mjs` (IndexedDB behind a sync cache, localStorage fallback + migration; tested), `persistence.mjs` (`restoreSettings`/`saveSettings`, `restoreSavedRide`/`saveRide` — the one deliberately cross-cutting module) |
 | `app/hud/` | Shared HUD layout | `screen-manager.mjs` (**the central HUD layout manager** — see "Map HUD layout" below), `map-hud.mjs` (clock chip, HUD tile order/visibility + drag-reorder, tile layout, dock collapse, fullscreen enter/exit, map screenshot action), `theater-mode.mjs` (exact-size recording viewport) |
+| `app/top-bar/` | Toolbar | `selection-picker.mjs` (shared route and workout gallery button showing the current selection) |
 | `app/gallery-ui/` | Gallery | `gallery.mjs` (fullscreen ride-gallery overlay; cards from `app/gallery.json`, per-card on-demand 3D preview via each route's `metadata.json#previewCamera`), `gallery-export.mjs` (Export to gallery card: metadata.json snippet with the live camera, clipboard copy) |
 | `app/landing/` | Landing page | `landing.mjs` (public landing page behavior: hero replay over a live 3D map with a faked HUD, then summit orbit, loops; knobs in `LANDING_HERO`, `core/tuning.mjs`), `landing-route.mjs` (static route data the hero replays — marketing data, not app runtime) |
 | `app/demo/` | Demo mode | `demo.mjs` (pure synthetic trainer/HR ride model; tested), `demo-mode.mjs` (demo mode UI: drives the ride from the model, demo chip sync) |
@@ -186,10 +187,11 @@ in place).
   while the tab is visible and falls back to `setTimeout` when hidden, so
   rides keep advancing and recording in background tabs. Per-tick elapsed
   time is clamped (`MAX_TICK_SECONDS`) to avoid teleporting.
-- **Ride recording** is independent of route progress: resetting or seeking
-  the route does not touch the recorded bucket. The bucket only grows while
-  the rider is actually moving, and it survives reloads via `storage.mjs`
-  (IndexedDB — a long ride no longer risks localStorage's ~5 MB quota).
+- **Ride recording** grows while the rider is pedaling and survives reloads
+  through IndexedDB. Seeking preserves the recording. **Reset ride** returns
+  to the route start and clears any recording after confirmation. Internal
+  route resets, such as starting a workout after finishing a route, preserve
+  the recording.
 - **FIT export** must stay a *virtual ride* (sport 2 / sub_sport 58) or
   Strava/Garmin will misclassify uploads. `fit.mjs` is a hand-rolled
   little-endian encoder — if you touch it, keep the CRC and header tests
@@ -206,8 +208,8 @@ in place).
   it); a pure simulation ETA is plain remaining-distance ÷ slider-speed.
   The estimator resets when a new GPX loads, not on ride reset.
 - **UI layout & reusable components.** The app is a dark, single-viewport
-  shell (`app.html`): a fixed top bar (brand, GPX chip, Open/Browse/Settings),
-  a 3D map filling the left, and a fixed-width right control panel. CSS
+  shell (`app.html`): a 3D map filling the left and a right control panel with
+  Live data, Route, Workout, Devices, My profile, Simulation & demo, and Settings. CSS
   components in `styles.css` are meant to be reused, not re-invented per
   screen: `.btn` (+ `-ghost`/`-blue`/`-accent`/`-outline-*`/`-sm`),
   `.panel-card` (+ `-head`/`-title`/`-hint`), `.stat-grid` + `.stat-tile`,
@@ -318,7 +320,7 @@ in place).
     left HUD column (the training-zone meters stack under it).
   - **Top-right controls**: the existing `.map-actions` cluster, plus the
     Settings shortcut (`#mapSettingsShortcutBtn`, class `.map-action-btn-settings`)
-    so the same controls are available when fullscreen hides the top bar.
+    so the same controls are available when fullscreen hides the control panel.
   - **Top-centre climb/segment banner** (`#climbBanner`, `updateFullscreenClimbBanner`):
     reuses `state.climbs`. Shows the *ahead* variant (category chip from
     `CLIMB_CATEGORIES`, countdown, a mini grade-profile built with
@@ -327,8 +329,7 @@ in place).
     (to-top / to-go / current / peak / grade-left, plus two unlabelled
     progress bars — blue = distance, amber = ascent, matching the dock bars)
     while on it. Both variants carry a "climb N of M" ordinal (the climb's
-    `findIndex` position + `state.climbs.length`), mirroring the setup page's
-    live climb status. Max grade and the mini-profile bars are cached on the climb
+    `findIndex` position + `state.climbs.length`), matching the order in the sidebar climb list. Max grade and the mini-profile bars are cached on the climb
     object (climbs are re-detected each route load, so the cache can't
     go stale). If the user drag-selects a custom profile segment while riding,
     this same banner surface switches to the selected segment stats (start, end,
@@ -348,7 +349,7 @@ in place).
   in `route-load.mjs` runs once per route load (GPX import or restoring a saved
   ride), not on every ride-progress tick — it only depends on the route's
   fixed distance/ascent totals and populates `state.routeName`/`state.climbs`
-  for later use. It fills the top-bar GPX chip (`#gpxChip`), the Difficulty
+  for later use. It fills the sidebar route picker (`#routePicker`), the Difficulty
   stat tile (`#difficultyStat` + `#difficultyDetail`), and the climbs list
   inside the elevation card. `state.routeName` prefers a gallery ride's curated title,
   then the GPX's own `<name>` (`parseGpx` in `route.mjs` returns
@@ -376,15 +377,10 @@ in place).
   noise. All thresholds live in the `climb_detection` section of `tuning.yaml`
   (via `tuning.mjs`) — `scripts/climb_tester.py` is a standalone CLI that reads
   the exact same section for verbose step-by-step diagnostics against a GPX
-  file; it does not affect the shipped app. `updateClimbStatus` (`climbs-ui.mjs`,
-  called from `updateRideUi` on the same slow-UI cadence as the other live
-  stats) looks up `state.progressMeters` against `state.climbs` each tick: if
-  progress falls inside a climb's `[startDistanceMeters, endDistanceMeters]`
-  it reports that climb's remaining distance/ascent/grade and highlights it
-  in the climbs list; otherwise it reports the next upcoming climb and the
-  distance to it. It never re-detects climbs itself — the tolerance already
-  baked into `detectClimbs`'s boundaries is what keeps this from flickering
-  on GPX noise.
+  file; it does not affect the shipped app. `highlightCurrentClimb`
+  (`climbs-ui.mjs`, called from `updateRideUi`) highlights the detected climb
+  that contains the rider's current position. The map banner shows live
+  progress through that climb or the distance to the next one.
 - **Custom profile segments.** A click on the elevation profile still seeks the
   rider. A horizontal drag across the profile selects an arbitrary route
   segment, using `PROFILE_SEGMENT_SELECTION_*` thresholds in `tuning.mjs` to

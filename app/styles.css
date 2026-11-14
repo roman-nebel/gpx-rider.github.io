@@ -5,6 +5,7 @@
 
 :root {
   color-scheme: dark;
+  --secondary-label-gap: 5px;
   /* surfaces */
   --bg: #0e1116;
   --bar: #12151a;
@@ -84,23 +85,11 @@ body {
   min-height: 620px;
 }
 
-.top-bar {
-  flex: none;
+.sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: 62px;
-  padding: 0 22px;
-  background: var(--bar);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.top-bar-group {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
 }
 
 .brand {
@@ -111,49 +100,38 @@ body {
 }
 
 .brand-dot {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--accent);
   animation: logoPulse 2s ease-in-out infinite;
 }
 
 .brand-name {
-  font: 600 13px/1 var(--font-mono);
+  font: 600 16px/1 var(--font-mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink);
+  white-space: nowrap;
 }
 
-.top-bar-divider {
-  width: 1px;
-  height: 22px;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.gpx-chip {
-  display: flex;
-  align-items: center;
-  gap: 9px;
+.btn.selection-picker {
+  justify-content: flex-start;
+  gap: 6px;
   min-width: 0;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 10px;
 }
 
-.gpx-chip-tag {
-  font: 600 11px/1 var(--font-mono);
-  letter-spacing: 0.05em;
-  color: var(--blue-soft);
-}
-
-.gpx-chip-name {
+.selection-picker-name {
+  flex: 1;
   overflow: hidden;
-  font: 500 12px/1 var(--font-mono);
-  color: #c7cad2;
+  min-width: 0;
+  text-align: start;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.selection-picker svg {
+  flex-shrink: 0;
 }
 
 /* ---- buttons -------------------------------------------------------------- */
@@ -232,19 +210,6 @@ body {
   font-size: 11px;
 }
 
-.count-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 19px;
-  height: 19px;
-  padding: 0 5px;
-  background: var(--blue);
-  border-radius: 5px;
-  font: 700 10px/1 var(--font-mono);
-  color: var(--bg);
-}
-
 .icon-btn {
   display: flex;
   align-items: center;
@@ -274,8 +239,14 @@ body {
   pointer-events: none;
 }
 
-.file-picker span {
-  display: contents;
+.file-picker:has(input:focus-visible) {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.file-picker:has(input:disabled) {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 /* ---- map pane -------------------------------------------------------------- */
@@ -506,8 +477,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: var(--hud-control-size);
+  height: var(--hud-control-size);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
   background: rgba(13, 16, 21, 0.55);
@@ -677,6 +648,7 @@ body {
   --fs-glass-bg: rgba(13, 16, 21, 0.3);
   --fs-glass-border: rgba(255, 255, 255, 0.14);
   --fs-label: rgba(255, 255, 255, 0.5);
+  --hud-track-bg: rgba(255, 255, 255, 0.14);
   --fs-dock-inset: 12px;
   --fs-dock-gap: 10px;
 }
@@ -694,8 +666,12 @@ body {
    once instead of per component. */
 
 .map-viewport {
+  container: map-hud / inline-size;
   --hud-inset: 24px;
   --hud-gap: 12px;
+  --hud-control-size: 42px;
+  --hud-banner-width: 420px;
+  --workout-free-power-gradient: linear-gradient(to top, white, transparent);
   --hud-bottom-inset-x: 24px;
   --hud-bottom-inset-y: 36px;
   /* Side columns stop above the bottom stack: map's bottom strip (Google
@@ -748,6 +724,17 @@ body {
   max-width: calc(100% - 2 * var(--hud-inset));
   align-items: center;
   gap: 10px;
+}
+
+.hud-region-center:has(.workout-step-chip:not([hidden])) {
+  top: calc(var(--hud-inset) + var(--hud-control-size) + var(--hud-gap));
+}
+
+/* The center chip can share the top row once both side groups clear it. */
+@container map-hud (min-width: 1120px) {
+  .hud-region-center:has(.workout-step-chip:not([hidden])) {
+    top: var(--hud-inset);
+  }
 }
 
 /* One full-width panel/stack; children stretch across it. */
@@ -805,6 +792,7 @@ body {
 }
 
 .fs-zone-meter {
+  --zone-value-size: 20px;
   display: grid;
   gap: 6px;
   padding: 10px 12px;
@@ -823,9 +811,329 @@ body {
   color: var(--fs-label);
 }
 
+.fs-zone-unit {
+  text-transform: none;
+}
+
+.fs-zone-meter strong,
+.fs-zone-target {
+  font: 600 var(--zone-value-size)/1 var(--font-num);
+}
+
 .fs-zone-meter strong {
-  font: 600 20px/1 var(--font-num);
   color: #fff;
+}
+
+.fs-zone-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.fs-zone-meta-row > .fs-zone-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-zone-ramp {
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 9px/1 var(--font-mono);
+  color: var(--muted);
+}
+
+.fs-zone-readings {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.fs-zone-readings strong {
+  flex: none;
+  white-space: nowrap;
+}
+
+.fs-zone-target {
+  margin-inline-start: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.fs-zone-deviation {
+  flex: none;
+  font: 700 var(--zone-value-size)/1 var(--font-ui);
+  color: var(--accent);
+}
+
+.workout-step-chip {
+  width: min(var(--hud-banner-width), calc(100cqw - 2 * var(--hud-inset)));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  gap: 10px;
+}
+
+.workout-current-row {
+  align-items: center;
+}
+
+.workout-current-main {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.workout-current-row,
+.workout-next-step,
+.workout-next-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.workout-step-chip strong {
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workout-step-text {
+  font: 600 14px/1 var(--font-ui);
+}
+
+.workout-step-metrics {
+  color: var(--ink-bright);
+  font: 600 clamp(11px, 3.3cqw, 14px)/1.3 var(--font-num);
+  white-space: nowrap;
+}
+
+.workout-step-chip.is-complete strong {
+  max-width: 100%;
+  font-size: 15px;
+}
+
+.workout-next-step {
+  row-gap: 2px;
+}
+
+.workout-next-label {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font: 600 11px/1 var(--font-ui);
+}
+
+.workout-next-row {
+  align-items: baseline;
+}
+
+.workout-next-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workout-next-row strong {
+  max-width: none;
+  min-width: 0;
+}
+
+.workout-next-icon {
+  --workout-next-icon-size: 15px;
+  flex: none;
+  align-self: center;
+  width: 15px;
+  height: 15px;
+  background: currentColor;
+  mask: var(--workout-next-icon) center / var(--workout-next-icon-size) no-repeat;
+}
+
+.workout-next-cadence {
+  --workout-next-icon: url("./assets/mdi/bike-pedal.svg");
+  --workout-next-icon-size: 18px;
+}
+
+.workout-next-heart-rate {
+  --workout-next-icon: url("./assets/mdi/heart.svg");
+  --workout-next-icon-size: 14px;
+}
+
+.workout-next-bolt {
+  --workout-next-icon: url("./assets/mdi/lightning-bolt.svg");
+}
+
+.workout-next-speed {
+  --workout-next-icon: url("./assets/mdi/speedometer.svg");
+}
+
+.workout-next-clock {
+  --workout-next-icon-size: 13px;
+  --workout-next-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
+}
+
+.workout-next-detail {
+  display: flex;
+  flex-shrink: 0;
+  max-width: 100%;
+  margin-inline-start: auto;
+  align-self: center;
+  align-items: baseline;
+  gap: clamp(4px, 1.7cqw, 10px);
+  min-width: 0;
+}
+
+.workout-next-detail:has(.workout-next-power:not([hidden])) {
+  align-self: baseline;
+}
+
+.workout-next-power {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  min-width: 0;
+}
+
+.workout-next-power > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@container map-hud (max-width: 420px) {
+  .workout-next-main {
+    gap: 5px;
+  }
+
+  .workout-step-text {
+    font-size: 12px;
+  }
+
+  .workout-step-metrics {
+    font-size: clamp(10px, 2.9cqw, 12px);
+  }
+
+  .workout-next-detail {
+    gap: 4px;
+  }
+
+  .workout-next-power {
+    gap: 1px;
+  }
+
+  .workout-next-icon {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+.workout-step-track {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 5px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--hud-track-bg);
+}
+
+.workout-step-track::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--workout-step-background, var(--faint));
+  clip-path: inset(0 0 0 var(--workout-step-elapsed, 0%) round 5px 0 0 5px);
+}
+
+.workout-step-track progress {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.workout-step-remaining {
+  grid-column: 2;
+  justify-self: end;
+}
+
+.workout-hud-actions {
+  display: flex;
+  grid-column: 3;
+  gap: 4px;
+}
+
+.workout-hud-start-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--accent);
+  font: 600 11px/1.3 var(--font-ui);
+}
+
+.workout-hud-action {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  min-height: 0;
+  border-radius: 8px;
+  padding: 0;
+}
+
+#workoutHudCountdown {
+  color: inherit;
+}
+
+.workout-hud-action svg {
+  width: 12px;
+  height: 12px;
+}
+
+.workout-hud-action[data-state="start"] {
+  width: auto;
+  padding-inline: 8px;
+}
+
+.workout-hud-action:not([data-state="start"]) .workout-start-label,
+.workout-hud-action:not([data-state="play"]) .workout-play-icon,
+.workout-hud-action:not([data-state="pause"]) .workout-pause-icon {
+  display: none;
+}
+
+.workout-mini-chart {
+  height: 8px;
+}
+
+.workout-mini-chart::before {
+  content: none;
+}
+
+.workout-step-summary {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.workout-step-summary dt {
+  color: var(--muted);
+  font: 600 11px/1 var(--font-ui);
+}
+
+.workout-step-summary dd {
+  margin: 3px 0 0;
+  font: 600 18px/1.1 var(--font-num);
 }
 
 .fs-zone-track {
@@ -833,7 +1141,7 @@ body {
   height: 5px;
   overflow: visible;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--hud-track-bg);
 }
 
 .fs-zone-fill {
@@ -859,7 +1167,7 @@ body {
 /* top-center: climb banner */
 .climb-banner {
   display: block;
-  min-width: 420px;
+  min-width: var(--hud-banner-width);
   padding: 14px 20px 15px;
   border-radius: 16px;
   background: var(--fs-glass-bg);
@@ -1184,10 +1492,14 @@ body {
   align-items: center;
   gap: 9px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .fs-road-eyebrow {
-  flex: none;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font: 600 12px/1 var(--font-ui);
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1309,8 +1621,88 @@ body {
 .fs-bar-track {
   height: 6px;
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--hud-track-bg);
   overflow: hidden;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-track {
+  flex: none;
+  margin-top: auto;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-head span {
+  font-size: 9px;
+  letter-spacing: normal;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-dock-progress:has(.workout-hud-track:not([hidden])) .fs-bar-head {
+  gap: 4px;
+}
+
+.workout-timeline {
+  position: relative;
+  overflow: visible;
+  background: transparent;
+}
+
+.workout-timeline-segments {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.workout-timeline-segments > span {
+  --workout-segment-gap: min(2px, 25%);
+  position: relative;
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.workout-timeline-segments > span:last-child {
+  --workout-segment-gap: 0px;
+}
+
+.workout-timeline-segments > span::before,
+.workout-timeline-segments > .workout-timeline-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 var(--workout-segment-gap) 0 0);
+  background: var(--workout-segment-background);
+}
+
+.workout-timeline-segments > .workout-timeline-active::after {
+  clip-path: inset(0 var(--workout-segment-gap) 0 var(--workout-segment-elapsed) round 5px 0 0 5px);
+}
+
+.workout-step-track.workout-power-hatched::before,
+.workout-timeline-segments > .workout-power-hatched::before,
+.workout-timeline-segments > .workout-power-hatched.workout-timeline-active::after {
+  mask-image: repeating-linear-gradient(125deg, transparent 0 2px, black 2px 3px);
+}
+
+.workout-timeline-segments > .workout-timeline-active::before,
+.workout-timeline-segments > span:has(~ .workout-timeline-active)::before,
+.workout-timeline-complete > span::before {
+  background: var(--hud-track-bg);
+  mask-image: none;
+}
+
+.workout-timeline-complete > .workout-timeline-active::after {
+  content: none;
 }
 
 .fs-bar-fill {
@@ -1408,6 +1800,7 @@ body {
 /* ---- control panel --------------------------------------------------------- */
 
 .control-pane {
+  container-type: inline-size;
   width: 556px;
   flex: none;
   display: flex;
@@ -1429,26 +1822,56 @@ body {
 
 .stat-grid {
   display: grid;
-  gap: 1px;
-  overflow: hidden;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  row-gap: 12px;
 }
 
-.stat-grid-4 {
-  grid-template-columns: repeat(4, 1fr);
-  flex: none;
+.route-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.stat-grid-live {
-  grid-template-columns: repeat(5, 1fr);
+.route-stats,
+.rec-stats,
+.live-stats {
+  padding-block: 6px;
+}
+
+.live-stats {
+  row-gap: 16px;
+}
+
+.rec-stats {
+  margin: 0;
 }
 
 .stat-tile {
-  padding: 13px;
-  background: var(--card);
   min-width: 0;
+  padding-inline: 8px;
+  border-inline-start: 1px solid var(--line-strong);
+}
+
+@container (width > 350px) {
+  .stat-grid:not(.route-stats) .stat-tile:nth-child(5n + 1),
+  .route-stats .stat-tile:nth-child(4n + 1) {
+    padding-inline-start: 0;
+    border-inline-start-color: transparent;
+  }
+}
+
+@container (width <= 350px) {
+  .stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .route-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-grid:not(.route-stats) .stat-tile:nth-child(3n + 1),
+  .route-stats .stat-tile:nth-child(odd) {
+    padding-inline-start: 0;
+    border-inline-start-color: transparent;
+  }
 }
 
 .stat-label {
@@ -1461,22 +1884,50 @@ body {
 
 .stat-value {
   display: block;
-  margin-top: 9px;
-  font: 600 19px/1 var(--font-num);
+  margin: 5px 0 0;
+  font: 600 14px/1 var(--font-num);
   color: var(--ink-bright);
   letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.difficulty-value {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.difficulty-info {
+  position: relative;
+  inset-block-start: -1px;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--muted);
+  font: 600 10px/12px var(--font-ui);
+  text-align: center;
+  cursor: help;
+}
+
+.difficulty-tooltip {
+  position: absolute;
+  z-index: 2;
+  inset-block-end: 100%;
+  inset-inline-end: 0;
+  visibility: hidden;
+  padding: 6px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--bar);
+  color: var(--ink);
+  font: 500 11px/1.4 var(--font-ui);
   white-space: nowrap;
 }
 
-.stat-value-sm {
-  font-size: 14px;
-}
-
-.stat-detail {
-  display: block;
-  margin-top: 6px;
-  font: 500 9px/1.3 var(--font-ui);
-  color: var(--faint);
+.difficulty-info:is(:hover, :focus) .difficulty-tooltip {
+  visibility: visible;
 }
 
 /* ---- cards ------------------------------------------------------------------ */
@@ -1489,23 +1940,127 @@ body {
   background: var(--card);
 }
 
-.panel-card-flush {
-  padding: 0;
-  overflow: hidden;
+.sidebar-section {
+  display: grid;
+  gap: 18px;
 }
 
-.panel-card-zone-help {
-  overflow: visible;
+.sidebar-section h2,
+.sidebar-profile > summary {
+  margin: 0;
+  color: var(--ink-bright);
+  font: 600 16px/1.3 var(--font-ui);
+}
+
+.sidebar-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sidebar-section-head > h2,
+.sidebar-section-head > #clearWorkoutBtn {
+  flex: none;
+}
+
+.sidebar-section-head > #clearWorkoutBtn,
+.sidebar-section-head > h2 + .selection-picker {
+  margin-inline-start: auto;
+}
+
+.sidebar-profile {
+  display: block;
+}
+
+.sidebar-profile > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  cursor: pointer;
+}
+
+.sidebar-profile > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-profile[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.sidebar-subgroup,
+.sidebar-detail-body {
+  display: grid;
+  gap: 12px;
+}
+
+.sidebar-details {
+  color: var(--muted);
+  font: 600 12px/1.4 var(--font-ui);
+}
+
+.sidebar-details summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  list-style: none;
+  width: fit-content;
+  cursor: pointer;
+}
+
+.sidebar-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-details summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-inline-end: 1.5px solid currentColor;
+  border-block-end: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.sidebar-details[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.sidebar-detail-body {
+  margin-top: 10px;
+}
+
+.sidebar-details > .climbs-list,
+.sidebar-details > .workout-steps {
+  margin-block-start: 12px;
+}
+
+.workout-step-count {
+  color: var(--faint);
 }
 
 .panel-card-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
+.simulation-head > div {
+  display: grid;
+  gap: 6px;
+}
+
+.simulation-head .panel-card-title {
+  line-height: 1.2;
+}
+
+.simulation-head .panel-card-hint {
+  margin: 0;
+}
+
 .panel-card-title {
+  display: block;
   font: 600 11px/1 var(--font-ui);
   letter-spacing: 0.13em;
   color: #c2c6cf;
@@ -1516,6 +2071,154 @@ body {
   margin: 6px 0 0;
   font: 400 11px/1.4 var(--font-ui);
   color: var(--faint);
+}
+
+.workout-card {
+  display: grid;
+  gap: 12px;
+}
+
+.workout-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.workout-warning {
+  color: var(--accent);
+}
+
+.workout-error {
+  color: var(--red);
+  margin: 0;
+}
+
+.workout-chart {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--bg);
+  font: 500 10px/1.3 var(--font-mono);
+  color: var(--muted);
+}
+
+.workout-chart-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.workout-chart-grid {
+  stroke: var(--line);
+}
+
+.workout-chart-ftp {
+  stroke: var(--faint);
+  stroke-opacity: 0.65;
+  stroke-dasharray: 4 3;
+}
+
+.workout-chart-ftp-label {
+  fill: var(--muted);
+  opacity: 0.8;
+  stroke: var(--bg);
+  stroke-width: 2px;
+  paint-order: stroke;
+}
+
+.workout-chart-open {
+  fill: var(--line);
+  stroke: var(--faint);
+  stroke-dasharray: 2 2;
+}
+
+.workout-chart-range {
+  fill: none;
+  stroke: var(--bg);
+  stroke-opacity: 0.8;
+  stroke-dasharray: 3 2;
+}
+
+.workout-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 4px;
+}
+
+.workout-steps {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workout-steps li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  align-items: center;
+  gap: 4px 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  font: 500 11px/1.3 var(--font-mono);
+  color: #c2c6cf;
+  overflow-wrap: anywhere;
+}
+
+.workout-step-number {
+  flex: none;
+  color: var(--faintest);
+}
+
+.workout-step-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.workout-step-name {
+  font: 600 12px/1.3 var(--font-ui);
+  color: var(--ink-bright);
+}
+
+.workout-step-list-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px 9px;
+  max-width: 180px;
+  color: var(--ink-bright);
+  font: 600 11px/1.3 var(--font-num);
+  text-align: end;
+}
+
+.workout-step-list-duration {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.workout-step-list-duration > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workout-step-list-duration,
+.workout-step-list-metrics .workout-next-power {
+  align-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workout-step-notes {
+  grid-column: 1 / -1;
+  color: var(--muted);
 }
 
 .gallery-export-card {
@@ -1605,8 +2308,6 @@ body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  padding: 12px 14px;
-  border-top: 1px solid var(--line);
 }
 
 .rider-zone-form label {
@@ -1635,8 +2336,6 @@ body {
 .zone-editor {
   display: grid;
   gap: 12px;
-  padding: 12px 14px 14px;
-  border-top: 1px solid var(--line);
 }
 
 .zone-editor-note {
@@ -1719,34 +2418,6 @@ body {
 
 /* ---- climbs ----------------------------------------------------------------- */
 
-.climbs-section {
-  margin-top: 11px;
-  padding-top: 11px;
-  border-top: 1px solid var(--line-soft);
-}
-
-.climbs-section[hidden] {
-  display: none;
-}
-
-.climb-status {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 9px;
-}
-
-.climb-status strong {
-  font: 600 12px/1.3 var(--font-ui);
-  color: var(--accent);
-}
-
-.climb-status span {
-  font: 500 11px/1.3 var(--font-mono);
-  color: var(--muted);
-}
-
 .climbs-list {
   display: grid;
   gap: 5px;
@@ -1757,6 +2428,7 @@ body {
 
 .climbs-list li {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 7px 10px;
@@ -1792,17 +2464,33 @@ body {
   color: var(--faintest);
 }
 
-.climbs-list .climb-grade {
+.climb-summary {
+  flex: none;
+  white-space: nowrap;
+}
+
+.climb-range {
+  text-align: end;
+}
+
+.climb-gain {
   color: var(--grade-climb);
   font-weight: 600;
+}
+
+.climb-grade {
+  color: var(--ink-bright);
 }
 
 /* ---- ride progress ----------------------------------------------------------- */
 
 .progress-wrap {
   display: grid;
-  gap: 7px;
-  margin-top: 13px;
+  gap: 5px;
+}
+
+.progress-wrap .ascent-progress {
+  margin-block-start: 7px;
 }
 
 progress {
@@ -1842,10 +2530,6 @@ progress.ascent-progress::-moz-progress-bar {
   color: var(--faint);
 }
 
-.stat-grid-live {
-  margin-top: 13px;
-}
-
 /* ---- connections -------------------------------------------------------------- */
 
 .connection-row {
@@ -1853,18 +2537,30 @@ progress.ascent-progress::-moz-progress-bar {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 13px 16px;
-}
-
-.connection-row + .connection-row {
-  border-top: 1px solid var(--line-soft);
+  padding: 3px 0;
 }
 
 .connection-info {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 11px;
   min-width: 0;
+}
+
+.connection-info .status-dot {
+  margin-block-start: 2px;
+}
+
+.connection-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.connection-actions .icon-btn {
+  width: 32px;
+  height: 32px;
 }
 
 .status-dot {
@@ -1885,8 +2581,12 @@ progress.ascent-progress::-moz-progress-bar {
   color: var(--ink);
 }
 
+.connection-info > div {
+  min-width: 0;
+}
+
 .connection-status {
-  margin-top: 5px;
+  margin-top: var(--secondary-label-gap);
   font: 500 11px/1 var(--font-mono);
   color: var(--faint);
   overflow: hidden;
@@ -1902,6 +2602,7 @@ progress.ascent-progress::-moz-progress-bar {
 
 .demo-card-top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
@@ -1920,16 +2621,11 @@ progress.ascent-progress::-moz-progress-bar {
   align-items: center;
   flex-wrap: wrap;
   gap: 6px 14px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.theater-hud-toggles-label {
-  font: 500 11px/1 var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--faint);
-  flex: 1 0 100%;
+.theater-hud-toggles > .panel-card-title {
+  flex-basis: 100%;
+  margin-block-end: 5px;
 }
 
 .theater-hud-toggle {
@@ -2014,32 +2710,6 @@ progress.ascent-progress::-moz-progress-bar {
   animation: livepulse 1.6s ease-in-out infinite;
 }
 
-.rec-stats {
-  display: flex;
-  gap: 26px;
-  flex-wrap: wrap;
-  margin: 14px 0 0;
-}
-
-.rec-stats div {
-  display: flex;
-  flex-direction: column-reverse;
-}
-
-.rec-stats dt {
-  margin-top: 6px;
-  font: 500 9px/1 var(--font-ui);
-  letter-spacing: 0.1em;
-  color: var(--faint);
-  text-transform: uppercase;
-}
-
-.rec-stats dd {
-  margin: 0;
-  font: 600 16px/1 var(--font-num);
-  color: var(--ink-bright);
-}
-
 .button-row {
   display: flex;
   gap: 8px;
@@ -2048,6 +2718,15 @@ progress.ascent-progress::-moz-progress-bar {
 
 .button-row .btn {
   flex: 1;
+}
+
+.fit-export-actions {
+  flex-wrap: wrap;
+  margin-top: 0;
+}
+
+.fit-export-actions .btn {
+  flex-basis: auto;
 }
 
 /* ---- simulation ------------------------------------------------------------------ */
@@ -2079,33 +2758,6 @@ progress.ascent-progress::-moz-progress-bar {
 
 input[type="range"] {
   accent-color: var(--accent);
-}
-
-/* ---- help note -------------------------------------------------------------------- */
-
-.help-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-  flex: none;
-  margin-top: auto;
-  padding: 13px 15px;
-  border: 1px dashed rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  font: 400 12px/1.55 var(--font-ui);
-  color: var(--muted);
-}
-
-.help-note-mark {
-  margin-top: 1px;
-  font: 700 12px/1 var(--font-mono);
-  color: var(--blue-soft);
-}
-
-.help-note a {
-  color: var(--ink);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 /* ---- settings dialog (5a): category rail + panel ----------------------------------- */
@@ -2291,11 +2943,20 @@ dialog::backdrop {
   gap: 16px;
 }
 
+.setting-row:has(.setting-row-hint) > .switch {
+  align-self: flex-start;
+  margin-block-start: 3px;
+}
+
 .setting-row-text {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--secondary-label-gap);
   min-width: 0;
+}
+
+.setting-row-text:has(+ .switch) > .setting-row-label {
+  padding-block-start: 5px;
 }
 
 .setting-row-label {
@@ -2573,7 +3234,24 @@ input[type="color"] {
   gap: 14px;
 }
 
+.route-gallery-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.gallery-import-hint {
+  justify-self: end;
+  margin: 0;
+  color: var(--muted);
+  font: 400 12px/1.5 var(--font-ui);
+}
+
+.gallery-import-hint a {
+  color: var(--blue-soft);
+}
+
 .gallery-title {
+  margin: 0;
   font: 500 30px/1 var(--font-serif);
   color: #f5f6f8;
 }
@@ -2587,16 +3265,13 @@ input[type="color"] {
 
 .gallery-head-actions {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 12px;
+  margin-inline-start: auto;
 }
 
-.gallery-attribution {
-  font: 400 12px/1 var(--font-ui);
-  color: var(--faint);
-}
-
-.gallery-head-actions .icon-btn {
+.gallery-head .icon-btn {
   width: 42px;
   height: 42px;
   border-radius: 12px;
@@ -2607,6 +3282,21 @@ input[type="color"] {
   min-height: 0;
   overflow-y: auto;
   padding: 4px 32px 32px;
+}
+
+.gallery-message,
+.gallery-import-error {
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--muted);
+}
+
+.gallery-import-error {
+  border-color: var(--salmon);
+  color: var(--salmon);
 }
 
 .gallery-grid {
@@ -2857,10 +3547,6 @@ input[type="color"] {
     width: 420px;
   }
 
-  .stat-grid-live {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .gallery-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -2881,16 +3567,15 @@ input[type="color"] {
     height: 56vh;
   }
 
-  .control-pane {
-    width: 100%;
-    border-left: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  .map-pane:has(.workout-step-chip:not([hidden])) {
+    min-height: 600px;
   }
 
-  .top-bar {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 10px 14px;
+  .control-pane {
+    width: 100%;
+    padding: 14px;
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
   }
 
   .gallery-grid {
@@ -2941,6 +3626,44 @@ input[type="color"] {
   }
 }
 
+@media (max-width: 620px) {
+  .gallery-head {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .gallery-head-title {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+
+  .gallery-title {
+    font-size: 23px;
+  }
+
+  .gallery-head-actions {
+    gap: 6px;
+  }
+
+  .route-gallery-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .route-gallery-head form {
+    grid-area: 1 / 2;
+    justify-self: end;
+  }
+
+  .gallery-import-hint {
+    justify-self: start;
+  }
+
+  .gallery-scroll {
+    padding-inline: 14px;
+  }
+}
+
 /* ---- map HUD on phones -----------------------------------------------------
    The dock is laid out for a wide screen: its body is a horizontal row
    (fixed-width metric grid + separator + road-ahead profile) and the collapsed
@@ -2986,11 +3709,8 @@ input[type="color"] {
   }
 
   .fs-zone-meter {
+    --zone-value-size: 16px;
     padding: 8px 9px;
-  }
-
-  .fs-zone-meter strong {
-    font-size: 16px;
   }
 
   /* The banner's desktop min-width (420px) overflows a phone; let it span the
@@ -2998,6 +3718,9 @@ input[type="color"] {
   .climb-banner {
     width: 100%;
     min-width: 0;
+  }
+
+  .climb-banner {
     padding: 12px 14px 13px;
   }
 

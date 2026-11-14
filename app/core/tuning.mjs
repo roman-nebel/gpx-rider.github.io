@@ -241,6 +241,17 @@ export const DEFAULT_HUD_DOCK_COLLAPSED = req("display_hud", "dock_collapsed");
 // Training zones & calories
 export const DEFAULT_RESTING_HEART_RATE_BPM = req("training_zones", "resting_heart_rate_bpm");
 export const DEFAULT_MAX_HEART_RATE_BPM = req("training_zones", "max_heart_rate_bpm");
+export const POWER_ZONE_LIMITS = req("training_zones", "power_zone_limits");
+export const WORKOUT_PREVIEW_STEP_LIMIT = req("training_zones", "workout_preview_step_limit");
+export const WORKOUT_HUD_TARGET_TOLERANCE = req("training_zones", "workout_hud_target_tolerance");
+export const WORKOUT_HUD_NEXT_STEP_SECONDS = req("training_zones", "workout_hud_next_step_seconds");
+export const WORKOUT_START_COUNTDOWN_SECONDS = req("training_zones", "workout_start_countdown_seconds");
+export const DEFAULT_WORKOUT_AUTO_START = req("training_zones", "workout_auto_start");
+export const ERG_ROAD_SPEED = req("erg_road_speed");
+export const WORKOUT_ERG_UPDATE_MS = req("training_zones", "workout_erg_update_ms");
+export const WORKOUT_ERG_POWER_TIMEOUT_MS = req("training_zones", "workout_erg_power_timeout_ms");
+export const WORKOUT_PROFILE_FTP_CEILING = req("training_zones", "workout_profile_ftp_ceiling");
+export const WORKOUT_PROFILE_STEP_LIMIT = req("training_zones", "workout_profile_step_limit");
 export const POWER_ZONE_DEFINITIONS = req("training_zones", "power_zone_definitions");
 export const HEART_RATE_ZONE_DEFINITIONS = req("training_zones", "heart_rate_zone_definitions");
 export const HEART_RATE_MAX_AGE_FORMULA_BASE = req("training_zones", "heart_rate_max_age_formula_base");

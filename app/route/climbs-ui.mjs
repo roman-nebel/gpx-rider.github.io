@@ -141,12 +141,8 @@ export function syncFocusedClimbList() {
   });
 }
 
-// Live "current climb" / "next climb" status shown above the climbs list
-// while riding. Reuses the climbs detected once at route load (state.climbs)
-// rather than re-scanning the route every tick — those boundaries already
-// tolerate the flat/downhill noise a naive live-grade check would flicker
-// on (see CLIMB_MERGE_GAP_METERS / CLIMB_DESCENT_TOLERANCE_METERS).
-export function updateClimbStatus(point) {
+// Highlight the detected climb that contains the current ride position.
+export function highlightCurrentClimb() {
   if (!state.climbs.length) return;
 
   const progress = state.progressMeters;
@@ -157,33 +153,6 @@ export function updateClimbStatus(point) {
   [...els.climbsList.children].forEach((item, index) => {
     item.classList.toggle("active", index === currentIndex);
   });
-
-  if (currentIndex !== -1) {
-    const climb = state.climbs[currentIndex];
-    const remainingDistance = Math.max(0, climb.endDistanceMeters - progress);
-    const remainingAscent = Math.max(0, climb.endElevationMeters - point.ele);
-    const remainingGrade = remainingDistance > 0 ? (remainingAscent / remainingDistance) * 100 : 0;
-    els.climbStatusHeadline.textContent = `Climbing — climb ${currentIndex + 1} of ${state.climbs.length}`;
-    els.climbStatusDetail.textContent =
-      `${formatDistance(remainingDistance, state.distanceUnits, 1)} left · ` +
-      `${formatAltitude(remainingAscent, state.distanceUnits)} to climb · ` +
-      `${remainingGrade.toFixed(1)}% avg remaining`;
-    return;
-  }
-
-  const next = state.climbs.find((climb) => climb.startDistanceMeters > progress);
-  if (!next) {
-    els.climbStatusHeadline.textContent = "No more climbs";
-    els.climbStatusDetail.textContent = "";
-    return;
-  }
-
-  const distanceToClimb = next.startDistanceMeters - progress;
-  els.climbStatusHeadline.textContent = `Next climb in ${formatDistance(distanceToClimb, state.distanceUnits, 1)}`;
-  els.climbStatusDetail.textContent =
-    `${formatDistance(next.lengthMeters, state.distanceUnits, 1)} · ` +
-    `${formatAltitude(next.gainMeters, state.distanceUnits)} · ` +
-    `${next.averageGradePercent.toFixed(1)}% avg`;
 }
 
 // Plain-language climb category from average grade alone (see CLIMB_CATEGORIES).

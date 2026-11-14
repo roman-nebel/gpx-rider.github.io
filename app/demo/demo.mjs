@@ -1,10 +1,8 @@
 import { clamp, roundCoordinate } from "../core/geo.mjs";
 import { advanceAlongRoad, gradeAt, interpolateRoutePoint, roadDistanceAt } from "../route/route.mjs";
 import { CYCLING_GROSS_EFFICIENCY, DEMO_RIDE } from "../core/tuning.mjs";
+import { cyclingSpeedForPower } from "../ride/cycling-speed.mjs";
 import { activeCaloriesFromPower } from "../core/units.mjs";
-
-const GRAVITY = 9.80665;
-const KPH_PER_MPS = 3.6;
 
 export function createDemoRideModel(config = DEMO_RIDE) {
   return {
@@ -39,19 +37,7 @@ export function demoTargetCadenceRpm(gradePercent, config = DEMO_RIDE) {
 }
 
 export function demoSpeedForPower(powerWatts, gradePercent, config = DEMO_RIDE) {
-  const usefulPower = Math.max(0, powerWatts) * config.drivetrain_efficiency;
-  const low = config.min_speed_kph / KPH_PER_MPS;
-  const high = config.max_speed_kph / KPH_PER_MPS;
-  let lo = low;
-  let hi = high;
-
-  for (let i = 0; i < 34; i += 1) {
-    const mid = (lo + hi) / 2;
-    if (requiredPowerWatts(mid, gradePercent, config) > usefulPower) hi = mid;
-    else lo = mid;
-  }
-
-  return clamp(((lo + hi) / 2) * KPH_PER_MPS, config.min_speed_kph, config.max_speed_kph);
+  return cyclingSpeedForPower(powerWatts, gradePercent, config);
 }
 
 export function advanceDemoRide(model, {
@@ -146,16 +132,6 @@ export function seedDemoHistory(model, {
   }
 
   model.historySamples = thinHistorySamples(model.historySamples, config.max_history_samples);
-}
-
-function requiredPowerWatts(speedMps, gradePercent, config) {
-  const massKg = config.rider_weight_kg + config.bike_weight_kg;
-  const grade = clamp((Number.isFinite(gradePercent) ? gradePercent : 0) / 100, -0.3, 0.3);
-  const slopeCos = 1 / Math.sqrt(1 + grade * grade);
-  const gravityForce = massKg * GRAVITY * grade;
-  const rollingForce = massKg * GRAVITY * config.rolling_resistance_coefficient * slopeCos;
-  const aeroForce = 0.5 * config.air_density_kg_per_cubic_meter * config.drag_area_square_meters * speedMps * speedMps;
-  return Math.max(0, (gravityForce + rollingForce + aeroForce) * speedMps);
 }
 
 function updateDemoHeartRate(model, elapsedSeconds, config) {
