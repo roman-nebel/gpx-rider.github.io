@@ -1832,11 +1832,11 @@ body {
 
 .route-stats,
 .rec-stats,
-.sidebar-detail-body > .stat-grid {
+.live-stats {
   padding-block: 6px;
 }
 
-.sidebar-detail-body > .stat-grid {
+.live-stats {
   row-gap: 16px;
 }
 
@@ -1960,12 +1960,10 @@ body {
 }
 
 .sidebar-section-head > h2,
-.sidebar-section-head > #resetBtn,
 .sidebar-section-head > #clearWorkoutBtn {
   flex: none;
 }
 
-.sidebar-section-head > #resetBtn,
 .sidebar-section-head > #clearWorkoutBtn,
 .sidebar-section-head > h2 + .selection-picker {
   margin-inline-start: auto;
@@ -2724,6 +2722,7 @@ progress.ascent-progress::-moz-progress-bar {
 
 .fit-export-actions {
   flex-wrap: wrap;
+  margin-top: 0;
 }
 
 .fit-export-actions .btn {

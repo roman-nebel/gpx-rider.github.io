@@ -1,5 +1,5 @@
 // Ride recording & FIT export: the FIT buffer card (recording indicator +
-// summary stats), the FIT file download, and clearing collected ride data.
+// summary stats), the FIT file download, and resetting a ride.
 // The recording itself lives in recorder.mjs; the FIT encoding in fit.mjs.
 
 import { encodeFitActivity } from "./fit.mjs";
@@ -15,6 +15,7 @@ import {
 import { els, state, updateProgressLabel } from "../core/state.mjs";
 import { formatDistance, formatDuration, formatEnergy } from "../core/units.mjs";
 import { sliceWorkoutFit } from "./workout-fit-slice.mjs";
+import { resetRide } from "./movement.mjs";
 
 export function updateRecordingUi() {
   // The bucket only grows while the rider is actually moving — mirror that
@@ -32,7 +33,7 @@ export function updateRecordingUi() {
   const exportLocked = workoutExportLocked();
   els.downloadFitBtn.disabled = exportLocked || summary.sampleCount < 2;
   els.downloadWorkoutFitBtn.disabled = exportLocked || !rideLogWorkoutFitRange();
-  els.clearRideDataBtn.disabled = summary.sampleCount === 0;
+  els.resetBtn.disabled = summary.sampleCount === 0;
 }
 
 export function downloadFitFile() {
@@ -110,12 +111,7 @@ function downloadFit(workoutOnly) {
   if (range) return;
   window.setTimeout(() => {
     if (workoutExportLocked()) return;
-    if (window.confirm("FIT file downloaded. Clear the collected ride data to start fresh?")) {
-      clearRideLog();
-      state.powerCaloriesKcal = 0;
-      updateRecordingUi();
-      updateProgressLabel("Ride data cleared.");
-    }
+    if (hasRideData()) confirmResetRide({ downloaded: true });
   }, 300);
 }
 
@@ -123,13 +119,17 @@ function workoutExportLocked() {
   return Boolean(state.workoutErg || state.workoutCountdown);
 }
 
-export function confirmClearRideData() {
+export function confirmResetRide({ downloaded = false } = {}) {
   if (!hasRideData()) return;
   const summary = rideLogSummary();
   const description = `${formatDistance(summary.distanceMeters, state.distanceUnits)} / ${formatDuration(summary.timerSeconds, state.durationFormat)}`;
-  if (!window.confirm(`Discard the collected ride data (${description}) without downloading?`)) return;
+  const action = state.route.length ? "Return to the start and delete" : "Delete";
+  const message = `${action} the ride recording (${description})`;
+  const prompt = downloaded ? `FIT file downloaded. ${message}?` : `${message} without downloading?`;
+  if (!window.confirm(prompt)) return;
   clearRideLog();
   state.powerCaloriesKcal = 0;
+  if (state.route.length) resetRide();
   updateRecordingUi();
-  updateProgressLabel("Ride data cleared.");
+  if (!state.route.length) updateProgressLabel("Ride data cleared.");
 }

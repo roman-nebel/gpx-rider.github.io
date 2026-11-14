@@ -328,10 +328,60 @@
             </button>
           </header>
 
+          <section class="panel-card sidebar-section" aria-labelledby="liveDataTitle">
+            <h2 id="liveDataTitle">Live data</h2>
+            <div class="stat-grid live-stats" aria-live="polite">
+              <div class="stat-tile">
+                <span class="stat-label">Ridden</span>
+                <strong id="riddenStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Remaining</span>
+                <strong id="remainingStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">ETA</span>
+                <strong id="etaStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Ascent left</span>
+                <strong id="ascentLeftStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Grade</span>
+                <strong id="gradeStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Altitude</span>
+                <strong id="altitudeStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Power</span>
+                <strong id="powerStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Speed</span>
+                <strong id="speedStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Heart rate</span>
+                <strong id="heartRateStat" class="stat-value">--</strong>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-label">Calories</span>
+                <strong id="caloriesStat" class="stat-value">--</strong>
+              </div>
+            </div>
+            <div class="button-row fit-export-actions">
+              <button id="downloadFitBtn" type="button" class="btn btn-accent" disabled>Export full ride</button>
+              <button id="downloadWorkoutFitBtn" type="button" class="btn btn-outline-blue" disabled>Export workout only</button>
+              <button id="resetBtn" type="button" class="btn btn-outline-danger" disabled>Reset ride</button>
+            </div>
+          </section>
+
           <section class="panel-card sidebar-section">
             <div class="sidebar-section-head">
               <h2>Route</h2>
-              <button id="resetBtn" type="button" class="btn btn-ghost btn-sm" aria-label="Reset route progress" disabled>Reset</button>
               <button id="routePicker" type="button" class="btn btn-outline-blue btn-sm selection-picker" aria-haspopup="dialog" aria-controls="galleryDialog" data-label="Route">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><path d="M8.5 18H17a3 3 0 0 0 0-6H7a3 3 0 0 1 0-6h8.5"></path></svg>
                 <span class="selection-picker-name">Select route</span>
@@ -464,59 +514,7 @@
                 <div class="stat-tile"><dt class="stat-label">Heart rate</dt><dd id="recHeartRateStat" class="stat-value">--</dd></div>
                 <div class="stat-tile"><dt class="stat-label">Energy</dt><dd id="recCaloriesStat" class="stat-value">--</dd></div>
               </dl>
-              <div class="button-row fit-export-actions">
-                <button id="downloadFitBtn" type="button" class="btn btn-accent" disabled>Full ride .FIT</button>
-                <button id="downloadWorkoutFitBtn" type="button" class="btn btn-outline-blue" disabled>Workout only .FIT</button>
-                <button id="clearRideDataBtn" type="button" class="btn btn-outline-danger" disabled>Clear recording</button>
-              </div>
             </div>
-            <details class="sidebar-details">
-              <summary>Live data</summary>
-              <div class="sidebar-detail-body">
-                <div class="stat-grid" aria-live="polite">
-                  <div class="stat-tile">
-                    <span class="stat-label">Ridden</span>
-                    <strong id="riddenStat" class="stat-value">--</strong>
-                  </div>
-                  <div class="stat-tile">
-                    <span class="stat-label">Remaining</span>
-                    <strong id="remainingStat" class="stat-value">--</strong>
-                  </div>
-                  <div class="stat-tile">
-                    <span class="stat-label">ETA</span>
-                    <strong id="etaStat" class="stat-value">--</strong>
-                  </div>
-                  <div class="stat-tile">
-                    <span class="stat-label">Ascent left</span>
-                    <strong id="ascentLeftStat" class="stat-value">--</strong>
-                  </div>
-                  <div class="stat-tile">
-                    <span class="stat-label">Grade</span>
-                    <strong id="gradeStat" class="stat-value">--</strong>
-                  </div>
-                  <div class="stat-tile">
-                    <span class="stat-label">Altitude</span>
-                    <strong id="altitudeStat" class="stat-value">--</strong>
-                  </div>
-                  <div class="stat-tile">
-                    <span class="stat-label">Power</span>
-                    <strong id="powerStat" class="stat-value">--</strong>
-                  </div>
-                  <div class="stat-tile">
-                    <span class="stat-label">Speed</span>
-                    <strong id="speedStat" class="stat-value">--</strong>
-                  </div>
-                  <div class="stat-tile">
-                    <span class="stat-label">Heart rate</span>
-                    <strong id="heartRateStat" class="stat-value">--</strong>
-                  </div>
-                  <div class="stat-tile">
-                    <span class="stat-label">Calories</span>
-                    <strong id="caloriesStat" class="stat-value">--</strong>
-                  </div>
-                </div>
-              </div>
-            </details>
           </section>
 
           <section class="panel-card sidebar-section">

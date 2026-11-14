@@ -423,7 +423,6 @@ export function restoreSavedRide() {
   updateRouteOverview();
   updateRideUi({ force: true });
   els.startBtn.disabled = false;
-  els.resetBtn.disabled = false;
   syncDemoModeUi();
 }
 

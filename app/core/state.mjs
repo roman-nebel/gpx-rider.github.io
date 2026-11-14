@@ -491,7 +491,6 @@ export const els = {
   recCaloriesStat: document.querySelector("#recCaloriesStat"),
   downloadFitBtn: document.querySelector("#downloadFitBtn"),
   downloadWorkoutFitBtn: document.querySelector("#downloadWorkoutFitBtn"),
-  clearRideDataBtn: document.querySelector("#clearRideDataBtn"),
 };
 
 // One-line status readout under the progress bar; the app-wide way to tell

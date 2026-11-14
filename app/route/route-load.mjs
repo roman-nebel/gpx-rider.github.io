@@ -111,7 +111,6 @@ function applyGpxText(text, { overrideName = null, fallbackName = null, galleryM
   saveRide();
 
   els.startBtn.disabled = false;
-  els.resetBtn.disabled = false;
   syncDemoModeUi();
   return true;
 }

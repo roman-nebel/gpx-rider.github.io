@@ -187,10 +187,11 @@ in place).
   while the tab is visible and falls back to `setTimeout` when hidden, so
   rides keep advancing and recording in background tabs. Per-tick elapsed
   time is clamped (`MAX_TICK_SECONDS`) to avoid teleporting.
-- **Ride recording** is independent of route progress: resetting or seeking
-  the route does not touch the recorded bucket. The bucket only grows while
-  the rider is actually moving, and it survives reloads via `storage.mjs`
-  (IndexedDB — a long ride no longer risks localStorage's ~5 MB quota).
+- **Ride recording** grows while the rider is pedaling and survives reloads
+  through IndexedDB. Seeking preserves the recording. **Reset ride** returns
+  to the route start and clears any recording after confirmation. Internal
+  route resets, such as starting a workout after finishing a route, preserve
+  the recording.
 - **FIT export** must stay a *virtual ride* (sport 2 / sub_sport 58) or
   Strava/Garmin will misclassify uploads. `fit.mjs` is a hand-rolled
   little-endian encoder — if you touch it, keep the CRC and header tests
@@ -208,7 +209,7 @@ in place).
   The estimator resets when a new GPX loads, not on ride reset.
 - **UI layout & reusable components.** The app is a dark, single-viewport
   shell (`app.html`): a 3D map filling the left and a right control panel with
-  Route, Workout, Devices, My profile, Simulation & demo, and Settings. CSS
+  Live data, Route, Workout, Devices, My profile, Simulation & demo, and Settings. CSS
   components in `styles.css` are meant to be reused, not re-invented per
   screen: `.btn` (+ `-ghost`/`-blue`/`-accent`/`-outline-*`/`-sm`),
   `.panel-card` (+ `-head`/`-title`/`-hint`), `.stat-grid` + `.stat-tile`,

@@ -41,7 +41,7 @@ import {
   toggleHudDock,
   toggleMapFullscreen,
 } from "./hud/map-hud.mjs";
-import { handleVisibilityChange, resetRide, toggleSimulation } from "./ride/movement.mjs";
+import { handleVisibilityChange, toggleSimulation } from "./ride/movement.mjs";
 import { restoreSavedRide, restoreSettings, saveRide } from "./storage/persistence.mjs";
 import {
   cancelProfileSelection,
@@ -53,7 +53,7 @@ import {
   handleProfilePointerUp,
 } from "./route/profile-ui.mjs";
 import { persistRideLog, restoreRideLog, rideLogSummary } from "./ride/recorder.mjs";
-import { confirmClearRideData, downloadFitFile, downloadWorkoutFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
+import { confirmResetRide, downloadFitFile, downloadWorkoutFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
 import { loadGpxFile, loadGpxFromUrl } from "./route/route-load.mjs";
 import {
   openSettings,
@@ -265,10 +265,9 @@ function bindEvents() {
   els.demoModeBtn.addEventListener("click", toggleDemoMode);
   els.resizeRecordingWindowBtn.addEventListener("click", toggleTheaterMode);
   els.startBtn.addEventListener("click", toggleSimulation);
-  els.resetBtn.addEventListener("click", resetRide);
+  els.resetBtn.addEventListener("click", confirmResetRide);
   els.downloadFitBtn.addEventListener("click", downloadFitFile);
   els.downloadWorkoutFitBtn.addEventListener("click", downloadWorkoutFitFile);
-  els.clearRideDataBtn.addEventListener("click", confirmClearRideData);
   els.profile.addEventListener("mousemove", handleProfileHover);
   els.profile.addEventListener("mouseleave", handleProfileLeave);
   els.profile.addEventListener("pointerdown", handleProfilePointerDown);
