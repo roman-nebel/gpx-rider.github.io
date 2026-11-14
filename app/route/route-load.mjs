@@ -154,18 +154,22 @@ export function updateRouteOverview() {
       const index_ = document.createElement("span");
       index_.className = "climb-index";
       index_.textContent = `${index + 1}.`;
-      const label = document.createElement("span");
-      label.textContent =
+      const range = document.createElement("span");
+      range.className = "climb-range";
+      range.textContent =
         `${formatDistance(climb.startDistanceMeters, state.distanceUnits, 1)} → ` +
-        `${formatDistance(climb.endDistanceMeters, state.distanceUnits, 1)} · ` +
-        `${formatDistance(climb.lengthMeters, state.distanceUnits, 1)} · ` +
-        `${formatAltitude(climb.gainMeters, state.distanceUnits)}`;
-      const line = document.createElement("span");
-      line.append(index_, document.createTextNode(" "), label);
+        `${formatDistance(climb.endDistanceMeters, state.distanceUnits, 1)} ` +
+        `(${formatDistance(climb.lengthMeters, state.distanceUnits, 1)})`;
+      const gain = document.createElement("span");
+      gain.className = "climb-gain";
+      gain.textContent = formatAltitude(climb.gainMeters, state.distanceUnits);
       const grade = document.createElement("span");
       grade.className = "climb-grade";
-      grade.textContent = `${climb.averageGradePercent.toFixed(1)}%`;
-      item.append(line, grade);
+      grade.textContent = `(${climb.averageGradePercent.toFixed(1)}%)`;
+      const summary = document.createElement("span");
+      summary.className = "climb-summary";
+      summary.append(index_, document.createTextNode(" "), gain, document.createTextNode(" "), grade);
+      item.append(summary, range);
       // Click (or keyboard-activate) a climb to jump to its foot. From the
       // overview surface this also drills into the configured climb camera and
       // highlights that segment; during a ride it keeps the normal route style.

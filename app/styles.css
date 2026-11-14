@@ -2430,6 +2430,7 @@ body {
 
 .climbs-list li {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 7px 10px;
@@ -2465,9 +2466,22 @@ body {
   color: var(--faintest);
 }
 
-.climbs-list .climb-grade {
+.climb-summary {
+  flex: none;
+  white-space: nowrap;
+}
+
+.climb-range {
+  text-align: end;
+}
+
+.climb-gain {
   color: var(--grade-climb);
   font-weight: 600;
+}
+
+.climb-grade {
+  color: var(--ink-bright);
 }
 
 /* ---- ride progress ----------------------------------------------------------- */
