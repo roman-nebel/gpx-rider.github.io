@@ -14,10 +14,11 @@ export function restoreSimulationRecording() {
   if (saved?.samples?.length) recording = saved;
 }
 
-export function createSimulationRecording(startTimeMs) {
+export function createSimulationRecording(startTimeMs, workout = null) {
   return {
     samples: [],
     simulated: true,
+    workout,
     summary: {
       startTimeMs,
       endTimeMs: startTimeMs,
@@ -84,4 +85,19 @@ export async function clearSimulationRecording() {
     recording ??= previous;
     throw error;
   }
+}
+
+export function hasSimulationWorkout(recording) {
+  return Boolean(recording?.workout && (recording.workoutEnd?.count ?? recording.samples.length) >= 2);
+}
+
+export function simulationWorkoutFit(recording) {
+  if (!hasSimulationWorkout(recording)) return null;
+  const end = recording.workoutEnd;
+  if (!end) return recording;
+  // A later free-ride sample can replace the boundary sample at the same
+  // FIT timestamp. Retain the original workout endpoint for this export.
+  const samples = recording.samples.slice(0, end.count - 1);
+  samples.push(end.lastSample);
+  return { ...recording, samples, summary: end.summary };
 }

@@ -62,6 +62,7 @@ export const state = {
   climbs: [],
   progressMeters: 0,
   simulationAthlete: DEFAULT_SIMULATION_ATHLETE, // Persisted athlete preset for simulation.
+  simulatorEnabled: false, // Selects the synthetic source for Live Data.
   simulationMode: "fixed", // Selected mode for the next simulation start.
   simulationNotice: "", // Most recent simulation transition shown in the sidebar.
   simulation: null, // Active simulation, with its own virtual telemetry and workout clock.
@@ -311,8 +312,8 @@ export const els = {
   trainerSettings: document.querySelector("#trainerSettings"),
   connectHrBtn: document.querySelector("#connectHrBtn"),
   simulationAthleteSelect: document.querySelector("#simulationAthleteSelect"),
-  resetSimulationBtn: document.querySelector("#resetSimulationBtn"),
-  downloadSimulationFitBtn: document.querySelector("#downloadSimulationFitBtn"),
+  simulatorInput: document.querySelector("#simulatorInput"),
+  simulationControls: document.querySelector("#simulationControls"),
   simulationModeSelect: document.querySelector("#simulationModeSelect"),
   simulationWorkoutOption: document.querySelector("#simulationWorkoutOption"),
   simulationStatus: document.querySelector("#simulationStatus"),

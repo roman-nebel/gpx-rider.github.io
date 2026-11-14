@@ -14,16 +14,16 @@ import {
 } from "./recorder.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
 import { formatDistance, formatDuration, formatEnergy } from "../core/units.mjs";
-import { clearSimulationRecording, latestSimulationRecording } from "../simulation/simulation-recorder.mjs";
+import { clearSimulationRecording, hasSimulationWorkout, latestSimulationRecording, simulationWorkoutFit } from "../simulation/simulation-recorder.mjs";
 import { sliceWorkoutFit } from "./workout-fit-slice.mjs";
 import { resetRide, resetRoutePosition } from "./movement.mjs";
 
 export function updateRecordingUi() {
-  // The bucket only grows while the rider is actually moving — mirror that
-  // with the pulsing RECORDING indicator on the FIT buffer card.
-  els.recIndicator.hidden = !state.pedaling;
+  const simulated = state.simulatorEnabled;
+  const recording = simulated ? latestSimulationRecording() : null;
+  const summary = simulated ? simulationSummary(recording) : rideLogSummary();
+  els.recIndicator.hidden = simulated ? !state.simulation : !state.pedaling;
 
-  const summary = rideLogSummary();
   els.recDistanceStat.textContent = formatDistance(summary.distanceMeters, state.distanceUnits);
   els.recTimeStat.textContent = formatDuration(summary.timerSeconds, state.durationFormat);
   els.recPointsStat.textContent = String(summary.sampleCount);
@@ -31,37 +31,55 @@ export function updateRecordingUi() {
     ? `${summary.heartRateSampleCount} samples`
     : "--";
   els.recCaloriesStat.textContent = formatEnergy(summary.caloriesKcal ?? NaN, state.energyUnits);
-  const exportLocked = workoutExportLocked();
+  const exportLocked = simulated ? Boolean(state.simulation) : workoutExportLocked();
+  els.downloadFitBtn.textContent = simulated ? "Export simulation data" : "Export full ride";
+  els.resetBtn.textContent = simulated ? "Reset simulation" : "Reset ride";
   els.downloadFitBtn.disabled = exportLocked || summary.sampleCount < 2;
-  els.downloadWorkoutFitBtn.disabled = exportLocked || !rideLogWorkoutFitRange();
-  els.resetBtn.disabled = summary.sampleCount === 0;
+  const hasWorkoutData = simulated ? hasSimulationWorkout(recording) : Boolean(rideLogWorkoutFitRange());
+  els.downloadWorkoutFitBtn.disabled = exportLocked || !hasWorkoutData;
+  els.resetBtn.disabled = (simulated && exportLocked) || summary.sampleCount === 0;
+}
 
-  const hasSimulationRecording = Boolean(latestSimulationRecording());
-  const simulationActionsDisabled = Boolean(state.simulation) || !hasSimulationRecording;
-  els.downloadSimulationFitBtn.disabled = simulationActionsDisabled;
-  els.resetSimulationBtn.disabled = simulationActionsDisabled;
+function simulationSummary(recording) {
+  return {
+    distanceMeters: recording?.summary.totalDistanceMeters ?? 0,
+    timerSeconds: recording?.summary.totalTimerSeconds ?? 0,
+    sampleCount: recording?.samples.length ?? 0,
+    heartRateSampleCount: recording?.samples.length ?? 0,
+    caloriesKcal: recording?.summary.totalCalories ?? null,
+  };
 }
 
 export function downloadFitFile() {
-  downloadFit(false);
+  if (state.simulatorEnabled) downloadSimulationFit(false);
+  else downloadFit(false);
 }
 
 export function downloadWorkoutFitFile() {
-  downloadFit(true);
+  if (state.simulatorEnabled) downloadSimulationFit(true);
+  else downloadFit(true);
 }
 
-export function downloadSimulationFit() {
+function downloadSimulationFit(workoutOnly) {
+  if (state.simulation) return;
   const recording = latestSimulationRecording();
-  if (state.simulation || !recording) return;
+  const output = workoutOnly ? simulationWorkoutFit(recording) : recording;
+  if (!output || output.samples.length < 2) return;
+  const kind = workoutOnly ? "simulation-workout" : "simulation";
   try {
-    saveFitDownload(encodeFitActivity(recording), recording.summary.startTimeMs, "simulation");
+    saveFitDownload(encodeFitActivity(output), output.summary.startTimeMs, kind);
   } catch (error) {
     console.error("Could not encode the simulation FIT file.", error);
     updateProgressLabel("Could not build the FIT file from the simulation.");
   }
 }
 
-export async function confirmResetSimulation() {
+export function resetSelectedRecording() {
+  if (state.simulatorEnabled) void confirmResetSimulation();
+  else confirmResetRide();
+}
+
+async function confirmResetSimulation() {
   if (state.simulation || !latestSimulationRecording()) return;
   const prompt = state.route.length
     ? "Return to the start of the route and delete the simulation recording?"
@@ -72,7 +90,7 @@ export async function confirmResetSimulation() {
   updateRecordingUi();
   try {
     await clearing;
-    if (route.length && route === state.route && !state.simulation) {
+    if (route.length && route === state.route && state.simulatorEnabled && !state.simulation) {
       resetRoutePosition({ skipTrainerGrade: true });
     }
   } catch (error) {
@@ -130,7 +148,7 @@ function downloadFit(workoutOnly) {
   // Keep both downloads available until the rider explicitly resets the buffer.
   if (range) return;
   window.setTimeout(() => {
-    if (workoutExportLocked()) return;
+    if (state.simulatorEnabled || workoutExportLocked()) return;
     if (hasRideData()) confirmResetRide({ downloaded: true });
   }, 300);
 }
@@ -161,7 +179,7 @@ function workoutExportLocked() {
   return Boolean(state.workoutErg || state.workoutCountdown);
 }
 
-export function confirmResetRide({ downloaded = false } = {}) {
+function confirmResetRide({ downloaded = false } = {}) {
   if (!hasRideData()) return;
   const summary = rideLogSummary();
   const description = `${formatDistance(summary.distanceMeters, state.distanceUnits)} / ${formatDuration(summary.timerSeconds, state.durationFormat)}`;

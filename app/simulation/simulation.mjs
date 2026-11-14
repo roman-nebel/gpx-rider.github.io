@@ -5,13 +5,15 @@ import { WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 import { advanceDemoRide, createDemoRideModel, normalizeSimulationAthlete, simulationAthlete } from "../demo/demo.mjs";
 import { registerHudComponent } from "../hud/screen-manager.mjs";
 import { createSimulationRecording, persistSimulationRecording, recordSimulationTick } from "./simulation-recorder.mjs";
-import { ensureMovementLoop } from "../ride/movement.mjs";
+import { ensureMovementLoop, setPedaling, updatePedalingFromSpeed } from "../ride/movement.mjs";
+import { updateRecordingUi } from "../ride/recording-ui.mjs";
 import { updateRideUi } from "../ride/ride-ui.mjs";
 import { updateSpeedOutput } from "../settings/settings-ui.mjs";
 import { advanceAlongRoad, gradeAt, interpolateRoutePoint, roadDistanceAt, routeTotalDistance } from "../route/route.mjs";
 import { saveRide, saveSettings } from "../storage/persistence.mjs";
-import { isHeartRateConnected } from "../trainer/heartrate.mjs";
-import { isTrainerConnected } from "../trainer/trainer.mjs";
+import { refreshRideTelemetry } from "../ride/telemetry-ui.mjs";
+import { updateWorkoutHud } from "../workout/workout-hud.mjs";
+import { stopWorkoutErg } from "../workout/workout-erg.mjs";
 import { expandTimedWorkoutSteps, normalizeWorkoutStep, workoutTargetWatts } from "../workout/workout-step.mjs";
 
 const MODE_LABELS = {
@@ -22,6 +24,26 @@ const MODE_LABELS = {
 
 export function registerSimulationHud() {
   registerHudComponent({ id: "simulation-banner", region: "center", weight: 20, element: els.simulationBanner });
+}
+
+export function updateSimulatorFromControl() {
+  state.simulatorEnabled = els.simulatorInput.checked;
+  if (state.simulatorEnabled) {
+    if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
+    setPedaling(false);
+  } else {
+    stopSimulation("", { refresh: false });
+    updatePedalingFromSpeed();
+    saveRide();
+  }
+  updateSimulationControls("");
+  if (state.route.length) {
+    updateRideUi({ force: true });
+  } else {
+    updateWorkoutHud();
+    refreshRideTelemetry();
+    updateRecordingUi();
+  }
 }
 
 export function selectSimulationMode(event) {
@@ -46,6 +68,7 @@ export function updateSimulationSpeed() {
 }
 
 export function toggleSimulation() {
+  if (!state.simulatorEnabled) return;
   if (state.simulation) {
     stopSimulation();
     return;
@@ -57,7 +80,7 @@ export function toggleSimulation() {
   const workout = steps ? { steps, index: 0, elapsed: 0, ftp: config.ftp_watts } : null;
   if (state.progressMeters >= routeTotalDistance(state.route)) state.progressMeters = 0;
   const model = createDemoRideModel(config);
-  const recording = createSimulationRecording(Date.now());
+  const recording = createSimulationRecording(Date.now(), workout ? state.workout : null);
   const simulation = { mode, model, config, telemetry: null, workout, recording };
   state.simulation = simulation;
   advanceVirtualRider(simulation, 0, gradeAt(state.route, state.progressMeters));
@@ -92,6 +115,13 @@ export function handleSimulationWorkoutChange() {
   if (active || !timedWorkoutSteps()) {
     state.simulationMode = "virtual";
     if (active) {
+      recordSimulationPosition(state.simulation, 0, true);
+      const { recording } = state.simulation;
+      recording.workoutEnd = {
+        count: recording.samples.length,
+        lastSample: recording.samples.at(-1),
+        summary: { ...recording.summary },
+      };
       state.simulation.mode = "virtual";
       state.simulation.workout = null;
     }
@@ -105,6 +135,7 @@ export function updateSimulationControls(message = state.simulationNotice) {
   const { simulation, simulationMode } = state;
   const steps = timedWorkoutSteps();
   const unavailable = simulation ? "" : simulationUnavailable(simulationMode, steps);
+  els.simulationControls.hidden = !state.simulatorEnabled;
   els.simulationModeSelect.value = simulationMode;
   els.simulationModeSelect.disabled = Boolean(simulation);
   els.simulationAthleteSelect.value = state.simulationAthlete;
@@ -127,10 +158,6 @@ export function updateSimulationControls(message = state.simulationNotice) {
 
 function simulationUnavailable(mode, steps) {
   if (state.route.length < 2 || routeTotalDistance(state.route) <= 0) return "Load a route to start.";
-  if (state.pedaling) return "Stop pedaling to start simulation.";
-  if (mode !== "fixed" && (isTrainerConnected() || isHeartRateConnected())) {
-    return "Disconnect the trainer and heart rate monitor to start.";
-  }
   if (mode === "workout" && !steps) return "Choose a workout with timed steps.";
   return "";
 }

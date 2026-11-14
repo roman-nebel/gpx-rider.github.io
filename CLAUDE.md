@@ -180,15 +180,14 @@ in place).
 ## Key domain concepts
 
 - **Two movement sources.** The rider advances along the route from either
-  *pedaling* (trainer-reported speed, always wins) or *Simulation*. The
-  Simulation card starts and stops Fixed speed, Virtual rider, or Workout
-  mode. Workout mode plays timed power targets and uses the virtual rider
+  *pedaling* (trainer-reported speed) or *Simulation*. The Simulator controls
+  in Live Data start and stop Fixed speed, Virtual rider, or Workout mode. Workout mode plays timed power targets and uses the virtual rider
   model on free-ride steps. All modes use the selected athlete preset. Fixed
   speed uses the inverse of the road speed solver to model required power.
   Virtual telemetry stays separate from hardware telemetry and the real ETA
-  estimator. The latest simulation has its own persisted FIT recording. Starting to pedal
-  auto-stops a running simulation. Connecting a trainer or heart rate monitor
-  also stops either virtual mode. Pedaling detection uses hysteresis
+  estimator. While Simulator is enabled, device telemetry cannot drive the
+  ride or its recording. The Live Data export and reset controls act on the
+  selected source. Pedaling detection uses hysteresis
   (`PEDALING_START_KPH` / `PEDALING_STOP_KPH` in `tuning.mjs`).
 - **The movement loop** (`tick` in `movement.mjs`) runs on requestAnimationFrame
   while the tab is visible and falls back to `setTimeout` when hidden, so
@@ -216,7 +215,7 @@ in place).
   The estimator resets when a new GPX loads, not on ride reset.
 - **UI layout & reusable components.** The app is a dark, single-viewport
   shell (`app.html`): a 3D map filling the left and a right control panel with
-  Live data, Route, Workout, Devices, My profile, Simulation, Recording view, and Settings. CSS
+  Live data, Route, Workout, Devices, My profile, Recording view, and Settings. CSS
   components in `styles.css` are meant to be reused, not re-invented per
   screen: `.btn` (+ `-ghost`/`-blue`/`-accent`/`-outline-*`/`-sm`),
   `.panel-card` (+ `-head`/`-title`/`-hint`), `.stat-grid` + `.stat-tile`,

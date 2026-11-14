@@ -881,8 +881,29 @@ body {
   gap: 10px;
 }
 
+.fs-clock.workout-step-chip {
+  padding-block: 7px;
+}
+
+.workout-step-chip:has(.workout-hud-action:not([hidden])) {
+  padding-inline-end: 7px;
+}
+
+.workout-step-chip:not(:has(.workout-hud-action:not([hidden]))) {
+  grid-template-columns: minmax(0, 1fr) max-content;
+}
+
+.workout-hud-actions:not(:has(.workout-hud-action:not([hidden]))) {
+  display: none;
+}
+
+.workout-current-row:has(.workout-step-remaining[hidden]):not(:has(.workout-hud-action:not([hidden]))) .workout-current-main {
+  grid-column: 1 / -1;
+}
+
 .workout-current-row {
   align-items: center;
+  min-height: calc(var(--hud-control-size) - 16px);
 }
 
 .workout-current-main {
@@ -1837,7 +1858,7 @@ body {
 }
 
 .live-stats {
-  row-gap: 16px;
+  row-gap: 24px;
 }
 
 .rec-stats {
@@ -2696,25 +2717,22 @@ progress.ascent-progress::-moz-progress-bar {
 
 /* ---- simulation ------------------------------------------------------------------ */
 
-.simulation-heading {
-  gap: 8px;
-}
-
-.simulation-actions {
+.simulator-switch {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.simulation-actions .btn {
-  gap: 5px;
-  padding-inline: 8px;
+  gap: 8px;
 }
 
 .simulation-selectors {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.simulation-selectors .btn {
+  min-height: 36px;
+  gap: 5px;
 }
 
 .simulation-field {
@@ -2724,6 +2742,7 @@ progress.ascent-progress::-moz-progress-bar {
 
 .simulation-field select {
   min-width: 0;
+  min-height: 36px;
   width: 100%;
 }
 
@@ -3683,6 +3702,10 @@ input[type="color"] {
   .fs-clock {
     gap: 8px;
     padding: 8px 12px;
+  }
+
+  .workout-hud-action[data-state="start"] {
+    padding-inline: 4px;
   }
 
   .fs-clock-time,

@@ -57,9 +57,9 @@ It is built for people who want to:
 5. Start pedaling. Trainer speed moves the rider along the route, while the current GPX grade is sent back to the trainer.
 6. Use **Full ride .FIT** to export the recorded ride.
 
-The **Simulation** card offers five athlete presets, from **Untrained** to **Tour de France rider**. **Fixed speed** holds the slider speed and estimates the power, cadence, and heart rate needed for the terrain. **Virtual rider** sets the effort and lets speed vary with grade. **Workout mode** uses the selected workout's timed power targets and the simulated athlete's FTP for relative targets. Free-ride steps use the virtual rider model. Clearing the workout during playback continues in **Virtual rider**.
+Turn on **Simulator** in **Live Data** to show the simulation controls. Simulator offers five athlete presets, from **Untrained** to **Tour de France rider**. **Fixed speed** holds the slider speed and estimates the power, cadence, and heart rate needed for the terrain. **Virtual rider** sets the effort and lets speed vary with grade. **Workout mode** uses the selected workout's timed power targets and the simulated athlete's FTP for relative targets. Free-ride steps use the virtual rider model. Clearing the workout during playback continues in **Virtual rider**.
 
-Use **Start** and **Stop** for all three modes. Real pedaling takes over from Fixed speed. Connecting a trainer or heart rate monitor ends either virtual mode. After stopping, **Export simulation data** downloads the latest simulated ride with a simulation label in the file and filename. **Reset** deletes that recording and returns the rider to the route start.
+Use **Start** and **Stop** for all three modes. While Simulator is on, Live Data uses the simulated rider even when devices are connected. Turning it off stops simulation and returns Live Data to your devices. After stopping, **Export simulation data** downloads the latest simulated ride with a simulation label in the file and filename. **Reset simulation** deletes that recording and returns the rider to the route start.
 
 ## Structured workouts
 

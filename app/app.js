@@ -27,7 +27,7 @@ import {
   updateOverviewModeFromControl,
 } from "./camera/camera-ui.mjs";
 import { registerCameraDebugHud, toggleCameraDebugCollapsed } from "./camera/camera-debug.mjs";
-import { registerSimulationHud, selectSimulationAthlete, selectSimulationMode, toggleSimulation, updateSimulationSpeed } from "./simulation/simulation.mjs";
+import { registerSimulationHud, selectSimulationAthlete, selectSimulationMode, toggleSimulation, updateSimulationSpeed, updateSimulatorFromControl } from "./simulation/simulation.mjs";
 import { persistSimulationRecording, restoreSimulationRecording } from "./simulation/simulation-recorder.mjs";
 import { copyGalleryMetadata, syncGalleryMetadataExportAvailability, updateGalleryMetadataExport } from "./gallery-ui/gallery-export.mjs";
 import { initGallery, openRouteGallery } from "./gallery-ui/gallery.mjs";
@@ -54,7 +54,7 @@ import {
   handleProfilePointerUp,
 } from "./route/profile-ui.mjs";
 import { persistRideLog, restoreRideLog, rideLogSummary } from "./ride/recorder.mjs";
-import { confirmResetRide, confirmResetSimulation, downloadFitFile, downloadSimulationFit, downloadWorkoutFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
+import { resetSelectedRecording, downloadFitFile, downloadWorkoutFitFile, updateRecordingUi } from "./ride/recording-ui.mjs";
 import { loadGpxFile, loadGpxFromUrl } from "./route/route-load.mjs";
 import {
   openSettings,
@@ -262,11 +262,10 @@ function bindEvents() {
   els.connectHrBtn.addEventListener("click", connectHeartRate);
   els.simulationModeSelect.addEventListener("change", selectSimulationMode);
   els.simulationAthleteSelect.addEventListener("change", selectSimulationAthlete);
-  els.downloadSimulationFitBtn.addEventListener("click", downloadSimulationFit);
-  els.resetSimulationBtn.addEventListener("click", confirmResetSimulation);
+  els.simulatorInput.addEventListener("change", updateSimulatorFromControl);
   els.resizeRecordingWindowBtn.addEventListener("click", toggleTheaterMode);
   els.startBtn.addEventListener("click", toggleSimulation);
-  els.resetBtn.addEventListener("click", confirmResetRide);
+  els.resetBtn.addEventListener("click", resetSelectedRecording);
   els.downloadFitBtn.addEventListener("click", downloadFitFile);
   els.downloadWorkoutFitBtn.addEventListener("click", downloadWorkoutFitFile);
   els.profile.addEventListener("mousemove", handleProfileHover);

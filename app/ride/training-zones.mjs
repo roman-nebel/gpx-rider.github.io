@@ -7,7 +7,7 @@ import { clamp } from "../core/geo.mjs";
 import { gradeColor, gradeColorZones } from "../route/profile.mjs";
 import { registerHudComponent } from "../hud/screen-manager.mjs";
 import { els, state } from "../core/state.mjs";
-import { currentHeartRate } from "./telemetry-ui.mjs";
+import { currentHeartRate, currentRideCadenceRpm, currentRidePowerWatts } from "./telemetry-ui.mjs";
 import {
   CADENCE_METER_MAX_RPM,
   CADENCE_METER_MIN_RPM,
@@ -34,9 +34,9 @@ export function registerTrainingMetersHud() {
 }
 
 export function updateTrainingMeters(grade) {
-  const power = state.simulation?.telemetry?.powerWatts ?? state.trainerPowerWatts;
+  const power = currentRidePowerWatts();
   const heartRate = currentHeartRate();
-  const cadence = state.simulation?.telemetry?.cadenceRpm ?? state.trainerCadenceRpm;
+  const cadence = currentRideCadenceRpm();
   const ftpWatts = effectiveFtpWatts();
   const maxHeartRateBpm = effectiveMaxHeartRateBpm();
   const gradeValue = Number.isFinite(grade) ? grade : null;
@@ -128,15 +128,14 @@ export function updateWorkoutMeterTargets(heartRateZones, heartRate) {
   };
   const powerTarget = workoutMeterTarget(step, "W", context);
   const ramp = powerTarget?.ramp;
-  const telemetry = state.simulation?.telemetry;
   els.zonePowerRamp.hidden = !ramp;
   if (ramp) {
     const text = ramp.map(Math.round).join("→");
     if (els.zonePowerRamp.textContent !== text) els.zonePowerRamp.textContent = text;
   }
-  updateMeterTarget(els.zonePowerTarget, els.zonePowerDeviation, telemetry?.powerWatts ?? state.trainerPowerWatts,
+  updateMeterTarget(els.zonePowerTarget, els.zonePowerDeviation, currentRidePowerWatts(),
     powerTarget, WORKOUT_HUD_TARGET_TOLERANCE.power);
-  updateMeterTarget(els.zoneCadenceTarget, els.zoneCadenceDeviation, telemetry?.cadenceRpm ?? state.trainerCadenceRpm,
+  updateMeterTarget(els.zoneCadenceTarget, els.zoneCadenceDeviation, currentRideCadenceRpm(),
     workoutMeterTarget(step, "rpm", context), WORKOUT_HUD_TARGET_TOLERANCE.cadence);
   updateMeterTarget(els.zoneHeartRateTarget, els.zoneHeartRateDeviation, heartRate ?? currentHeartRate(),
     workoutMeterTarget(step, "bpm", context), WORKOUT_HUD_TARGET_TOLERANCE.heart_rate);

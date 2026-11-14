@@ -123,8 +123,8 @@ function updateWorkoutControls() {
   if (play.dataset.state !== playState) play.dataset.state = playState;
   const label = countdown ? `Starting in ${countdown.seconds} seconds` : action;
   setButtonLabel(play, label);
-  play.hidden = Boolean(state.simulation?.model);
-  els.workoutErgInput.disabled = Boolean(state.simulation?.model);
+  play.hidden = Boolean(state.simulatorEnabled);
+  els.workoutErgInput.disabled = Boolean(state.simulatorEnabled);
   play.disabled = Boolean(countdown);
   els.workoutHudCountdown.hidden = !countdown;
   if (countdown) setText(els.workoutHudCountdown, String(countdown.seconds));

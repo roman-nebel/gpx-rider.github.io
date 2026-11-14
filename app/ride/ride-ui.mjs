@@ -132,7 +132,7 @@ export function updateRideUi(options = {}) {
   updateTrainingMeters(grade);
 
   updateRecordingUi();
-  if (!state.simulation && !options.skipTrainerGrade) {
+  if (!state.simulatorEnabled && !options.skipTrainerGrade) {
     queueTrainerGradeSample(grade, {
       force: options.force,
       intervalSeconds: state.gradeUpdateIntervalSeconds,
@@ -159,7 +159,7 @@ function currentEtaSeconds(remainingMeters, totalAscent, totalDescent) {
   if (remainingMeters <= 0) return 0;
 
   const speed = currentRideSpeedKph();
-  if (state.simulation) return speed > 0 ? remainingMeters / (speed / 3.6) : null;
+  if (state.simulatorEnabled) return speed > 0 ? remainingMeters / (speed / 3.6) : null;
 
   return estimateRemainingSeconds(state.rideEstimator, {
     remainingMeters,

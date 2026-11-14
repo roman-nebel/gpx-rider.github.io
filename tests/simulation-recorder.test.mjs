@@ -4,6 +4,7 @@ import {
   createSimulationRecording,
   latestSimulationRecording,
   recordSimulationTick,
+  simulationWorkoutFit,
 } from "../app/simulation/simulation-recorder.mjs";
 
 test("a short simulation keeps its first and last positions and an empty run preserves it", (context) => {
@@ -42,4 +43,26 @@ test("a short simulation keeps its first and last positions and an empty run pre
   const empty = createSimulationRecording(startTimeMs + 1000);
   recordSimulationTick(empty, { ...first, final: true });
   assert.equal(latestSimulationRecording(), recording);
+});
+
+
+test("workout-only export stops at the saved workout endpoint after virtual riding continues", () => {
+  const recording = createSimulationRecording(10000, { name: "Intervals" });
+  const first = { t: 10, distance: 0 };
+  const workoutEnd = { t: 12, distance: 20 };
+  const replacement = { t: 12, distance: 22 };
+  recording.workoutEnd = {
+    count: 2,
+    lastSample: workoutEnd,
+    summary: { ...recording.summary, totalDistanceMeters: 20 },
+  };
+  recording.samples.push(first, replacement, { t: 13, distance: 30 });
+  recording.summary.totalDistanceMeters = 30;
+
+  const output = simulationWorkoutFit(recording);
+  assert.deepEqual(output.samples, [first, workoutEnd]);
+  assert.equal(output.summary.totalDistanceMeters, 20);
+  assert.equal(output.simulated, true);
+  assert.equal(recording.samples[1], replacement);
+  assert.equal(simulationWorkoutFit(createSimulationRecording(10000)), null);
 });

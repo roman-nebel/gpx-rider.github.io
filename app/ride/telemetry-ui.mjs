@@ -3,7 +3,7 @@
 // app does with the numbers), the HR source-of-truth resolution, calories and
 // ride-timer accessors, and the telemetry readouts in the panel + HUD.
 
-import { stopSimulation, updateSimulationControls } from "../simulation/simulation.mjs";
+import { latestSimulationRecording } from "../simulation/simulation-recorder.mjs";
 import { isHeartRateConnected } from "../trainer/heartrate.mjs";
 import { currentRideSpeedKph, setPedaling, updatePedalingFromSpeed } from "./movement.mjs";
 import { rideLogSummary } from "./recorder.mjs";
@@ -15,12 +15,7 @@ import { updateTrainingMeters } from "./training-zones.mjs";
 import { HEART_RATE_REFRESH_MS } from "../core/tuning.mjs";
 import { formatEnergy, formatSpeed } from "../core/units.mjs";
 
-function simulationUsesVirtualDevices() {
-  return state.simulation !== null && state.simulation.mode !== "fixed";
-}
-
 export function handleTrainerTelemetry(telemetry) {
-  if (telemetry && simulationUsesVirtualDevices()) stopSimulation("Trainer connected. Simulation stopped.");
   // Live telemetry is the one dependable "actually connected" signal.
   els.trainerDot.classList.toggle("connected", Boolean(telemetry));
 
@@ -32,7 +27,6 @@ export function handleTrainerTelemetry(telemetry) {
     state.trainerCadenceRpm = null;
     state.trainerHeartRateBpm = null;
     setPedaling(false);
-    updateSimulationControls();
     updateTelemetryUi();
     updateTrainingMeters(state.route.length ? gradeAt(state.route, state.progressMeters) : NaN);
     return;
@@ -59,29 +53,24 @@ export function handleTrainerStatus(text, { onlyClearError = false } = {}) {
     els.trainerSettings.hidden = true;
     els.trainerSettingsBtn.setAttribute("aria-expanded", "false");
   }
-  if (connected && simulationUsesVirtualDevices()) stopSimulation("Trainer connected. Simulation stopped.");
-  else updateSimulationControls();
   if (onlyClearError && els.trainerStat.textContent !== "BLE error") return;
   els.trainerStat.textContent = text;
 }
 
 export function handleStrapHeartRate(bpm) {
-  if (Number.isFinite(bpm) && simulationUsesVirtualDevices()) stopSimulation("Heart rate monitor connected. Simulation stopped.");
   state.strapHeartRateBpm = Number.isFinite(bpm) ? bpm : null;
-  refreshHeartRateUi();
+  refreshRideTelemetry();
   syncHeartRateRefreshLoop();
 }
 
 export function handleHeartRateStatus(text) {
-  if (isHeartRateConnected() && simulationUsesVirtualDevices()) stopSimulation("Heart rate monitor connected. Simulation stopped.");
-  else updateSimulationControls();
   state.heartRateStatusText = text;
-  refreshHeartRateUi();
+  refreshRideTelemetry();
   syncHeartRateRefreshLoop();
 }
 
 export function currentHeartRate() {
-  return state.simulation?.telemetry?.heartRateBpm ?? realHeartRate();
+  return state.simulatorEnabled ? state.simulation?.telemetry?.heartRateBpm ?? null : realHeartRate();
 }
 
 export function realHeartRate() {
@@ -91,7 +80,7 @@ export function realHeartRate() {
   return state.trainerHeartRateBpm ?? null;
 }
 
-function refreshHeartRateUi() {
+export function refreshRideTelemetry() {
   updateTelemetryUi();
   updateTrainingMeters(state.route.length ? gradeAt(state.route, state.progressMeters) : NaN);
 }
@@ -109,10 +98,10 @@ function startHeartRateRefreshLoop() {
   const step = () => {
     if (!isHeartRateConnected()) {
       state.heartRateRefreshTimer = null;
-      refreshHeartRateUi();
+      refreshRideTelemetry();
       return;
     }
-    refreshHeartRateUi();
+    refreshRideTelemetry();
     state.heartRateRefreshTimer = window.setTimeout(step, HEART_RATE_REFRESH_MS);
   };
   step();
@@ -124,7 +113,8 @@ function stopHeartRateRefreshLoop() {
 }
 
 export function currentCaloriesKcal() {
-  return state.simulation?.model?.caloriesKcal ?? realCaloriesKcal();
+  if (!state.simulatorEnabled) return realCaloriesKcal();
+  return state.simulation?.model.caloriesKcal ?? latestSimulationRecording()?.summary.totalCalories ?? null;
 }
 
 export function realCaloriesKcal() {
@@ -135,12 +125,22 @@ export function realCaloriesKcal() {
 }
 
 export function currentRideTimerSeconds() {
-  if (state.simulation?.model) return state.simulation.model.elapsedSeconds;
+  if (state.simulatorEnabled) {
+    return state.simulation?.model.elapsedSeconds ?? latestSimulationRecording()?.summary.totalTimerSeconds ?? 0;
+  }
   return rideLogSummary().timerSeconds;
 }
 
+export function currentRidePowerWatts() {
+  return state.simulatorEnabled ? state.simulation?.telemetry?.powerWatts ?? null : state.trainerPowerWatts;
+}
+
+export function currentRideCadenceRpm() {
+  return state.simulatorEnabled ? state.simulation?.telemetry?.cadenceRpm ?? null : state.trainerCadenceRpm;
+}
+
 export function updateTelemetryUi() {
-  const power = state.simulation?.telemetry?.powerWatts ?? state.trainerPowerWatts;
+  const power = currentRidePowerWatts();
   const powerText = Number.isFinite(power) ? `${power} W` : "--";
   const heartRate = currentHeartRate();
   const heartRateText = Number.isFinite(heartRate) ? `${heartRate} bpm` : "--";

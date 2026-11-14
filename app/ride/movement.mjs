@@ -51,6 +51,7 @@ export function isMoving() {
 }
 
 export function updatePedalingFromSpeed() {
+  if (state.simulatorEnabled) return;
   const speed = state.trainerSpeedKph;
   if (!Number.isFinite(speed)) {
     setPedaling(false);
@@ -61,14 +62,10 @@ export function updatePedalingFromSpeed() {
 }
 
 export function setPedaling(pedaling) {
-  if (pedaling === state.pedaling) return;
-  const wasSimulating = Boolean(state.simulation);
+  if ((pedaling && state.simulatorEnabled) || pedaling === state.pedaling) return;
   state.pedaling = pedaling;
 
   if (pedaling) {
-    if (wasSimulating) {
-      stopSimulation("Pedaling detected. Following the trainer.", { refresh: false });
-    }
     state.lastTick = performance.now();
     autoStartWorkout();
     ensureMovementLoop();
@@ -78,7 +75,6 @@ export function setPedaling(pedaling) {
     updateRideSpeedUi();
     if (!state.simulation) handleMovementStopped();
   }
-  if (!pedaling || !wasSimulating) updateSimulationControls();
 }
 
 export function ensureMovementLoop() {
@@ -157,7 +153,7 @@ export function resetRide() {
   if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
   stopSimulation("", { refresh: false });
   resetRoutePosition();
-  void sendTrainerGrade(0);
+  if (!state.simulatorEnabled) void sendTrainerGrade(0);
 }
 
 export function resetRoutePosition({ skipTrainerGrade = false } = {}) {
@@ -250,10 +246,11 @@ function advanceRealRide(now, elapsedSeconds) {
 }
 
 export function currentRideSpeedKph() {
+  if (state.simulatorEnabled) return simulationSpeedKph();
   if (state.workoutErg && !state.workoutErg.paused && state.pedaling) {
     return state.ergRoadSpeedKph ?? 0;
   }
-  return simulationSpeedKph() ?? state.trainerSpeedKph;
+  return state.trainerSpeedKph;
 }
 
 function updateErgRoadSpeed(now, elapsedSeconds, grade) {
