@@ -142,6 +142,7 @@ export function updateRouteOverview() {
   }
 
   state.climbs = detectClimbs(state.route);
+  els.climbsSummary.textContent = `Climbs (${state.climbs.length})`;
   els.climbsSection.hidden = state.climbs.length === 0;
   els.climbsList.replaceChildren(
     ...state.climbs.map((climb, index) => {

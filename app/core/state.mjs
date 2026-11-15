@@ -255,6 +255,7 @@ export const els = {
   difficultyDetail: document.querySelector("#difficultyDetail"),
   galleryDialog: document.querySelector("#galleryDialog"),
   climbsSection: document.querySelector("#climbsSection"),
+  climbsSummary: document.querySelector("#climbsSummary"),
   climbsList: document.querySelector("#climbsList"),
   distanceStat: document.querySelector("#distanceStat"),
   riddenStat: document.querySelector("#riddenStat"),
