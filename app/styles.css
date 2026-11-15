@@ -875,9 +875,12 @@ body {
 }
 
 .workout-step-chip {
+  --workout-action-size: 26px;
+  --workout-action-gap: 4px;
+  --workout-controls-width: calc(2 * var(--workout-action-size) + var(--workout-action-gap));
   width: min(var(--hud-banner-width), calc(100cqw - 2 * var(--hud-inset)));
   display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  grid-template-columns: var(--workout-controls-width) minmax(0, 1fr) max-content;
   gap: 10px;
 }
 
@@ -885,11 +888,11 @@ body {
   padding-block: 7px;
 }
 
-.workout-step-chip:has(.workout-hud-action:not([hidden])) {
-  padding-inline-end: 7px;
+.workout-step-chip:has(.workout-hud-action:not([hidden]), .workout-current-row > .workout-step-remaining:not([hidden])) {
+  padding-inline-start: 7px;
 }
 
-.workout-step-chip:not(:has(.workout-hud-action:not([hidden]))) {
+.workout-step-chip:not(:has(.workout-hud-action:not([hidden]), .workout-current-row > .workout-step-remaining:not([hidden]))) {
   grid-template-columns: minmax(0, 1fr) max-content;
 }
 
@@ -897,8 +900,8 @@ body {
   display: none;
 }
 
-.workout-current-row:has(.workout-step-remaining[hidden]):not(:has(.workout-hud-action:not([hidden]))) .workout-current-main {
-  grid-column: 1 / -1;
+.workout-current-row:has(.workout-step-remaining[hidden]) .workout-current-main {
+  grid-column-end: -1;
 }
 
 .workout-current-row {
@@ -908,14 +911,14 @@ body {
 
 .workout-current-main {
   display: flex;
+  grid-column: -3;
   align-items: center;
   min-width: 0;
   gap: 10px;
 }
 
 .workout-current-row,
-.workout-next-step,
-.workout-next-row {
+.workout-next-step {
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
@@ -944,17 +947,22 @@ body {
 }
 
 .workout-next-step {
-  row-gap: 2px;
-}
-
-.workout-next-label {
-  grid-column: 1 / -1;
-  color: var(--muted);
-  font: 600 11px/1 var(--font-ui);
-}
-
-.workout-next-row {
   align-items: baseline;
+}
+
+.workout-step-label {
+  color: var(--muted);
+  font: 600 min(12px, calc(var(--workout-controls-width) / 5))/1 var(--font-ui);
+  text-align: end;
+  white-space: nowrap;
+}
+
+.workout-current-label {
+  display: none;
+}
+
+.workout-current-row:has(.workout-step-remaining:not([hidden])):not(:has(.workout-hud-action:not([hidden]))) .workout-current-label {
+  display: block;
 }
 
 .workout-next-main {
@@ -965,7 +973,7 @@ body {
   min-width: 0;
 }
 
-.workout-next-row strong {
+.workout-next-main strong {
   max-width: none;
   min-width: 0;
 }
@@ -1083,14 +1091,13 @@ body {
 }
 
 .workout-step-remaining {
-  grid-column: 2;
+  grid-column: -2;
   justify-self: end;
 }
 
 .workout-hud-actions {
   display: flex;
-  grid-column: 3;
-  gap: 4px;
+  gap: var(--workout-action-gap);
 }
 
 .workout-hud-start-error {
@@ -1102,8 +1109,8 @@ body {
 
 .workout-hud-action {
   flex: none;
-  width: 26px;
-  height: 26px;
+  width: var(--workout-action-size);
+  height: var(--workout-action-size);
   min-height: 0;
   border-radius: 8px;
   padding: 0;
@@ -1119,8 +1126,7 @@ body {
 }
 
 .workout-hud-action[data-state="start"] {
-  width: auto;
-  padding-inline: 8px;
+  width: 100%;
 }
 
 .workout-hud-action:not([data-state="start"]) .workout-start-label,
@@ -2741,6 +2747,24 @@ progress.ascent-progress::-moz-progress-bar {
   gap: 5px;
 }
 
+.simulation-button-labels {
+  display: grid;
+  text-align: center;
+}
+
+.simulation-button-labels > span {
+  grid-area: 1 / 1;
+}
+
+.simulation-stop-label {
+  contain: inline-size;
+}
+
+#startBtn:not(.sim-running) .simulation-stop-label,
+#startBtn.sim-running .simulation-start-label {
+  visibility: hidden;
+}
+
 .simulation-field {
   display: grid;
   gap: 6px;
@@ -3708,10 +3732,6 @@ input[type="color"] {
   .fs-clock {
     gap: 8px;
     padding: 8px 12px;
-  }
-
-  .workout-hud-action[data-state="start"] {
-    padding-inline: 4px;
   }
 
   .fs-clock-time,

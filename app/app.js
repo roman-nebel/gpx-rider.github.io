@@ -203,6 +203,7 @@ function bindEvents() {
   els.workoutAutoStartInput.addEventListener("change", updateWorkoutAutoStart);
   els.pauseWorkoutBtn.addEventListener("click", toggleWorkoutPause);
   els.endWorkoutBtn.addEventListener("click", endWorkout);
+  els.simulationWorkoutStartBtn.addEventListener("click", toggleSimulation);
   els.workoutHudPlayBtn.addEventListener("click", useWorkoutHudPlay);
   els.workoutHudEndBtn.addEventListener("click", endWorkout);
   els.workoutFile.addEventListener("change", importWorkout);

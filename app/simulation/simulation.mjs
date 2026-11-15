@@ -153,13 +153,12 @@ export function updateSimulationControls(message = state.simulationNotice) {
   els.simulationWorkoutOption.disabled = !steps;
   els.simulationSpeedControl.hidden = simulationMode !== "fixed";
   els.startBtn.disabled = !simulation && Boolean(unavailable);
-  els.startBtnLabel.textContent = simulation ? "Stop" : "Start";
+  els.simulationWorkoutStartBtn.hidden = !state.simulatorEnabled || simulationMode !== "workout" || Boolean(simulation);
+  els.simulationWorkoutStartBtn.disabled = els.startBtn.disabled;
   els.startBtn.classList.toggle("sim-running", Boolean(simulation));
 
   const workoutHint = state.workout && !steps ? "Workout mode requires timed steps." : "";
-  const athleteHint = !simulation && simulationMode === "workout"
-    ? `Workout FTP: ${simulationAthlete(state.simulationAthlete).ftp_watts} W.` : "";
-  const status = message || unavailable || (!simulation ? workoutHint || athleteHint : "");
+  const status = message || unavailable || (!simulation ? workoutHint : "");
   if (els.simulationStatus.textContent !== status) els.simulationStatus.textContent = status;
   els.simulationStatus.hidden = !status;
   els.simulationBanner.hidden = !simulation;
