@@ -73,7 +73,7 @@ export function focusProfileSegment(startDistance, endDistance) {
   );
   if (segmentRoute.length < 2) return;
 
-  seekToMeters(segment.startDistanceMeters);
+  if (!state.simulation) seekToMeters(segment.startDistanceMeters);
   state.selectedProfileSegment = segment;
   state.focusedClimbIndex = null;
   syncFocusedClimbList();

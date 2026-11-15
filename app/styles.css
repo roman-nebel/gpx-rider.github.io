@@ -297,7 +297,7 @@ body {
   box-shadow: 0 0 0 100vmax rgba(4, 6, 9, 0.86);
 }
 
-/* Optional per-overlay hiding while in theater mode (Demo mode panel
+/* Optional per-overlay hiding while in theater mode (Recording view
    checkboxes), for a clean showcase recording. The classes are set
    independent of theater mode itself, so these rules only bite once
    .theater-mode is also present. */
@@ -317,7 +317,7 @@ body {
   display: none;
 }
 
-.map-viewport.theater-mode.theater-hide-demo-chip #demoBanner {
+.map-viewport.theater-mode.theater-hide-demo-chip #simulationBanner {
   display: none;
 }
 
@@ -881,8 +881,29 @@ body {
   gap: 10px;
 }
 
+.fs-clock.workout-step-chip {
+  padding-block: 7px;
+}
+
+.workout-step-chip:has(.workout-hud-action:not([hidden])) {
+  padding-inline-end: 7px;
+}
+
+.workout-step-chip:not(:has(.workout-hud-action:not([hidden]))) {
+  grid-template-columns: minmax(0, 1fr) max-content;
+}
+
+.workout-hud-actions:not(:has(.workout-hud-action:not([hidden]))) {
+  display: none;
+}
+
+.workout-current-row:has(.workout-step-remaining[hidden]):not(:has(.workout-hud-action:not([hidden]))) .workout-current-main {
+  grid-column: 1 / -1;
+}
+
 .workout-current-row {
   align-items: center;
+  min-height: calc(var(--hud-control-size) - 16px);
 }
 
 .workout-current-main {
@@ -1837,7 +1858,7 @@ body {
 }
 
 .live-stats {
-  row-gap: 16px;
+  row-gap: 24px;
 }
 
 .rec-stats {
@@ -2044,19 +2065,6 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-.simulation-head > div {
-  display: grid;
-  gap: 6px;
-}
-
-.simulation-head .panel-card-title {
-  line-height: 1.2;
-}
-
-.simulation-head .panel-card-hint {
-  margin: 0;
 }
 
 .panel-card-title {
@@ -2532,6 +2540,12 @@ progress.ascent-progress::-moz-progress-bar {
 
 /* ---- connections -------------------------------------------------------------- */
 
+.trainer-settings {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
 .connection-row {
   display: flex;
   align-items: center;
@@ -2594,28 +2608,6 @@ progress.ascent-progress::-moz-progress-bar {
   white-space: nowrap;
 }
 
-.demo-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.demo-card-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.demo-card-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .theater-hud-toggles {
   display: flex;
   align-items: center;
@@ -2645,17 +2637,17 @@ progress.ascent-progress::-moz-progress-bar {
   cursor: pointer;
 }
 
-.demo-card-actions .btn {
+.recording-view-card .btn {
   white-space: nowrap;
 }
 
-.demo-card .btn[aria-pressed="true"] {
+.recording-view-card .btn[aria-pressed="true"] {
   color: #1b1205;
   border-color: rgba(246, 165, 44, 0.9);
   background: var(--accent);
 }
 
-.demo-banner {
+.simulation-banner {
   max-width: 100%;
   padding: 8px 12px;
   border: 1px solid rgba(246, 165, 44, 0.45);
@@ -2669,14 +2661,14 @@ progress.ascent-progress::-moz-progress-bar {
   text-align: center;
   white-space: normal;
   pointer-events: none;
-  animation: demoBannerPulse 1.55s ease-in-out infinite;
+  animation: simulationBannerPulse 1.55s ease-in-out infinite;
 }
 
-.demo-banner[hidden] {
+.simulation-banner[hidden] {
   display: none;
 }
 
-@keyframes demoBannerPulse {
+@keyframes simulationBannerPulse {
   0%,
   100% {
     opacity: 0.76;
@@ -2731,11 +2723,39 @@ progress.ascent-progress::-moz-progress-bar {
 
 /* ---- simulation ------------------------------------------------------------------ */
 
-.speed-control {
+.simulator-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.simulation-selectors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.simulation-selectors .btn {
+  min-height: 36px;
+  gap: 5px;
+}
+
+.simulation-field {
+  display: grid;
+  gap: 6px;
+}
+
+.simulation-field select {
+  min-width: 0;
+  min-height: 36px;
+  width: 100%;
+}
+
+.simulation-control {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 14px;
 }
 
 .speed-label {
@@ -2745,11 +2765,11 @@ progress.ascent-progress::-moz-progress-bar {
   text-transform: uppercase;
 }
 
-.speed-control input {
+.simulation-control input {
   flex: 1;
 }
 
-.speed-control output {
+.simulation-control output {
   min-width: 60px;
   text-align: right;
   font: 600 13px/1 var(--font-num);
@@ -3688,6 +3708,10 @@ input[type="color"] {
   .fs-clock {
     gap: 8px;
     padding: 8px 12px;
+  }
+
+  .workout-hud-action[data-state="start"] {
+    padding-inline: 4px;
   }
 
   .fs-clock-time,

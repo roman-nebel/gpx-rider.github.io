@@ -1,15 +1,9 @@
-// Movement: simulation button + pedaling detection + the movement loop.
-//
-// Two independent movement sources drive the rider along the route:
-// 1. Pedaling — the trainer reports real speed; always wins when present.
-// 2. Simulation — the slider speed, toggled by the Start/Stop simulation
-//    button, for previewing a route without pedaling.
-// Starting to pedal stops a running simulation; the map then follows trainer
-// speed and stops when the rider stops pedaling.
+// Advances the ride from real pedaling or the active simulation.
 
 import { closeOverviewModeMenu, syncOverviewControls } from "../camera/camera-ui.mjs";
 import { syncFocusedClimbList } from "../route/climbs-ui.mjs";
-import { advanceDemoTelemetry, stopDemoMode, syncDemoModeUi } from "../demo/demo-mode.mjs";
+import { advanceSimulation, simulationSpeedKph, stopSimulation, updateSimulationControls } from "../simulation/simulation.mjs";
+import { persistSimulationRecording } from "../simulation/simulation-recorder.mjs";
 import { cyclingSpeedForPower } from "./cycling-speed.mjs";
 import { recordEstimatorTick } from "./eta.mjs";
 import { ensureCameraFlightLoop } from "../camera/follow-camera.mjs";
@@ -36,13 +30,8 @@ import {
 } from "../route/route.mjs";
 import { rebuildRouteStyle } from "../map/route-render.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
-import { currentCaloriesKcal, currentHeartRate, updateRideSpeedUi } from "./telemetry-ui.mjs";
-import {
-  OP_START_OR_RESUME,
-  OP_STOP_OR_PAUSE,
-  sendTrainerCommand,
-  sendTrainerGrade,
-} from "../trainer/trainer.mjs";
+import { realCaloriesKcal, realHeartRate, updateRideSpeedUi } from "./telemetry-ui.mjs";
+import { sendTrainerGrade } from "../trainer/trainer.mjs";
 import {
   CYCLING_GROSS_EFFICIENCY,
   ERG_ROAD_SPEED,
@@ -58,40 +47,11 @@ import {
 } from "../workout/workout-erg.mjs";
 
 export function isMoving() {
-  return state.simulating || state.pedaling;
-}
-
-export function toggleSimulation() {
-  if (state.simulating) {
-    state.simulating = false;
-    updateStartButton();
-    void sendTrainerCommand(OP_STOP_OR_PAUSE, [0x02]);
-    if (!state.pedaling) handleMovementStopped();
-    return;
-  }
-
-  if (state.route.length < 2) return;
-  if (state.pedaling) {
-    updateProgressLabel("You're pedaling — the ride is already following trainer speed.");
-    return;
-  }
-
-  if (state.progressMeters >= routeTotalDistance(state.route)) {
-    state.progressMeters = 0;
-  }
-  state.simulating = true;
-  updateStartButton();
-  void sendTrainerCommand(OP_START_OR_RESUME);
-  ensureMovementLoop();
-}
-
-export function updateStartButton() {
-  els.startBtnLabel.textContent = state.simulating ? "Stop" : "Start";
-  // Swaps the play triangle for a stop square (see styles.css).
-  els.startBtn.classList.toggle("sim-running", state.simulating);
+  return Boolean(state.simulation || state.pedaling);
 }
 
 export function updatePedalingFromSpeed() {
+  if (state.simulatorEnabled) return;
   const speed = state.trainerSpeedKph;
   if (!Number.isFinite(speed)) {
     setPedaling(false);
@@ -102,24 +62,19 @@ export function updatePedalingFromSpeed() {
 }
 
 export function setPedaling(pedaling) {
-  if (pedaling === state.pedaling) return;
+  if ((pedaling && state.simulatorEnabled) || pedaling === state.pedaling) return;
   state.pedaling = pedaling;
 
   if (pedaling) {
-    if (state.simulating) {
-      state.simulating = false;
-      updateStartButton();
-      updateProgressLabel("Pedaling detected — simulation stopped, following trainer speed.");
-    }
+    state.lastTick = performance.now();
     autoStartWorkout();
     ensureMovementLoop();
   } else {
     state.ergRoadSpeedKph = null;
     pauseWorkoutErg();
     updateRideSpeedUi();
-    if (!state.simulating) handleMovementStopped();
+    if (!state.simulation) handleMovementStopped();
   }
-  syncDemoModeUi();
 }
 
 export function ensureMovementLoop() {
@@ -184,6 +139,7 @@ export function handleVisibilityChange() {
   if (document.hidden) {
     saveRide();
     persistRideLog();
+    persistSimulationRecording();
   }
 }
 
@@ -195,7 +151,13 @@ function handleMovementStopped() {
 
 export function resetRide() {
   if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
-  state.simulating = false;
+  stopSimulation("", { refresh: false });
+  resetRoutePosition();
+  if (!state.simulatorEnabled) void sendTrainerGrade(0);
+}
+
+export function resetRoutePosition({ skipTrainerGrade = false } = {}) {
+  updateSimulationControls("");
   state.progressMeters = 0;
   state.lastTick = performance.now();
   // A reset while stationary honors the chosen camera surface: overview stays
@@ -204,10 +166,8 @@ export function resetRide() {
     if (state.overviewActive) enterOverviewMode();
     else returnToRiderCamera();
   }
-  updateStartButton();
-  updateRideUi({ force: true });
+  updateRideUi({ force: true, skipTrainerGrade });
   saveRide();
-  void sendTrainerGrade(0);
 }
 
 function tick(now) {
@@ -221,95 +181,80 @@ function tick(now) {
 
   const elapsedSeconds = clamp((now - state.lastTick) / 1000, 0, MAX_TICK_SECONDS);
   state.lastTick = now;
-  const currentGrade = gradeAt(state.route, state.progressMeters);
-  if (state.demoModeActive) advanceDemoTelemetry(elapsedSeconds, currentGrade, 0, { recordHistory: false });
-  updateErgRoadSpeed(now, elapsedSeconds, currentGrade);
-  const rideSpeed = currentRideSpeedKph();
-  const speedKph = state.pedaling && Number.isFinite(rideSpeed)
-    ? rideSpeed : Number(els.speedInput.value);
-  const metersPerSecond = speedKph / 3.6;
   const totalDistance = routeTotalDistance(state.route);
-
-  const previousProgress = state.progressMeters;
-  const step = advanceAlongRoad(state.route, previousProgress, metersPerSecond * elapsedSeconds);
-  const { metersAdvanced } = step;
-  state.progressMeters = step.progress;
-  if (state.demoModeActive) {
-    advanceDemoTelemetry(0, gradeAt(state.route, state.progressMeters), metersAdvanced);
-  }
-
-  // Feed the ETA pace history only from real pedaling — simulated movement
-  // rides at an artificial constant speed and would poison the estimate.
-  if (state.pedaling) {
-    recordEstimatorTick(state.rideEstimator, {
-      elapsedSeconds,
-      distanceMeters: metersAdvanced,
-      ascentMeters: ascentAt(state.route, state.progressMeters) - ascentAt(state.route, previousProgress),
-      descentMeters: descentAt(state.route, state.progressMeters) - descentAt(state.route, previousProgress),
-    });
-  }
-
-  if (state.pedaling && !state.demoModeActive && Number.isFinite(state.trainerPowerWatts) && elapsedSeconds > 0) {
-    state.powerCaloriesKcal += activeCaloriesFromPower(
-      state.trainerPowerWatts,
-      elapsedSeconds,
-      CYCLING_GROSS_EFFICIENCY,
-    );
-  }
-
-  if (state.pedaling && !state.demoModeActive) {
-    recordRideTick({
-      elapsedSeconds,
-      metersAdvanced,
-      point: interpolateRoutePoint(state.route, state.progressMeters),
-      speedKph,
-      powerWatts: state.trainerPowerWatts,
-      heartRateBpm: currentHeartRate(),
-      caloriesKcal: currentCaloriesKcal(),
-      routeProgressMeters: state.progressMeters,
-      cadenceRpm: state.trainerCadenceRpm,
-      workout: state.workout,
-      workoutSession: state.workoutErg,
-      workoutPaused: Boolean(state.workoutErg && !recordingWorkoutSession(now)),
-    });
-  }
-
-  updateWorkoutErg(now, elapsedSeconds);
-  updateRideUi();
-  saveRideThrottled();
+  let workoutComplete = false;
+  if (state.simulation) workoutComplete = advanceSimulation(elapsedSeconds, totalDistance);
+  else advanceRealRide(now, elapsedSeconds);
 
   if (state.progressMeters >= totalDistance) {
-    if (state.workoutErg) stopWorkoutErg("Route finished.");
-    state.simulating = false;
-    if (state.demoModeActive) {
-      stopDemoMode({
-        message: "Demo mode finished at the end of the route.",
-        preserveHistory: true,
-      });
-    }
+    const simulated = Boolean(state.simulation);
+    if (!simulated && state.workoutErg) stopWorkoutErg("Route finished.");
+    stopSimulation("Route finished.", { refresh: false });
     state.movementLoopActive = false;
     enterFinishOrbit();
     ensureCameraFlightLoop();
-    updateStartButton();
-    saveRide();
-    persistRideLog();
-    updateRecordingUi();
-    void sendTrainerGrade(0);
+    updateRideUi({ force: true, skipTrainerGrade: simulated });
+    handleMovementStopped();
+    if (state.pedaling) void sendTrainerGrade(0);
     return;
   }
 
+  if (workoutComplete) {
+    stopSimulation("Workout simulation complete.");
+    state.movementLoopActive = false;
+    ensureCameraFlightLoop();
+    return;
+  }
+
+  updateRideUi();
+  saveRideThrottled();
   scheduleTick();
 }
 
+function advanceRealRide(now, elapsedSeconds) {
+  const previousProgress = state.progressMeters;
+  updateErgRoadSpeed(now, elapsedSeconds, gradeAt(state.route, previousProgress));
+  const speedKph = currentRideSpeedKph() ?? 0;
+  const { progress, metersAdvanced } = advanceAlongRoad(state.route, previousProgress, speedKph / 3.6 * elapsedSeconds);
+  state.progressMeters = progress;
+  recordEstimatorTick(state.rideEstimator, {
+    elapsedSeconds,
+    distanceMeters: metersAdvanced,
+    ascentMeters: ascentAt(state.route, progress) - ascentAt(state.route, previousProgress),
+    descentMeters: descentAt(state.route, progress) - descentAt(state.route, previousProgress),
+  });
+  if (Number.isFinite(state.trainerPowerWatts)) {
+    state.powerCaloriesKcal += activeCaloriesFromPower(
+      state.trainerPowerWatts, elapsedSeconds, CYCLING_GROSS_EFFICIENCY,
+    );
+  }
+  recordRideTick({
+    elapsedSeconds,
+    metersAdvanced,
+    point: interpolateRoutePoint(state.route, progress),
+    speedKph,
+    powerWatts: state.trainerPowerWatts,
+    heartRateBpm: realHeartRate(),
+    caloriesKcal: realCaloriesKcal(),
+    routeProgressMeters: progress,
+    cadenceRpm: state.trainerCadenceRpm,
+    workout: state.workout,
+    workoutSession: state.workoutErg,
+    workoutPaused: Boolean(state.workoutErg && !recordingWorkoutSession(now)),
+  });
+  updateWorkoutErg(now, elapsedSeconds);
+}
+
 export function currentRideSpeedKph() {
-  if (state.workoutErg && !state.workoutErg.paused && state.pedaling && !state.demoModeActive) {
+  if (state.simulatorEnabled) return simulationSpeedKph();
+  if (state.workoutErg && !state.workoutErg.paused && state.pedaling) {
     return state.ergRoadSpeedKph ?? 0;
   }
   return state.trainerSpeedKph;
 }
 
 function updateErgRoadSpeed(now, elapsedSeconds, grade) {
-  if (!state.workoutErg || state.workoutErg.paused || !state.pedaling || state.demoModeActive) {
+  if (!state.workoutErg || state.workoutErg.paused || !state.pedaling) {
     state.ergRoadSpeedKph = null;
     return;
   }
@@ -329,6 +274,7 @@ function updateErgRoadSpeed(now, elapsedSeconds, grade) {
 export function seekToMeters(meters) {
   if (!state.route.length) return;
   const wasMoving = isMoving();
+  stopSimulation("Simulation stopped before seeking.", { refresh: false });
   state.progressMeters = clamp(meters, 0, routeTotalDistance(state.route));
   state.ergRoadSpeedKph = null;
   state.lastTick = performance.now();

@@ -1,8 +1,25 @@
-import { clamp, roundCoordinate } from "../core/geo.mjs";
-import { advanceAlongRoad, gradeAt, interpolateRoutePoint, roadDistanceAt } from "../route/route.mjs";
-import { CYCLING_GROSS_EFFICIENCY, DEMO_RIDE } from "../core/tuning.mjs";
-import { cyclingSpeedForPower } from "../ride/cycling-speed.mjs";
+// Models a virtual rider's power, speed, cadence, heart rate, and energy use.
+import { clamp } from "../core/geo.mjs";
+import { CYCLING_GROSS_EFFICIENCY, DEFAULT_SIMULATION_ATHLETE, DEMO_RIDE, SIMULATION_ATHLETE_PRESETS } from "../core/tuning.mjs";
+import { cyclingPowerForSpeed, cyclingSpeedForPower } from "../ride/cycling-speed.mjs";
 import { activeCaloriesFromPower } from "../core/units.mjs";
+
+export function normalizeSimulationAthlete(id) {
+  return Object.hasOwn(SIMULATION_ATHLETE_PRESETS, id) ? id : DEFAULT_SIMULATION_ATHLETE;
+}
+
+export function simulationAthlete(id) {
+  const config = { ...DEMO_RIDE, ...SIMULATION_ATHLETE_PRESETS[normalizeSimulationAthlete(id)] };
+  const powerScale = config.ftp_watts / DEMO_RIDE.ftp_watts;
+  return {
+    ...config,
+    flat_power_watts: config.flat_power_watts * powerScale,
+    climb_watts_per_grade_percent: config.climb_watts_per_grade_percent * powerScale,
+    descent_watts_per_grade_percent: config.descent_watts_per_grade_percent * powerScale,
+    min_power_watts: config.min_power_watts * powerScale,
+    max_power_watts: config.max_power_watts * powerScale,
+  };
+}
 
 export function createDemoRideModel(config = DEMO_RIDE) {
   return {
@@ -18,7 +35,6 @@ export function createDemoRideModel(config = DEMO_RIDE) {
     fallDelaySeconds: 0,
     lowEffortSeconds: 0,
     caloriesKcal: 0,
-    historySamples: [],
   };
 }
 
@@ -43,95 +59,43 @@ export function demoSpeedForPower(powerWatts, gradePercent, config = DEMO_RIDE) 
 export function advanceDemoRide(model, {
   elapsedSeconds,
   gradePercent,
-  point,
-  routeProgressMeters,
-  metersAdvanced,
-  caloriesFromPower,
-  recordHistory = true,
-  nowSeconds = Date.now() / 1000,
+  targetPowerWatts = null,
+  fixedSpeedKph = null,
   config = DEMO_RIDE,
 }) {
   const dt = Math.max(0, elapsedSeconds);
   model.elapsedSeconds += dt;
 
-  const targetPower = demoTargetPowerWatts(gradePercent, config);
-  model.powerWatts = smoothToward(model.powerWatts, targetPower, dt, config.power_smoothing_tau_seconds);
+  const freeRidePower = demoTargetPowerWatts(gradePercent, config);
+  const previousPower = model.powerWatts;
+  if (fixedSpeedKph !== null) targetPowerWatts = cyclingPowerForSpeed(fixedSpeedKph, gradePercent, config);
+  model.powerWatts = targetPowerWatts ?? smoothToward(
+    previousPower, freeRidePower, dt, config.power_smoothing_tau_seconds,
+  );
 
-  const targetSpeedKph = demoSpeedForPower(model.powerWatts, gradePercent, config);
-  model.speedKph = smoothToward(model.speedKph || targetSpeedKph, targetSpeedKph, dt, config.speed_smoothing_tau_seconds);
+  const targetSpeedKph = fixedSpeedKph ?? demoSpeedForPower(model.powerWatts, gradePercent, config);
+  model.speedKph = fixedSpeedKph ?? smoothToward(
+    model.speedKph || targetSpeedKph, targetSpeedKph, dt, config.speed_smoothing_tau_seconds,
+  );
 
-  const targetCadenceRpm = demoTargetCadenceRpm(gradePercent, config);
+  let targetCadenceRpm = demoTargetCadenceRpm(gradePercent, config);
+  if (targetPowerWatts !== null) {
+    targetCadenceRpm *= Math.pow(model.powerWatts / freeRidePower, config.cadence_power_exponent);
+  }
   model.cadenceRpm = smoothToward(model.cadenceRpm, targetCadenceRpm, dt, config.cadence_smoothing_tau_seconds);
   model.cadenceNoiseRpm = (Math.random() * 2 - 1) * config.cadence_noise_rpm;
-
-  if (Number.isFinite(caloriesFromPower)) {
-    model.caloriesKcal += Math.max(0, caloriesFromPower);
-  }
-
+  const energyPower = targetPowerWatts ?? (previousPower + model.powerWatts) / 2;
+  model.caloriesKcal += activeCaloriesFromPower(energyPower, dt, CYCLING_GROSS_EFFICIENCY);
   updateDemoHeartRate(model, dt, config);
-  if (recordHistory) {
-    pushDemoHistorySample(model, { point, routeProgressMeters, metersAdvanced, nowSeconds });
-  }
 
   return {
     speedKph: Math.round(model.speedKph * 10) / 10,
     powerWatts: Math.round(model.powerWatts),
-    cadenceRpm: Math.round(clamp(model.cadenceRpm + model.cadenceNoiseRpm, config.min_cadence_rpm, config.max_cadence_rpm)),
+    cadenceRpm: model.powerWatts === 0 ? 0 : Math.round(clamp(
+      model.cadenceRpm + model.cadenceNoiseRpm, config.min_cadence_rpm, config.max_cadence_rpm,
+    )),
     heartRateBpm: Math.round(model.heartRateBpm),
-    caloriesKcal: Math.round(model.caloriesKcal),
   };
-}
-
-export function seedDemoHistory(model, {
-  route,
-  progressMeters,
-  config = DEMO_RIDE,
-  sampleSeconds = 1,
-  nowSeconds = Date.now() / 1000,
-}) {
-  if (!Array.isArray(route) || route.length < 2 || !Number.isFinite(progressMeters) || progressMeters <= 0) {
-    return;
-  }
-
-  const targetMeters = clamp(progressMeters, 0, route.at(-1).distance ?? 0);
-  const startSeconds = nowSeconds - Math.max(1, Math.ceil(roadDistanceAt(route, targetMeters) / Math.max(1, config.min_speed_kph / 3.6)));
-  let distanceMeters = 0;
-
-  while (distanceMeters < targetMeters) {
-    const grade = gradeAt(route, distanceMeters);
-    const caloriesFromPower = activeCaloriesFromPower(
-      model.powerWatts,
-      sampleSeconds,
-      CYCLING_GROSS_EFFICIENCY,
-    );
-    advanceDemoRide(model, {
-      elapsedSeconds: sampleSeconds,
-      gradePercent: grade,
-      point: interpolateRoutePoint(route, distanceMeters),
-      routeProgressMeters: distanceMeters,
-      metersAdvanced: 0,
-      caloriesFromPower,
-      recordHistory: false,
-      config,
-    });
-
-    const stepMeters = (model.speedKph / 3.6) * sampleSeconds;
-    const { progress, metersAdvanced } = advanceAlongRoad(route, distanceMeters, stepMeters, targetMeters);
-    distanceMeters = progress;
-    advanceDemoRide(model, {
-      elapsedSeconds: 0,
-      gradePercent: gradeAt(route, distanceMeters),
-      point: interpolateRoutePoint(route, distanceMeters),
-      routeProgressMeters: distanceMeters,
-      metersAdvanced,
-      caloriesFromPower: 0,
-      recordHistory: true,
-      nowSeconds: startSeconds + model.elapsedSeconds,
-      config,
-    });
-  }
-
-  model.historySamples = thinHistorySamples(model.historySamples, config.max_history_samples);
 }
 
 function updateDemoHeartRate(model, elapsedSeconds, config) {
@@ -168,33 +132,6 @@ function updateDemoHeartRate(model, elapsedSeconds, config) {
       config.max_heart_rate_bpm,
     );
   }
-}
-
-function pushDemoHistorySample(model, { point, routeProgressMeters, metersAdvanced, nowSeconds }) {
-  if (!point || model.historySamples.at(-1)?.t === Math.round(nowSeconds)) return;
-  model.historySamples.push({
-    t: Math.round(nowSeconds),
-    lat: roundCoordinate(point.lat),
-    lng: roundCoordinate(point.lng),
-    ele: Math.round((point.ele ?? 0) * 10) / 10,
-    distance: Math.round(Math.max(0, (model.historySamples.at(-1)?.distance ?? 0) + Math.max(0, metersAdvanced)) * 10) / 10,
-    speedKph: Math.round(model.speedKph * 10) / 10,
-    powerWatts: Math.round(model.powerWatts),
-    cadenceRpm: Math.round(model.cadenceRpm),
-    heartRateBpm: Math.round(model.heartRateBpm),
-    caloriesKcal: Math.round(model.caloriesKcal),
-    routeProgressMeters: Math.round(routeProgressMeters * 10) / 10,
-  });
-}
-
-function thinHistorySamples(samples, maxCount) {
-  if (!Number.isFinite(maxCount) || maxCount <= 0 || samples.length <= maxCount) return samples;
-  const thinned = [];
-  const lastIndex = samples.length - 1;
-  for (let i = 0; i < maxCount; i += 1) {
-    thinned.push(samples[Math.round((i / (maxCount - 1)) * lastIndex)]);
-  }
-  return thinned;
 }
 
 function smoothToward(current, target, elapsedSeconds, tauSeconds) {

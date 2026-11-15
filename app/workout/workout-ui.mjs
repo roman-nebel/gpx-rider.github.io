@@ -3,6 +3,7 @@ import { WORKOUT_PREVIEW_STEP_LIMIT, WORKOUT_PROFILE_STEP_LIMIT } from "../core/
 import { els, state } from "../core/state.mjs";
 import { readJson, removeStored, writeJsonCommitted } from "../storage/storage.mjs";
 import { saveSettings } from "../storage/persistence.mjs";
+import { effectiveWorkoutFtp, handleSimulationWorkoutChange, updateSimulationControls } from "../simulation/simulation.mjs";
 import { setPickerSelection } from "../top-bar/selection-picker.mjs";
 import { decodeFitWorkout } from "./fit-workout.mjs";
 import { decodeMyWhooshJson, decodeMyWhooshXml } from "./mywhoosh-workout.mjs";
@@ -54,6 +55,7 @@ export async function importWorkout(event) {
     }
     stopWorkoutErg();
     state.workout = workout;
+    handleSimulationWorkoutChange();
     state.workoutAutoStartAttempted = false;
     renderWorkout();
     els.workoutGalleryDialog.close();
@@ -87,6 +89,7 @@ export async function clearWorkout() {
     }
     stopWorkoutErg();
     state.workout = null;
+    handleSimulationWorkoutChange();
     state.workoutAutoStartAttempted = false;
     setWorkoutError("");
     renderWorkout();
@@ -100,12 +103,13 @@ export async function clearWorkout() {
 }
 
 export function renderWorkout() {
+  updateSimulationControls();
   const workout = state.workout;
   els.workoutCard.hidden = !workout;
   els.clearWorkoutBtn.hidden = !workout;
   setPickerSelection(els.workoutPicker, workout ? workout.name || "Untitled workout" : null);
   if (!workout) {
-    syncWorkoutHud([], 0);
+    syncWorkoutHud([], 0, null);
     els.workoutChart.replaceChildren();
     els.workoutSteps.replaceChildren();
     return;
@@ -118,11 +122,12 @@ export function renderWorkout() {
     : `(${total})`;
   const normalizationLimit = Math.max(WORKOUT_PREVIEW_STEP_LIMIT, WORKOUT_PROFILE_STEP_LIMIT + 1);
   const normalized = workout.steps.slice(0, normalizationLimit).map(normalizeWorkoutStep);
-  els.workoutFtpWarning.hidden = Boolean(state.ftpWatts) ||
+  const ftp = effectiveWorkoutFtp();
+  els.workoutFtpWarning.hidden = Boolean(ftp) ||
     !normalized.some((step) => step.targets.some((target) => target.needsFtp));
 
-  renderWorkoutChart(els.workoutChart, normalized, state.ftpWatts);
-  syncWorkoutHud(normalized, total);
+  renderWorkoutChart(els.workoutChart, normalized, ftp);
+  syncWorkoutHud(normalized, total, ftp);
 
   const items = document.createDocumentFragment();
   normalized.slice(0, previewCount).forEach((step, index) => {
@@ -136,7 +141,7 @@ export function renderWorkout() {
     name.className = "workout-step-name";
     name.textContent = step.name;
     heading.append(stepNumber, name);
-    item.append(heading, buildStepMetrics(step));
+    item.append(heading, buildStepMetrics(step, ftp));
     if (step.notes) {
       const notes = document.createElement("span");
       notes.className = "workout-step-notes";
@@ -148,9 +153,9 @@ export function renderWorkout() {
   els.workoutSteps.replaceChildren(items);
 }
 
-function buildStepMetrics(step) {
-  const { detail } = previewWorkoutStep(step, state.ftpWatts, state.maxHeartRateBpm);
-  const preview = previewNextWorkoutStep(step, state.ftpWatts);
+function buildStepMetrics(step, ftp) {
+  const { detail } = previewWorkoutStep(step, ftp, state.maxHeartRateBpm);
+  const preview = previewNextWorkoutStep(step, ftp);
   const metrics = document.createElement("span");
   metrics.className = "workout-step-list-metrics";
   metrics.setAttribute("role", "group");

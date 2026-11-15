@@ -3,22 +3,19 @@
 // app does with the numbers), the HR source-of-truth resolution, calories and
 // ride-timer accessors, and the telemetry readouts in the panel + HUD.
 
-import { stopDemoMode, syncDemoModeUi } from "../demo/demo-mode.mjs";
+import { latestSimulationRecording } from "../simulation/simulation-recorder.mjs";
 import { isHeartRateConnected } from "../trainer/heartrate.mjs";
 import { currentRideSpeedKph, setPedaling, updatePedalingFromSpeed } from "./movement.mjs";
 import { rideLogSummary } from "./recorder.mjs";
 import { gradeAt } from "../route/route.mjs";
 import { els, state } from "../core/state.mjs";
 import { stopWorkoutErg } from "../workout/workout-erg.mjs";
-import { isTrainerConnected } from "../trainer/trainer.mjs";
+import { isTrainerConnected, trainerSupportsTargetPower } from "../trainer/trainer.mjs";
 import { updateTrainingMeters } from "./training-zones.mjs";
 import { HEART_RATE_REFRESH_MS } from "../core/tuning.mjs";
 import { formatEnergy, formatSpeed } from "../core/units.mjs";
 
 export function handleTrainerTelemetry(telemetry) {
-  if (telemetry && state.demoModeActive) {
-    stopDemoMode({ message: "Demo mode turned off because a real trainer connected." });
-  }
   // Live telemetry is the one dependable "actually connected" signal.
   els.trainerDot.classList.toggle("connected", Boolean(telemetry));
 
@@ -52,61 +49,44 @@ export function handleTrainerTelemetry(telemetry) {
 export function handleTrainerStatus(text, { onlyClearError = false } = {}) {
   const connected = isTrainerConnected();
   els.trainerSettingsBtn.hidden = !connected;
+  els.trainerErg.hidden = !connected || !trainerSupportsTargetPower();
   if (!connected) {
     els.trainerSettings.hidden = true;
     els.trainerSettingsBtn.setAttribute("aria-expanded", "false");
-  }
-  if (state.demoModeActive) {
-    if (connected) {
-      stopDemoMode({ message: "Demo mode turned off because a real trainer connected." });
-    } else {
-      return;
-    }
   }
   if (onlyClearError && els.trainerStat.textContent !== "BLE error") return;
   els.trainerStat.textContent = text;
 }
 
 export function handleStrapHeartRate(bpm) {
-  if (state.demoModeActive && Number.isFinite(bpm)) {
-    stopDemoMode({ message: "Demo mode turned off because a real heart-rate strap connected." });
-  }
   state.strapHeartRateBpm = Number.isFinite(bpm) ? bpm : null;
-  refreshHeartRateUi();
+  refreshRideTelemetry();
   syncHeartRateRefreshLoop();
 }
 
 export function handleHeartRateStatus(text) {
-  if (state.demoModeActive) {
-    if (isHeartRateConnected()) {
-      stopDemoMode({ message: "Demo mode turned off because a real heart-rate strap connected." });
-    } else {
-      return;
-    }
-  }
   state.heartRateStatusText = text;
-  refreshHeartRateUi();
+  refreshRideTelemetry();
   syncHeartRateRefreshLoop();
 }
 
 export function currentHeartRate() {
-  if (state.demoModeActive) return state.strapHeartRateBpm ?? state.trainerHeartRateBpm ?? null;
+  return state.simulatorEnabled ? state.simulation?.telemetry?.heartRateBpm ?? null : realHeartRate();
+}
+
+export function realHeartRate() {
   // A connected strap is the HR source of truth. Only fall back to a
   // trainer-relayed HR field when no dedicated strap is connected.
   if (isHeartRateConnected()) return state.strapHeartRateBpm;
   return state.trainerHeartRateBpm ?? null;
 }
 
-function refreshHeartRateUi() {
+export function refreshRideTelemetry() {
   updateTelemetryUi();
   updateTrainingMeters(state.route.length ? gradeAt(state.route, state.progressMeters) : NaN);
 }
 
 function syncHeartRateRefreshLoop() {
-  if (state.demoModeActive) {
-    stopHeartRateRefreshLoop();
-    return;
-  }
   if (isHeartRateConnected()) {
     startHeartRateRefreshLoop();
   } else {
@@ -119,10 +99,10 @@ function startHeartRateRefreshLoop() {
   const step = () => {
     if (!isHeartRateConnected()) {
       state.heartRateRefreshTimer = null;
-      refreshHeartRateUi();
+      refreshRideTelemetry();
       return;
     }
-    refreshHeartRateUi();
+    refreshRideTelemetry();
     state.heartRateRefreshTimer = window.setTimeout(step, HEART_RATE_REFRESH_MS);
   };
   step();
@@ -134,12 +114,11 @@ function stopHeartRateRefreshLoop() {
 }
 
 export function currentCaloriesKcal() {
-  if (state.demoModeActive && state.demoModel) {
-    return state.demoModel.caloriesKcal;
-  }
-  if (state.demoHistorySamples.length && state.demoCaloriesKcal > 0) {
-    return state.demoCaloriesKcal;
-  }
+  if (!state.simulatorEnabled) return realCaloriesKcal();
+  return state.simulation?.model.caloriesKcal ?? latestSimulationRecording()?.summary.totalCalories ?? null;
+}
+
+export function realCaloriesKcal() {
   if (state.powerCaloriesKcal > 0 || Number.isFinite(state.trainerPowerWatts)) {
     return state.powerCaloriesKcal;
   }
@@ -147,31 +126,34 @@ export function currentCaloriesKcal() {
 }
 
 export function currentRideTimerSeconds() {
-  if (state.demoModeActive && state.demoModel) {
-    return state.demoModel.elapsedSeconds;
-  }
-  if (state.demoHistorySamples.length && state.demoTimerSeconds > 0) {
-    return state.demoTimerSeconds;
+  if (state.simulatorEnabled) {
+    return state.simulation?.model.elapsedSeconds ?? latestSimulationRecording()?.summary.totalTimerSeconds ?? 0;
   }
   return rideLogSummary().timerSeconds;
 }
 
+export function currentRidePowerWatts() {
+  return state.simulatorEnabled ? state.simulation?.telemetry?.powerWatts ?? null : state.trainerPowerWatts;
+}
+
+export function currentRideCadenceRpm() {
+  return state.simulatorEnabled ? state.simulation?.telemetry?.cadenceRpm ?? null : state.trainerCadenceRpm;
+}
+
 export function updateTelemetryUi() {
-  const powerText = Number.isFinite(state.trainerPowerWatts) ? `${state.trainerPowerWatts} W` : "--";
+  const power = currentRidePowerWatts();
+  const powerText = Number.isFinite(power) ? `${power} W` : "--";
   const heartRate = currentHeartRate();
   const heartRateText = Number.isFinite(heartRate) ? `${heartRate} bpm` : "--";
   const caloriesText = formatEnergy(currentCaloriesKcal() ?? NaN, state.energyUnits);
-  const trainerConnected = state.demoModeActive || Boolean(state.trainerSpeedKph !== null || state.trainerPowerWatts !== null);
-  const heartRateConnected = state.demoModeActive || isHeartRateConnected();
+  const trainerConnected = Boolean(isTrainerConnected() || state.trainerSpeedKph !== null || state.trainerPowerWatts !== null);
+  const heartRateConnected = isHeartRateConnected();
 
   els.powerStat.textContent = powerText;
   updateRideSpeedUi();
   els.heartRateStat.textContent = heartRateText;
-  els.trainerStat.textContent = state.demoModeActive ? "Demo trainer" : els.trainerStat.textContent;
   els.trainerDot.classList.toggle("connected", trainerConnected);
-  els.hrConnectionStat.textContent = state.demoModeActive
-    ? `${heartRateText} demo`
-    : isHeartRateConnected() && Number.isFinite(state.strapHeartRateBpm)
+  els.hrConnectionStat.textContent = heartRateConnected && Number.isFinite(state.strapHeartRateBpm)
     ? `${state.strapHeartRateBpm} bpm`
     : (state.heartRateStatusText || (isHeartRateConnected() ? "Connected" : "Not connected"));
   els.hrDot.classList.toggle("connected", heartRateConnected);
@@ -179,7 +161,6 @@ export function updateTelemetryUi() {
   els.hudPowerStat.textContent = powerText;
   els.hudHeartRateStat.textContent = heartRateText;
   els.hudCaloriesStat.textContent = caloriesText;
-  syncDemoModeUi();
 }
 
 

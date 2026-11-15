@@ -305,8 +305,10 @@ export const CLIMB_MERGE_GAP_METERS = req("climb_detection", "merge_gap_meters")
 export const CLIMB_MERGE_MAX_DROP_METERS = req("climb_detection", "merge_max_drop_meters");
 export const CLIMB_MIN_AVERAGE_GRADE_FOR_LENGTH = req("climb_detection", "min_average_grade_for_length");
 
-// Demo mode
+// Virtual rider
 export const DEMO_RIDE = req("demo_ride");
+export const DEFAULT_SIMULATION_ATHLETE = req("simulation_athlete", "default");
+export const SIMULATION_ATHLETE_PRESETS = req("simulation_athlete", "presets");
 
 // Ride recording
 export const RIDE_SAMPLE_INTERVAL_MS = req("ride_recording", "sample_interval_ms");

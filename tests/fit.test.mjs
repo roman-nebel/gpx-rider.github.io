@@ -211,3 +211,11 @@ test("embeds a selected MyWhoosh workout even without executed steps", () => {
   assert.equal(messages(20).length, ride.samples.length);
   assert.equal(fitMessages(encodeFitActivity(sampleRide()))(26).length, 0);
 });
+
+test("simulation FIT marks the file source and session without changing ordinary rides", () => {
+  const simulation = new TextDecoder().decode(encodeFitActivity({ ...sampleRide(), simulated: true }));
+  const ordinary = new TextDecoder().decode(encodeFitActivity(sampleRide()));
+  assert.ok(simulation.includes("GPX Rider Sim"));
+  assert.ok(simulation.includes("GPX Rider Simulation"));
+  assert.ok(!ordinary.includes("Simulation"));
+});

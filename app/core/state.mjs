@@ -41,6 +41,7 @@ import {
   DEFAULT_THEATER_HIDE_CLOCK,
   DEFAULT_THEATER_HIDE_CONTROLS,
   DEFAULT_THEATER_HIDE_DEMO_CHIP,
+  DEFAULT_SIMULATION_ATHLETE,
   DEFAULT_THEATER_HIDE_DOCK,
   DEFAULT_THEATER_HIDE_METERS,
   DEFAULT_THEATER_HIDE_MINIMAP,
@@ -60,8 +61,13 @@ export const state = {
   // the live "current climb" / "next climb" status.
   climbs: [],
   progressMeters: 0,
-  simulating: false,
-  pedaling: false,
+  simulationAthlete: DEFAULT_SIMULATION_ATHLETE, // Persisted athlete preset for simulation.
+  trainerProgressBeforeSimulation: null, // Saved real position while Simulator owns the route.
+  simulatorEnabled: false, // Selects the synthetic source for Live Data.
+  simulationMode: "fixed", // Selected mode for the next simulation start.
+  simulationNotice: "", // Most recent simulation transition shown in the sidebar.
+  simulation: null, // Active simulation, with its own virtual telemetry and workout clock.
+  pedaling: false, // Real trainer motion detected by speed hysteresis.
   movementLoopActive: false,
   tickRaf: null,
   tickTimeout: null,
@@ -86,11 +92,6 @@ export const state = {
   strapHeartRateBpm: null,
   heartRateStatusText: null,
   heartRateRefreshTimer: null,
-  demoModeActive: false,
-  demoModel: null,
-  demoHistorySamples: [],
-  demoTimerSeconds: 0,
-  demoCaloriesKcal: 0,
   gradeUpdateIntervalSeconds: DEFAULT_GRADE_INTERVAL_SECONDS,
   lastSlowUiAt: 0,
   lastRiderDot: null,
@@ -310,8 +311,15 @@ export const els = {
   connectBtn: document.querySelector("#connectBtn"),
   trainerSettingsBtn: document.querySelector("#trainerSettingsBtn"),
   trainerSettings: document.querySelector("#trainerSettings"),
+  trainerErg: document.querySelector("#trainerErg"),
   connectHrBtn: document.querySelector("#connectHrBtn"),
-  demoModeBtn: document.querySelector("#demoModeBtn"),
+  simulationAthleteSelect: document.querySelector("#simulationAthleteSelect"),
+  simulatorInput: document.querySelector("#simulatorInput"),
+  simulationControls: document.querySelector("#simulationControls"),
+  simulationModeSelect: document.querySelector("#simulationModeSelect"),
+  simulationWorkoutOption: document.querySelector("#simulationWorkoutOption"),
+  simulationStatus: document.querySelector("#simulationStatus"),
+  simulationSpeedControl: document.querySelector("#simulationSpeedControl"),
   resizeRecordingWindowBtn: document.querySelector("#resizeRecordingWindowBtn"),
   theaterHudTogglesLabel: document.querySelector(".theater-hud-toggles-label"),
   theaterHideClockInput: document.querySelector("#theaterHideClockInput"),
@@ -321,7 +329,7 @@ export const els = {
   theaterHideDemoChipInput: document.querySelector("#theaterHideDemoChipInput"),
   theaterHideControlsInput: document.querySelector("#theaterHideControlsInput"),
   theaterHideMinimapInput: document.querySelector("#theaterHideMinimapInput"),
-  demoBanner: document.querySelector("#demoBanner"),
+  simulationBanner: document.querySelector("#simulationBanner"),
   restingHeartRateInput: document.querySelector("#restingHeartRateInput"),
   maxHeartRateInput: document.querySelector("#maxHeartRateInput"),
   ftpInput: document.querySelector("#ftpInput"),

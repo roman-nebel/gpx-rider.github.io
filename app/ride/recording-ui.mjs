@@ -14,15 +14,16 @@ import {
 } from "./recorder.mjs";
 import { els, state, updateProgressLabel } from "../core/state.mjs";
 import { formatDistance, formatDuration, formatEnergy } from "../core/units.mjs";
+import { clearSimulationRecording, hasSimulationWorkout, latestSimulationRecording, simulationWorkoutFit } from "../simulation/simulation-recorder.mjs";
 import { sliceWorkoutFit } from "./workout-fit-slice.mjs";
-import { resetRide } from "./movement.mjs";
+import { resetRide, resetRoutePosition } from "./movement.mjs";
 
 export function updateRecordingUi() {
-  // The bucket only grows while the rider is actually moving — mirror that
-  // with the pulsing RECORDING indicator on the FIT buffer card.
-  els.recIndicator.hidden = !state.pedaling || state.demoModeActive;
+  const simulated = state.simulatorEnabled;
+  const recording = simulated ? latestSimulationRecording() : null;
+  const summary = simulated ? simulationSummary(recording) : rideLogSummary();
+  els.recIndicator.hidden = simulated ? !state.simulation : !state.pedaling;
 
-  const summary = rideLogSummary();
   els.recDistanceStat.textContent = formatDistance(summary.distanceMeters, state.distanceUnits);
   els.recTimeStat.textContent = formatDuration(summary.timerSeconds, state.durationFormat);
   els.recPointsStat.textContent = String(summary.sampleCount);
@@ -30,18 +31,73 @@ export function updateRecordingUi() {
     ? `${summary.heartRateSampleCount} samples`
     : "--";
   els.recCaloriesStat.textContent = formatEnergy(summary.caloriesKcal ?? NaN, state.energyUnits);
-  const exportLocked = workoutExportLocked();
+  const exportLocked = simulated ? Boolean(state.simulation) : workoutExportLocked();
+  els.downloadFitBtn.textContent = simulated ? "Export simulation data" : "Export full ride";
+  els.resetBtn.textContent = simulated ? "Reset simulation" : "Reset ride";
   els.downloadFitBtn.disabled = exportLocked || summary.sampleCount < 2;
-  els.downloadWorkoutFitBtn.disabled = exportLocked || !rideLogWorkoutFitRange();
-  els.resetBtn.disabled = summary.sampleCount === 0;
+  const hasWorkoutData = simulated ? hasSimulationWorkout(recording) : Boolean(rideLogWorkoutFitRange());
+  els.downloadWorkoutFitBtn.disabled = exportLocked || !hasWorkoutData;
+  els.resetBtn.disabled = (simulated && exportLocked) || summary.sampleCount === 0;
+}
+
+function simulationSummary(recording) {
+  return {
+    distanceMeters: recording?.summary.totalDistanceMeters ?? 0,
+    timerSeconds: recording?.summary.totalTimerSeconds ?? 0,
+    sampleCount: recording?.samples.length ?? 0,
+    heartRateSampleCount: recording?.samples.length ?? 0,
+    caloriesKcal: recording?.summary.totalCalories ?? null,
+  };
 }
 
 export function downloadFitFile() {
-  downloadFit(false);
+  if (state.simulatorEnabled) downloadSimulationFit(false);
+  else downloadFit(false);
 }
 
 export function downloadWorkoutFitFile() {
-  downloadFit(true);
+  if (state.simulatorEnabled) downloadSimulationFit(true);
+  else downloadFit(true);
+}
+
+function downloadSimulationFit(workoutOnly) {
+  if (state.simulation) return;
+  const recording = latestSimulationRecording();
+  const output = workoutOnly ? simulationWorkoutFit(recording) : recording;
+  if (!output || output.samples.length < 2) return;
+  const kind = workoutOnly ? "simulation-workout" : "simulation";
+  try {
+    saveFitDownload(encodeFitActivity(output), output.summary.startTimeMs, kind);
+  } catch (error) {
+    console.error("Could not encode the simulation FIT file.", error);
+    updateProgressLabel("Could not build the FIT file from the simulation.");
+  }
+}
+
+export function resetSelectedRecording() {
+  if (state.simulatorEnabled) void confirmResetSimulation();
+  else confirmResetRide();
+}
+
+async function confirmResetSimulation() {
+  if (state.simulation || !latestSimulationRecording()) return;
+  const prompt = state.route.length
+    ? "Return to the start of the route and delete the simulation recording?"
+    : "Delete the simulation recording?";
+  if (!window.confirm(prompt)) return;
+  const route = state.route;
+  const clearing = clearSimulationRecording();
+  updateRecordingUi();
+  try {
+    await clearing;
+    if (route.length && route === state.route && state.simulatorEnabled && !state.simulation) {
+      resetRoutePosition({ skipTrainerGrade: true });
+    }
+  } catch (error) {
+    console.error("Could not reset the simulation recording.", error);
+    updateProgressLabel("Could not delete the simulation recording.");
+    updateRecordingUi();
+  }
 }
 
 function downloadFit(workoutOnly) {
@@ -87,6 +143,17 @@ function downloadFit(workoutOnly) {
     return;
   }
 
+  saveFitDownload(bytes, startTimeMs, workoutOnly ? "workout" : "virtual-ride");
+
+  // Keep both downloads available until the rider explicitly resets the buffer.
+  if (range) return;
+  window.setTimeout(() => {
+    if (state.simulatorEnabled || workoutExportLocked()) return;
+    if (hasRideData()) confirmResetRide({ downloaded: true });
+  }, 300);
+}
+
+function saveFitDownload(bytes, startTimeMs, kind) {
   const started = new Date(startTimeMs);
   const stamp = [
     started.getFullYear(),
@@ -101,25 +168,18 @@ function downloadFit(workoutOnly) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `gpx-rider-${workoutOnly ? "workout" : "virtual-ride"}-${stamp}.fit`;
+  link.download = `gpx-rider-${kind}-${stamp}.fit`;
   document.body.append(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-
-  // Keep both downloads available until the rider explicitly resets the buffer.
-  if (range) return;
-  window.setTimeout(() => {
-    if (workoutExportLocked()) return;
-    if (hasRideData()) confirmResetRide({ downloaded: true });
-  }, 300);
 }
 
 function workoutExportLocked() {
   return Boolean(state.workoutErg || state.workoutCountdown);
 }
 
-export function confirmResetRide({ downloaded = false } = {}) {
+function confirmResetRide({ downloaded = false } = {}) {
   if (!hasRideData()) return;
   const summary = rideLogSummary();
   const description = `${formatDistance(summary.distanceMeters, state.distanceUnits)} / ${formatDuration(summary.timerSeconds, state.durationFormat)}`;

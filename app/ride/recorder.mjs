@@ -1,5 +1,5 @@
 // Ride recorder — the "bucket" of collected ride data. While the rider is
-// moving (pedaling or simulating) the app feeds it ticks; roughly once a
+// pedaling on a real trainer the app feeds it ticks; roughly once a
 // second it appends a track sample, and every few seconds it persists the
 // whole log via storage.mjs (IndexedDB) so a reload or crash never loses a
 // ride.
