@@ -362,7 +362,10 @@
                 <button id="startBtn" type="button" class="btn btn-accent btn-sm" disabled>
                   <svg class="icon-sim-play" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
                   <svg class="icon-sim-stop" width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
-                  <span id="startBtnLabel">Start</span>
+                  <span class="simulation-button-labels">
+                    <span class="simulation-start-label">Start</span>
+                    <span class="simulation-stop-label">Stop</span>
+                  </span>
                 </button>
               </div>
               <div id="simulationSpeedControl" class="simulation-control">
@@ -371,6 +374,15 @@
                 <output id="speedOutput" for="speedInput">24 km/h</output>
               </div>
               <p id="simulationStatus" class="setting-row-hint" role="status" hidden></p>
+            </div>
+            <div class="sidebar-subgroup">
+              <span class="panel-card-title">Route progress</span>
+              <div class="progress-wrap">
+                <progress id="progress" max="1" value="0" aria-label="Distance progress"></progress>
+                <span id="progressLabel" class="progress-note">Load a route to begin</span>
+                <progress id="ascentProgress" class="ascent-progress" max="1" value="0" aria-label="Climbing progress" hidden></progress>
+                <span id="ascentProgressLabel" class="progress-note" hidden>--</span>
+              </div>
             </div>
             <div class="stat-grid live-stats" aria-live="polite">
               <div class="stat-tile">
@@ -452,15 +464,6 @@
                     <span id="difficultyDetail" class="difficulty-tooltip" role="tooltip"></span>
                   </span>
                 </div>
-              </div>
-            </div>
-            <div class="sidebar-subgroup">
-              <span class="panel-card-title">Route progress</span>
-              <div class="progress-wrap">
-                <progress id="progress" max="1" value="0" aria-label="Distance progress"></progress>
-                <span id="progressLabel" class="progress-note">Load a route to begin</span>
-                <progress id="ascentProgress" class="ascent-progress" max="1" value="0" aria-label="Climbing progress" hidden></progress>
-                <span id="ascentProgressLabel" class="progress-note" hidden>--</span>
               </div>
             </div>
             <canvas id="profile" aria-label="Elevation profile"></canvas>

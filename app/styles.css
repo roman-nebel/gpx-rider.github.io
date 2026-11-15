@@ -2747,6 +2747,24 @@ progress.ascent-progress::-moz-progress-bar {
   gap: 5px;
 }
 
+.simulation-button-labels {
+  display: grid;
+  text-align: center;
+}
+
+.simulation-button-labels > span {
+  grid-area: 1 / 1;
+}
+
+.simulation-stop-label {
+  contain: inline-size;
+}
+
+#startBtn:not(.sim-running) .simulation-stop-label,
+#startBtn.sim-running .simulation-start-label {
+  visibility: hidden;
+}
+
 .simulation-field {
   display: grid;
   gap: 6px;

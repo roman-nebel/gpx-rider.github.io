@@ -337,7 +337,6 @@ export const els = {
   heartRateZoneSummary: document.querySelector("#heartRateZoneSummary"),
   zoneHelpButtons: document.querySelectorAll("[data-zone-help-trigger]"),
   startBtn: document.querySelector("#startBtn"),
-  startBtnLabel: document.querySelector("#startBtnLabel"),
   resetBtn: document.querySelector("#resetBtn"),
   trainerDot: document.querySelector("#trainerDot"),
   hrDot: document.querySelector("#hrDot"),
