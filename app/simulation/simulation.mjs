@@ -153,6 +153,8 @@ export function updateSimulationControls(message = state.simulationNotice) {
   els.simulationWorkoutOption.disabled = !steps;
   els.simulationSpeedControl.hidden = simulationMode !== "fixed";
   els.startBtn.disabled = !simulation && Boolean(unavailable);
+  els.simulationWorkoutStartBtn.hidden = !state.simulatorEnabled || simulationMode !== "workout" || Boolean(simulation);
+  els.simulationWorkoutStartBtn.disabled = els.startBtn.disabled;
   els.startBtnLabel.textContent = simulation ? "Stop" : "Start";
   els.startBtn.classList.toggle("sim-running", Boolean(simulation));
 

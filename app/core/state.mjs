@@ -423,6 +423,7 @@ export const els = {
   workoutHudStepProgress: document.querySelector("#workoutHudStepProgress"),
   workoutHudRemaining: document.querySelector("#workoutHudRemaining"),
   workoutHudMiniChart: document.querySelector("#workoutHudMiniChart"),
+  simulationWorkoutStartBtn: document.querySelector("#simulationWorkoutStartBtn"),
   workoutHudPlayBtn: document.querySelector("#workoutHudPlayBtn"),
   workoutHudEndBtn: document.querySelector("#workoutHudEndBtn"),
   workoutHudCountdown: document.querySelector("#workoutHudCountdown"),

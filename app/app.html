@@ -202,15 +202,8 @@
 
             <section id="workoutHud" class="fs-clock workout-step-chip" aria-label="Workout" hidden>
               <div class="workout-current-row">
-                <div class="workout-current-main">
-                  <strong id="workoutHudCurrent" class="workout-step-text"></strong>
-                  <div id="workoutHudStepTrack" class="workout-step-track">
-                    <progress id="workoutHudStepProgress" max="1" value="0" aria-label="Current step progress"></progress>
-                  </div>
-                  <div id="workoutHudMiniChart" class="workout-step-track workout-mini-chart" aria-hidden="true" hidden></div>
-                </div>
-                <span id="workoutHudRemaining" class="workout-step-metrics workout-step-remaining"></span>
                 <div class="workout-hud-actions">
+                  <button id="simulationWorkoutStartBtn" type="button" class="btn btn-accent workout-hud-action" data-state="start" aria-label="Start simulated workout" title="Start simulated workout" hidden>Start</button>
                   <button id="workoutHudPlayBtn" type="button" class="btn btn-accent workout-hud-action" aria-label="Start workout" title="Start workout">
                     <span class="workout-start-label">Start</span>
                     <svg class="workout-play-icon" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.5v9l8-4.5z"></path></svg>
@@ -221,26 +214,33 @@
                     <svg viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"></rect></svg>
                   </button>
                 </div>
+                <span class="workout-step-label workout-current-label">Now</span>
+                <div class="workout-current-main">
+                  <strong id="workoutHudCurrent" class="workout-step-text"></strong>
+                  <div id="workoutHudStepTrack" class="workout-step-track">
+                    <progress id="workoutHudStepProgress" max="1" value="0" aria-label="Current step progress"></progress>
+                  </div>
+                  <div id="workoutHudMiniChart" class="workout-step-track workout-mini-chart" aria-hidden="true" hidden></div>
+                </div>
+                <span id="workoutHudRemaining" class="workout-step-metrics workout-step-remaining"></span>
               </div>
               <p id="workoutHudStartError" class="workout-hud-start-error" role="alert" hidden></p>
               <dl id="workoutHudSummary" class="workout-step-summary" hidden></dl>
               <section id="workoutHudNext" class="workout-next-step" aria-label="Next workout step" hidden>
-                <span class="workout-next-label">Up next</span>
-                <div class="workout-next-row">
-                  <div class="workout-next-main">
-                    <strong id="workoutHudNextName" class="workout-step-text"></strong>
-                    <div class="workout-step-metrics workout-next-detail">
-                      <span id="workoutHudNextHeartRate" class="workout-next-icon workout-next-heart-rate" role="img" aria-label="Heart rate target" title="Heart rate target" hidden></span>
-                      <span id="workoutHudNextCadence" class="workout-next-icon workout-next-cadence" role="img" aria-label="Cadence target" title="Cadence target" hidden></span>
-                      <span id="workoutHudNextSpeed" class="workout-next-icon workout-next-speed" role="img" aria-label="Speed target" title="Speed target" hidden></span>
-                      <span class="workout-next-power" hidden>
-                        <span class="workout-next-icon workout-next-bolt" role="img" aria-label="Power target" title="Power target"></span>
-                        <span id="workoutHudNextPower"></span>
-                      </span>
-                    </div>
+                <span class="workout-step-label workout-next-label">Up next</span>
+                <div class="workout-next-main">
+                  <strong id="workoutHudNextName" class="workout-step-text"></strong>
+                  <div class="workout-step-metrics workout-next-detail">
+                    <span id="workoutHudNextHeartRate" class="workout-next-icon workout-next-heart-rate" role="img" aria-label="Heart rate target" title="Heart rate target" hidden></span>
+                    <span id="workoutHudNextCadence" class="workout-next-icon workout-next-cadence" role="img" aria-label="Cadence target" title="Cadence target" hidden></span>
+                    <span id="workoutHudNextSpeed" class="workout-next-icon workout-next-speed" role="img" aria-label="Speed target" title="Speed target" hidden></span>
+                    <span class="workout-next-power" hidden>
+                      <span class="workout-next-icon workout-next-bolt" role="img" aria-label="Power target" title="Power target"></span>
+                      <span id="workoutHudNextPower"></span>
+                    </span>
                   </div>
-                  <span id="workoutHudNextDuration" class="workout-step-metrics workout-step-remaining"></span>
                 </div>
+                <span id="workoutHudNextDuration" class="workout-step-metrics workout-step-remaining"></span>
               </section>
             </section>
 
