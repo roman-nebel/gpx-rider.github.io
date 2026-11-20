@@ -169,6 +169,6 @@ function currentEtaSeconds(remainingMeters, totalAscent, totalDescent) {
     // pedaling, otherwise preview at the simulation slider speed.
     fallbackSpeedKph: state.pedaling && Number.isFinite(speed)
       ? speed
-      : Number(els.speedInput.value),
+      : Math.min(Number(els.speedInput.value), state.maxRideSpeedKph),
   });
 }

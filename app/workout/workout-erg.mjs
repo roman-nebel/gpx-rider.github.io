@@ -95,6 +95,7 @@ function updateCountdown() {
   state.ergRoadSpeedKph = null;
   state.workoutErg = {
     steps: countdown.steps, index: 0, elapsed: 0, paused: false, nextWriteAt: 0, startedAtMs: Date.now(),
+    targetWatts: null, // Null during free-ride steps and automatic/manual pauses.
     summary: createWorkoutSummary(),
   };
   els.workoutErgInput.checked = true;
@@ -155,6 +156,7 @@ export function endWorkout() {
 export function pauseWorkoutErg() {
   const session = state.workoutErg;
   if (!session) return;
+  session.targetWatts = null;
   releaseTrainerTargetPower(currentGrade());
   session.nextWriteAt = 0;
   setErgStatus(session.paused ? "Workout paused." : "Paused. Pedal to resume.");
@@ -209,11 +211,13 @@ export function updateWorkoutErg(now, elapsedSeconds) {
   session.nextWriteAt = now + WORKOUT_ERG_UPDATE_MS;
   const target = workoutTargetWatts(step, state.ftpWatts, session.elapsed);
   if (!(target > 0)) {
+    session.targetWatts = null;
     releaseTrainerTargetPower(currentGrade());
     setErgStatus(`Step ${session.index + 1} · Free ride`);
     return;
   }
   const watts = queueTrainerTargetPower(target);
+  session.targetWatts = watts;
   if (watts === null) stopWorkoutErg("Trainer target power is unavailable.");
   else setErgStatus(`Step ${session.index + 1} · ${watts} W target`);
 }

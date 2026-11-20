@@ -2,6 +2,7 @@
 // and the once-per-load route overview (selected name, difficulty classification,
 // climbs list).
 
+import { resetRoadMotion } from "../ride/road-speed.mjs";
 import { stopWorkoutErg } from "../workout/workout-erg.mjs";
 import { detectClimbs } from "./climbs.mjs";
 import { focusClimb, syncFocusedClimbList } from "./climbs-ui.mjs";
@@ -72,6 +73,7 @@ function applyGpxText(text, { overrideName = null, fallbackName = null, galleryM
 
   if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
   stopSimulation("", { refresh: false });
+  resetRoadMotion();
   state.route = enrichRoute(route);
   // Warm the online-terrain cache around the start, middle and end of the
   // route so the follow camera has real ground under it from the first frame,

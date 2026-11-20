@@ -1,5 +1,7 @@
 // Runs the selected simulation in the ride's movement loop and owns its controls.
 
+import { speedLimitConfig, turnSpeedProfile } from "../ride/speed-limits.mjs";
+import { resetRoadMotion } from "../ride/road-speed.mjs";
 import { els, state } from "../core/state.mjs";
 import { WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 import { advanceDemoRide, createDemoRideModel, normalizeSimulationAthlete, simulationAthlete } from "../demo/demo.mjs";
@@ -27,6 +29,7 @@ export function registerSimulationHud() {
 }
 
 export function updateSimulatorFromControl() {
+  resetRoadMotion();
   state.simulatorEnabled = els.simulatorInput.checked;
   if (state.simulatorEnabled) {
     state.trainerProgressBeforeSimulation = state.progressMeters;
@@ -90,12 +93,12 @@ export function toggleSimulation() {
   const mode = state.simulationMode;
   const steps = mode === "workout" ? timedWorkoutSteps() : null;
   if (simulationUnavailable(mode, steps)) return;
-  const config = simulationAthlete(state.simulationAthlete);
+  const config = { ...simulationAthlete(state.simulationAthlete), bike_weight_kg: state.bikeWeightKg, inertia_enabled: state.inertiaEnabled };
   const workout = steps ? { steps, index: 0, elapsed: 0, ftp: config.ftp_watts } : null;
   if (state.progressMeters >= routeTotalDistance(state.route)) state.progressMeters = 0;
   const model = createDemoRideModel(config);
   const recording = createSimulationRecording(Date.now(), workout ? state.workout : null);
-  const simulation = { mode, model, config, telemetry: null, workout, recording };
+  const simulation = { mode, model, config, telemetry: null, workout, recording, ergStep: false };
   state.simulation = simulation;
   advanceVirtualRider(simulation, 0, gradeAt(state.route, state.progressMeters));
   recordSimulationPosition(simulation, 0);
@@ -181,7 +184,6 @@ function timedWorkoutSteps() {
 export function simulationSpeedKph() {
   const simulation = state.simulation;
   if (!simulation) return null;
-  if (simulation.mode === "fixed") return Number(els.speedInput.value);
   return simulation.telemetry?.speedKph ?? 0;
 }
 
@@ -196,20 +198,19 @@ export function advanceSimulation(elapsedSeconds, finishMeters) {
     const stepRemaining = step ? step.durationSeconds - workout.elapsed : Infinity;
     const grade = gradeAt(state.route, state.progressMeters);
     const distanceLeft = finishRoadMeters - roadDistanceAt(state.route, state.progressMeters);
-    // Integrate distance at the speed at the start of this slice, then
-    // advance the virtual rider to get the speed for the next slice.
-    const speedMps = (simulation.mode === "fixed" ? simulationSpeedKph() : simulation.model.speedKph) / 3.6;
-    const secondsToFinish = distanceLeft / speedMps;
-    const seconds = Math.min(remaining, stepRemaining, secondsToFinish);
-    advanceVirtualRider(simulation, seconds, grade);
-    const advancement = seconds === secondsToFinish
+    const requestedSeconds = Math.min(remaining, stepRemaining);
+    advanceVirtualRider(simulation, requestedSeconds, grade, distanceLeft);
+    // Keep the consumed slice directly; subtracting two session clocks can
+    // leave a tiny unconsumable remainder and stall this loop.
+    const seconds = simulation.model.elapsedSecondsAdvanced;
+    const advancement = simulation.model.distanceMetersAdvanced >= distanceLeft
       ? { progress: finishMeters, metersAdvanced: distanceLeft }
-      : advanceAlongRoad(state.route, state.progressMeters, speedMps * seconds);
+      : advanceAlongRoad(state.route, state.progressMeters, simulation.model.distanceMetersAdvanced);
     state.progressMeters = advancement.progress;
     recordSimulationPosition(simulation, advancement.metersAdvanced);
     remaining -= seconds;
     if (!step) continue;
-    if (seconds < stepRemaining) {
+    if (requestedSeconds < stepRemaining || seconds < requestedSeconds) {
       workout.elapsed += seconds;
     } else {
       workout.elapsed = 0;
@@ -236,15 +237,21 @@ function recordSimulationPosition(simulation, metersAdvanced, final = false) {
   });
 }
 
-function advanceVirtualRider(simulation, seconds, grade) {
+function advanceVirtualRider(simulation, seconds, grade, maxDistanceMeters = Infinity) {
+  simulation.config.bike_weight_kg = state.bikeWeightKg;
+  simulation.config.inertia_enabled = state.inertiaEnabled;
   const workout = simulation.workout;
   const step = workout?.steps[workout.index];
   const target = step ? workoutTargetWatts(step, workout.ftp, workout.elapsed + seconds / 2) : null;
+  simulation.ergStep = simulation.mode === "workout" && target > 0;
+  simulation.config.max_speed_kph = simulation.ergStep ? Infinity : state.maxRideSpeedKph;
   simulation.telemetry = advanceDemoRide(simulation.model, {
     elapsedSeconds: seconds,
     gradePercent: grade,
     targetPowerWatts: target,
-    fixedSpeedKph: simulation.mode === "fixed" ? simulationSpeedKph() : null,
+    fixedSpeedKph: simulation.mode === "fixed" ? Number(els.speedInput.value) : null,
+    maxDistanceMeters,
+    speedLimits: simulation.ergStep ? false : { config: speedLimitConfig(), profile: turnSpeedProfile(), roadMeters: roadDistanceAt(state.route, state.progressMeters) },
     config: simulation.config,
   });
 }

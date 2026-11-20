@@ -5,6 +5,7 @@
 // the one cross-cutting concern — so when adding a persisted setting, add it
 // to restoreSettings AND saveSettings here, plus the feature's own sync/apply.
 
+import { restoreRoadSettings } from "../settings/road-settings.mjs";
 import {
   normalizeClimbFocusMode,
   normalizeOverviewMode,
@@ -63,6 +64,7 @@ const RIDE_STORAGE_KEY = "gpx-rider:last-ride";
 
 export function restoreSettings() {
   const settings = readJson(SETTINGS_STORAGE_KEY);
+  restoreRoadSettings(settings);
   state.simulationAthlete = normalizeSimulationAthlete(settings?.simulationAthlete);
   const zoom = Number(settings?.cameraZoom ?? settings?.cameraDistanceMeters);
   const angle = Number(settings?.cameraAngleDegrees);
@@ -323,6 +325,11 @@ export function restoreSettings() {
 
 export function saveSettings() {
   writeJson(SETTINGS_STORAGE_KEY, {
+    riderWeightKg: state.riderWeightKg,
+    bikeWeightKg: state.bikeWeightKg,
+    inertiaEnabled: state.inertiaEnabled,
+    maxRideSpeedKph: state.maxRideSpeedKph,
+    autoCornerBraking: state.autoCornerBraking,
     cameraZoom: state.cameraZoom,
     overviewMode: state.overviewMode,
     climbFocusMode: state.climbFocusMode,

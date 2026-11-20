@@ -6,6 +6,10 @@
 
 import { createRideEstimator } from "../ride/eta.mjs";
 import {
+  ROAD_PHYSICS,
+  DEFAULT_INERTIA_ENABLED,
+  DEFAULT_MAX_RIDE_SPEED_KPH,
+  DEFAULT_AUTO_CORNER_BRAKING,
   DEFAULT_WORKOUT_AUTO_START,
   DEFAULT_BEACON_COLOR,
   DEFAULT_BEACON_DIAMETER_METERS,
@@ -67,7 +71,7 @@ export const state = {
   simulationMode: "fixed", // Selected mode for the next simulation start.
   simulationNotice: "", // Most recent simulation transition shown in the sidebar.
   simulation: null, // Active simulation, with its own virtual telemetry and workout clock.
-  pedaling: false, // Real trainer motion detected by speed hysteresis.
+  pedaling: false, // Fresh cadence/power effort; speed hysteresis is the legacy fallback.
   movementLoopActive: false,
   tickRaf: null,
   tickTimeout: null,
@@ -81,6 +85,20 @@ export const state = {
   minimapMap: null,
   minimapPaths: [],
   minimapMarker: null,
+  riderWeightKg: ROAD_PHYSICS.rider_weight_kg, // Persisted real rider mass.
+  bikeWeightKg: ROAD_PHYSICS.bike_weight_kg, // Persisted loaded bike mass, shared with simulation.
+  inertiaEnabled: DEFAULT_INERTIA_ENABLED, // Persisted app motion/coasting switch; never a hardware inertia command.
+  maxRideSpeedKph: DEFAULT_MAX_RIDE_SPEED_KPH, // Persisted hard speed ceiling outside ERG power steps.
+  autoCornerBraking: DEFAULT_AUTO_CORNER_BRAKING, // Persisted GPX-based automatic braking switch.
+  speedLimitRoute: null, // Route identity associated with the cached corner speed envelope.
+  turnSpeedProfile: null, // Cached curvature/braking profile, indexed by road distance.
+  roadSpeedLimited: false, // Recovery state after real road motion was limited.
+  trainerBrakeStrength: 0, // Ramped extra trainer road load outside ERG; zero while uncoupled.
+  roadSpeedKph: null, // Latest app road speed, distinct from raw trainer telemetry.
+  roadCoasting: false, // Road motion stays app-driven while coasting/catching up.
+  roadCoupling: null, // Freewheel phase, engagement hold, and road-load ramp fraction.
+  trainerSpeedSampleAt: null, // Timestamp of the latest actual speed field.
+  trainerCadenceSampleAt: null, // Timestamp of the latest actual cadence field.
   trainerSpeedKph: null,
   ergRoadSpeedKph: null, // Modeled map speed while pedaling in an ERG workout.
   trainerPowerWatts: null,
@@ -331,6 +349,12 @@ export const els = {
   theaterHideControlsInput: document.querySelector("#theaterHideControlsInput"),
   theaterHideMinimapInput: document.querySelector("#theaterHideMinimapInput"),
   simulationBanner: document.querySelector("#simulationBanner"),
+  riderWeightInput: document.querySelector("#riderWeightInput"),
+  bikeWeightInput: document.querySelector("#bikeWeightInput"),
+  inertiaInput: document.querySelector("#inertiaInput"),
+  maxRideSpeedInput: document.querySelector("#maxRideSpeedInput"),
+  autoCornerBrakingInput: document.querySelector("#autoCornerBrakingInput"),
+  trainerRoadSupport: document.querySelector("#trainerRoadSupport"),
   restingHeartRateInput: document.querySelector("#restingHeartRateInput"),
   maxHeartRateInput: document.querySelector("#maxHeartRateInput"),
   ftpInput: document.querySelector("#ftpInput"),

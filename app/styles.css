@@ -2336,7 +2336,8 @@ body {
   text-transform: uppercase;
 }
 
-.rider-zone-form input {
+.rider-zone-form input,
+.setting-number {
   min-width: 0;
   height: 34px;
   padding: 0 9px;
@@ -2345,6 +2346,11 @@ body {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.04);
   font: 600 13px/1 var(--font-num);
+}
+
+.setting-number {
+  width: 90px;
+  flex: 0 0 90px;
 }
 
 .zone-editor {
