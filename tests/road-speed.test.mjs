@@ -211,3 +211,30 @@ for (const signals of [{ power: 500, cadence: 85 }, { power: 0, cadence: 0 }, { 
     assert.equal(state.roadCoupling.loadFraction, 1);
   });
 }
+
+
+test("outside ERG the powered uphill speed remains delegated to the trainer", () => {
+  for (const power of [200, 800]) {
+    telemetry({ power, cadence: 85, speed: 30 });
+    const result = advanceRealRoadSpeed(1, 5, 1000);
+    assert.equal(result.speedKph, 30);
+    assert.equal(state.roadCoupling.phase, "coupled");
+  }
+});
+
+test("ERG uphill motion responds to measured power deficit, balance, and surplus", async () => {
+  const { cyclingPowerForSpeed } = await import("../app/ride/cycling-speed.mjs");
+  telemetry();
+  const config = realRoadConfig();
+  const holdingWatts = cyclingPowerForSpeed(30, 5, config);
+  const speeds = [];
+  for (const power of [holdingWatts - 100, holdingWatts, holdingWatts + 100]) {
+    telemetry({ power, speed: 30 });
+    state.workoutErg = { paused: false, targetWatts: holdingWatts };
+    state.roadSpeedKph = 30;
+    speeds.push(advanceRealRoadSpeed(1, 5, 1000).speedKph);
+  }
+  assert.ok(speeds[0] < 30);
+  assert.ok(Math.abs(speeds[1] - 30) < 1e-6);
+  assert.ok(speeds[2] > 30);
+});

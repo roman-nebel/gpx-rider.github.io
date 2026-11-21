@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { cyclingPowerForSpeed } from "../app/ride/cycling-speed.mjs";
 import { cyclingForces, advanceCyclingMotion } from "../app/ride/cycling-motion.mjs";
 
 const config = {
@@ -60,4 +61,52 @@ test("mass affects acceleration and coasting without creating a minimum speed", 
   const heavy = advanceCyclingMotion(0, 200, 0, 1, { ...config, rider_weight_kg: 160 });
   assert.ok(light.speedKph > heavy.speedKph);
   assert.deepEqual(advanceCyclingMotion(0, 0, 0, 1, config), { speedKph: 0, distanceMeters: 0 });
+});
+
+
+test("climbing at constant speed balances gravity, rolling, and drag without an acceleration surcharge", () => {
+  const speedKph = 30;
+  const speedMps = speedKph / 3.6;
+  const gradePercent = 5;
+  const angle = Math.atan(gradePercent / 100);
+  const mass = config.rider_weight_kg + config.bike_weight_kg;
+  const gravity = mass * 9.80665 * Math.sin(angle);
+  const rolling = config.rolling_resistance_coefficient * mass * 9.80665 * Math.cos(angle);
+  const drag = 0.5 * config.air_density_kg_per_cubic_meter * config.drag_area_square_meters * speedMps ** 2;
+  const holdingWatts = (gravity + rolling + drag) * speedMps / config.drivetrain_efficiency;
+  assert.ok(Math.abs(cyclingPowerForSpeed(speedKph, gradePercent, config) - holdingWatts) < 1e-9);
+  const held = advanceCyclingMotion(speedKph, holdingWatts, gradePercent, 10, config);
+  assert.ok(Math.abs(held.speedKph - speedKph) < 1e-6);
+  const deficient = advanceCyclingMotion(speedKph, holdingWatts - 100, gradePercent, 1, config);
+  const surplus = advanceCyclingMotion(speedKph, holdingWatts + 100, gradePercent, 1, config);
+  assert.ok(deficient.speedKph < speedKph);
+  assert.ok(surplus.speedKph > speedKph);
+});
+
+test("the power surplus for acceleration is mass times speed times acceleration at the wheel", () => {
+  const speedKph = 30;
+  const seconds = 0.001;
+  for (const riderWeightKg of [80, 170]) {
+    const physics = { ...config, rider_weight_kg: riderWeightKg };
+    const mass = physics.rider_weight_kg + physics.bike_weight_kg;
+    const holdingWatts = cyclingPowerForSpeed(speedKph, 5, physics);
+    for (const acceleration of [-0.2, 0, 0.2]) {
+      const additionalWatts = mass * (speedKph / 3.6) * acceleration / physics.drivetrain_efficiency;
+      const next = advanceCyclingMotion(speedKph, holdingWatts + additionalWatts, 5, seconds, physics);
+      const measuredAcceleration = (next.speedKph - speedKph) / 3.6 / seconds;
+      assert.ok(Math.abs(measuredAcceleration - acceleration) < 0.0001,
+        `mass ${mass}, requested ${acceleration}, actual ${measuredAcceleration}`);
+    }
+  }
+});
+
+test("unchanged power slows the rider after a flat road becomes an uphill", () => {
+  const speedKph = 30;
+  const flatPower = cyclingPowerForSpeed(speedKph, 0, config);
+  const flat = advanceCyclingMotion(speedKph, flatPower, 0, 5, config);
+  const climb = advanceCyclingMotion(speedKph, flatPower, 5, 5, config);
+  assert.ok(Math.abs(flat.speedKph - speedKph) < 1e-6);
+  assert.ok(climb.speedKph < speedKph);
+  const recovered = advanceCyclingMotion(climb.speedKph, cyclingPowerForSpeed(speedKph, 5, config) + 100, 5, 5, config);
+  assert.ok(recovered.speedKph > climb.speedKph);
 });

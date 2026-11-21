@@ -233,3 +233,18 @@ test("athlete profiles change sustainable power and cadence", () => {
   assert.ok(demoTargetPowerWatts(4, beginner) < demoTargetPowerWatts(4, elite));
   assert.ok(demoTargetCadenceRpm(4, beginner) < demoTargetCadenceRpm(4, elite));
 });
+
+test("power-driven simulation slows, holds, or accelerates uphill from the road-power balance", () => {
+  const config = { ...TEST_RIDE, ...ROAD_PHYSICS, inertia_enabled: true };
+  const holdingWatts = cyclingPowerForSpeed(30, 5, config);
+  const speeds = [];
+  for (const powerWatts of [holdingWatts - 100, holdingWatts, holdingWatts + 100]) {
+    const model = createDemoRideModel(config);
+    model.speedKph = 30;
+    advanceDemoRide(model, { elapsedSeconds: 1, gradePercent: 5, targetPowerWatts: powerWatts, config });
+    speeds.push(model.speedKph);
+  }
+  assert.ok(speeds[0] < 30);
+  assert.ok(Math.abs(speeds[1] - 30) < 1e-6);
+  assert.ok(speeds[2] > 30);
+});
