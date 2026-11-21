@@ -8,9 +8,27 @@ import {
   decodeFecPage,
   encodeTrackResistancePage,
   encodeTargetPowerPage,
+  encodeWindResistancePage,
+  encodeUserConfigurationPage,
+  encodeMinimumResistancePage,
   parseAntFrame,
   xorChecksum,
 } from "../app/trainer/fec.mjs";
+
+test("FE-C freewheel minimum is zero-percent basic resistance", () => {
+  assert.deepEqual([...encodeMinimumResistancePage()], [48, 255, 255, 255, 255, 255, 255, 0]);
+});
+
+test("FE-C wind and user configuration carry road drag and loaded masses", () => {
+  assert.deepEqual([...encodeWindResistancePage(0.294, 0)], [50, 255, 255, 255, 255, 29, 127, 100]);
+  const page = encodeUserConfigurationPage(85, 10);
+  assert.equal(page[0], 55);
+  assert.equal(page[1] | page[2] << 8, 8500);
+  assert.equal((page[4] >> 4) | page[5] << 4, 200);
+  assert.equal(page[4] & 15, 15);
+  assert.equal(page[6], 255);
+  assert.equal(page[7], 0);
+});
 
 test("xorChecksum XORs every byte", () => {
   assert.equal(xorChecksum([0xa4, 0x09, 0x4e]), 0xa4 ^ 0x09 ^ 0x4e);

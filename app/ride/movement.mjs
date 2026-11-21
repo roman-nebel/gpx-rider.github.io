@@ -4,7 +4,11 @@ import { closeOverviewModeMenu, syncOverviewControls } from "../camera/camera-ui
 import { syncFocusedClimbList } from "../route/climbs-ui.mjs";
 import { advanceSimulation, simulationSpeedKph, stopSimulation, updateSimulationControls } from "../simulation/simulation.mjs";
 import { persistSimulationRecording } from "../simulation/simulation-recorder.mjs";
-import { cyclingSpeedForPower } from "./cycling-speed.mjs";
+import {
+  advanceFinishedRoadSpeed, advanceRealRoadSpeed, finishRoadMotion,
+  prepareRealRoadMotion, realCoasting, realErgPowerStep, resetRoadMotion, trainerEffort,
+} from "./road-speed.mjs";
+import { currentSpeedLimit } from "./speed-limits.mjs";
 import { recordEstimatorTick } from "./eta.mjs";
 import { ensureCameraFlightLoop } from "../camera/follow-camera.mjs";
 import { clamp } from "../core/geo.mjs";
@@ -34,8 +38,6 @@ import { realCaloriesKcal, realHeartRate, updateRideSpeedUi } from "./telemetry-
 import { sendTrainerGrade } from "../trainer/trainer.mjs";
 import {
   CYCLING_GROSS_EFFICIENCY,
-  ERG_ROAD_SPEED,
-  WORKOUT_ERG_POWER_TIMEOUT_MS,
   MAX_TICK_SECONDS,
   PEDALING_START_KPH,
   PEDALING_STOP_KPH,
@@ -47,12 +49,24 @@ import {
 } from "../workout/workout-erg.mjs";
 
 export function isMoving() {
-  return Boolean(state.simulation || state.pedaling);
+  return !state.roadFinished && Boolean(state.simulation || state.pedaling || realCoasting());
 }
 
 export function updatePedalingFromSpeed() {
-  if (state.simulatorEnabled) return;
-  const speed = state.trainerSpeedKph;
+  if (state.simulatorEnabled || state.roadFinished) return;
+  const effort = trainerEffort();
+  if (!effort.fresh) {
+    resetRoadMotion();
+    setPedaling(false);
+    return;
+  }
+  if (state.inertiaEnabled && effort.active !== null) {
+    prepareRealRoadMotion(effort);
+    setPedaling(effort.active);
+    if (realCoasting()) ensureMovementLoop();
+    return;
+  }
+  const speed = effort.speed;
   if (!Number.isFinite(speed)) {
     setPedaling(false);
     return;
@@ -62,7 +76,7 @@ export function updatePedalingFromSpeed() {
 }
 
 export function setPedaling(pedaling) {
-  if ((pedaling && state.simulatorEnabled) || pedaling === state.pedaling) return;
+  if ((pedaling && (state.simulatorEnabled || state.roadFinished)) || pedaling === state.pedaling) return;
   state.pedaling = pedaling;
 
   if (pedaling) {
@@ -73,7 +87,7 @@ export function setPedaling(pedaling) {
     state.ergRoadSpeedKph = null;
     pauseWorkoutErg();
     updateRideSpeedUi();
-    if (!state.simulation) handleMovementStopped();
+    if (!state.simulation && !realCoasting()) handleMovementStopped();
   }
 }
 
@@ -158,6 +172,7 @@ export function resetRide() {
 
 export function resetRoutePosition({ skipTrainerGrade = false } = {}) {
   updateSimulationControls("");
+  resetRoadMotion();
   state.progressMeters = 0;
   state.lastTick = performance.now();
   // A reset while stationary honors the chosen camera surface: overview stays
@@ -171,11 +186,23 @@ export function resetRoutePosition({ skipTrainerGrade = false } = {}) {
 }
 
 function tick(now) {
+  if (state.roadFinished) {
+    const seconds = clamp((now - state.lastTick) / 1000, 0, MAX_TICK_SECONDS);
+    state.lastTick = now;
+    advanceFinishedRoadSpeed(seconds);
+    updateRideUi({ skipTrainerGrade: true });
+    if (state.roadSpeedKph > 0) scheduleTick();
+    else state.movementLoopActive = false;
+    return;
+  }
+  if (!state.simulatorEnabled) updatePedalingFromSpeed();
   if (!isMoving() || state.route.length < 2) {
     state.movementLoopActive = false;
+    if (!state.simulation) resetRoadMotion();
     // The movement loop was driving the camera flight; let the flight loop
     // finish any move still in progress.
     ensureCameraFlightLoop();
+    handleMovementStopped();
     return;
   }
 
@@ -187,15 +214,20 @@ function tick(now) {
   else advanceRealRide(now, elapsedSeconds);
 
   if (state.progressMeters >= totalDistance) {
-    const simulated = Boolean(state.simulation);
+    const simulation = state.simulation;
+    const simulated = Boolean(simulation);
     if (!simulated && state.workoutErg) stopWorkoutErg("Route finished.");
     stopSimulation("Route finished.", { refresh: false });
     state.movementLoopActive = false;
     enterFinishOrbit();
     ensureCameraFlightLoop();
-    updateRideUi({ force: true, skipTrainerGrade: simulated });
+    finishRoadMotion(simulation);
+    if (state.roadSpeedKph > 0) {
+      state.movementLoopActive = true;
+      scheduleTick();
+    }
+    updateRideUi({ force: true, skipTrainerGrade: true });
     handleMovementStopped();
-    if (state.pedaling) void sendTrainerGrade(0);
     return;
   }
 
@@ -213,19 +245,20 @@ function tick(now) {
 
 function advanceRealRide(now, elapsedSeconds) {
   const previousProgress = state.progressMeters;
-  updateErgRoadSpeed(now, elapsedSeconds, gradeAt(state.route, previousProgress));
-  const speedKph = currentRideSpeedKph() ?? 0;
-  const { progress, metersAdvanced } = advanceAlongRoad(state.route, previousProgress, speedKph / 3.6 * elapsedSeconds);
+  const motion = advanceRealRoadSpeed(elapsedSeconds, gradeAt(state.route, previousProgress), now);
+  const speedKph = motion.speedKph;
+  const { progress, metersAdvanced } = advanceAlongRoad(state.route, previousProgress, motion.distanceMeters);
   state.progressMeters = progress;
-  recordEstimatorTick(state.rideEstimator, {
+  if (state.pedaling && !state.roadCoasting) recordEstimatorTick(state.rideEstimator, {
     elapsedSeconds,
     distanceMeters: metersAdvanced,
     ascentMeters: ascentAt(state.route, progress) - ascentAt(state.route, previousProgress),
     descentMeters: descentAt(state.route, progress) - descentAt(state.route, previousProgress),
   });
-  if (Number.isFinite(state.trainerPowerWatts)) {
+  const powerWatts = trainerEffort(now).power;
+  if (Number.isFinite(powerWatts)) {
     state.powerCaloriesKcal += activeCaloriesFromPower(
-      state.trainerPowerWatts, elapsedSeconds, CYCLING_GROSS_EFFICIENCY,
+      powerWatts, elapsedSeconds, CYCLING_GROSS_EFFICIENCY,
     );
   }
   recordRideTick({
@@ -233,7 +266,7 @@ function advanceRealRide(now, elapsedSeconds) {
     metersAdvanced,
     point: interpolateRoutePoint(state.route, progress),
     speedKph,
-    powerWatts: state.trainerPowerWatts,
+    powerWatts,
     heartRateBpm: realHeartRate(),
     caloriesKcal: realCaloriesKcal(),
     routeProgressMeters: progress,
@@ -246,28 +279,14 @@ function advanceRealRide(now, elapsedSeconds) {
 }
 
 export function currentRideSpeedKph() {
-  if (state.simulatorEnabled) return simulationSpeedKph();
-  if (state.workoutErg && !state.workoutErg.paused && state.pedaling) {
-    return state.ergRoadSpeedKph ?? 0;
+  let speed = 0;
+  if (state.roadFinished) speed = state.roadSpeedKph ?? 0;
+  else if (state.simulatorEnabled) speed = simulationSpeedKph();
+  else if (state.roadCoasting || state.ergRoadSpeedKph !== null || state.pedaling) {
+    speed = state.roadSpeedKph ?? state.trainerSpeedKph;
   }
-  return state.trainerSpeedKph;
-}
-
-function updateErgRoadSpeed(now, elapsedSeconds, grade) {
-  if (!state.workoutErg || state.workoutErg.paused || !state.pedaling) {
-    state.ergRoadSpeedKph = null;
-    return;
-  }
-  const sampleAt = state.trainerPowerSampleAt;
-  const power = state.trainerPowerWatts;
-  if (sampleAt === null || now - sampleAt > WORKOUT_ERG_POWER_TIMEOUT_MS || !Number.isFinite(power)) {
-    state.ergRoadSpeedKph = null;
-    return;
-  }
-  const target = cyclingSpeedForPower(power, grade, ERG_ROAD_SPEED);
-  const previous = state.ergRoadSpeedKph ?? target;
-  const weight = 1 - Math.exp(-elapsedSeconds / ERG_ROAD_SPEED.speed_smoothing_tau_seconds);
-  state.ergRoadSpeedKph = previous + (target - previous) * weight;
+  const erg = state.simulatorEnabled ? state.simulation?.ergStep : realErgPowerStep();
+  return Number.isFinite(speed) && !erg && !state.roadFinished ? Math.min(speed, currentSpeedLimit()) : speed;
 }
 
 // Jump the rider to a distance along the route (profile click, climb click).
@@ -275,6 +294,7 @@ export function seekToMeters(meters) {
   if (!state.route.length) return;
   const wasMoving = isMoving();
   stopSimulation("Simulation stopped before seeking.", { refresh: false });
+  resetRoadMotion();
   state.progressMeters = clamp(meters, 0, routeTotalDistance(state.route));
   state.ergRoadSpeedKph = null;
   state.lastTick = performance.now();

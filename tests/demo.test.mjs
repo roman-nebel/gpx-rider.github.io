@@ -9,6 +9,78 @@ import {
   demoTargetPowerWatts,
   simulationAthlete,
 } from "../app/demo/demo.mjs";
+import { ROAD_PHYSICS } from "../app/core/tuning.mjs";
+import { advanceCyclingMotion } from "../app/ride/cycling-motion.mjs";
+import { cyclingPowerForSpeed } from "../app/ride/cycling-speed.mjs";
+import { activeCaloriesFromPower } from "../app/core/units.mjs";
+import { CYCLING_GROSS_EFFICIENCY } from "../app/core/tuning.mjs";
+
+test("fixed speed honors the hard ceiling and estimates power at the limited speed", () => {
+  const config = { ...TEST_RIDE, ...ROAD_PHYSICS, max_speed_kph: 30 };
+  const model = createDemoRideModel(config);
+  const telemetry = advanceDemoRide(model, { elapsedSeconds: 1, gradePercent: 0, fixedSpeedKph: 100, config });
+  assert.equal(telemetry.speedKph, 30);
+  assert.equal(model.powerWatts, cyclingPowerForSpeed(30, 0, config));
+  assert.equal(model.caloriesKcal, activeCaloriesFromPower(model.powerWatts, 1, CYCLING_GROSS_EFFICIENCY));
+  assert.ok(model.distanceMetersAdvanced <= 30 / 3.6 + 1e-8);
+});
+
+test("fixed and power-driven simulations share corner braking when the limiter is enabled", () => {
+  const profile = [{ distanceMeters: 0, speedSquared: (20 / 3.6) ** 2 }, { distanceMeters: 1000, speedSquared: (20 / 3.6) ** 2 }];
+  for (const inertia of [true, false]) for (const fixed of [null, 60]) {
+    const config = { ...TEST_RIDE, ...ROAD_PHYSICS, inertia_enabled: inertia };
+    const model = createDemoRideModel(config);
+    model.speedKph = 60;
+    const telemetry = advanceDemoRide(model, { elapsedSeconds: 1, gradePercent: -10, targetPowerWatts: 500, fixedSpeedKph: fixed,
+      speedLimits: { profile, roadMeters: 0, config: { max_speed_kph: 72, integration_step_seconds: 0.02, recovery_acceleration_mps2: 1 } }, config });
+    assert.ok(telemetry.speedKph <= 20 + 1e-7, telemetry.speedKph);
+    assert.ok(model.distanceMetersAdvanced <= 20 / 3.6 + 1e-7);
+  }
+});
+
+test("simulated ERG can bypass both the ceiling and corner envelope", () => {
+  const config = { ...TEST_RIDE, ...ROAD_PHYSICS, max_speed_kph: Infinity };
+  for (const inertia of [true, false]) {
+    const model = createDemoRideModel(config);
+    model.speedKph = 90;
+    model.speedLimited = true;
+    const telemetry = advanceDemoRide(model, { elapsedSeconds: 1, gradePercent: -10, targetPowerWatts: 1000,
+      speedLimits: false, config: { ...config, inertia_enabled: inertia } });
+    assert.ok(Number.isFinite(telemetry.speedKph) && telemetry.speedKph > 72, String(telemetry.speedKph));
+    assert.equal(model.speedLimited, false);
+  }
+});
+
+test("virtual and ERG motion share the same integrator and can coast at zero watts", () => {
+  const config = { ...TEST_RIDE, ...ROAD_PHYSICS, min_power_watts: 0 };
+  const model = createDemoRideModel(config);
+  model.speedKph = 30;
+  const expected = advanceCyclingMotion(30, 0, -8, 1, config);
+  const telemetry = advanceDemoRide(model, { elapsedSeconds: 1, gradePercent: -8, targetPowerWatts: 0, config });
+  assert.equal(model.speedKph, expected.speedKph);
+  assert.equal(model.distanceMetersAdvanced, expected.distanceMeters);
+  assert.equal(telemetry.cadenceRpm, 0);
+  assert.ok(Number.isFinite(model.cadenceRpm));
+});
+
+test("simulation ends at the distance boundary without consuming the full tick", () => {
+  const config = { ...TEST_RIDE, ...ROAD_PHYSICS };
+  const model = createDemoRideModel(config);
+  model.speedKph = 30;
+  advanceDemoRide(model, { elapsedSeconds: 5, gradePercent: -8, targetPowerWatts: 200, maxDistanceMeters: 1, config });
+  assert.ok(Math.abs(model.distanceMetersAdvanced - 1) < 1e-7);
+  assert.ok(model.elapsedSeconds > 0 && model.elapsedSeconds < 0.2);
+});
+
+test("a simulation exposes the consumed slice without subtracting cumulative clocks", () => {
+  const config = { ...TEST_RIDE, ...ROAD_PHYSICS };
+  const model = createDemoRideModel(config);
+  model.elapsedSeconds = 10000;
+  advanceDemoRide(model, { elapsedSeconds: 1 / 60, gradePercent: 0, config });
+  assert.equal(model.elapsedSecondsAdvanced, 1 / 60);
+  // This difference loses precision and must never drive the slice loop.
+  assert.notEqual(model.elapsedSeconds - 10000, model.elapsedSecondsAdvanced);
+});
 
 // A pinned rider profile so the tests exercise the physics/HR model, never
 // the shipped DEMO_RIDE tuning — retuning demo mode must not break this suite.

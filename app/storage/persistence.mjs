@@ -5,6 +5,7 @@
 // the one cross-cutting concern — so when adding a persisted setting, add it
 // to restoreSettings AND saveSettings here, plus the feature's own sync/apply.
 
+import { restoreRoadSettings } from "../settings/road-settings.mjs";
 import {
   normalizeClimbFocusMode,
   normalizeOverviewMode,
@@ -63,6 +64,7 @@ const RIDE_STORAGE_KEY = "gpx-rider:last-ride";
 
 export function restoreSettings() {
   const settings = readJson(SETTINGS_STORAGE_KEY);
+  restoreRoadSettings(settings);
   state.simulationAthlete = normalizeSimulationAthlete(settings?.simulationAthlete);
   const zoom = Number(settings?.cameraZoom ?? settings?.cameraDistanceMeters);
   const angle = Number(settings?.cameraAngleDegrees);
@@ -170,6 +172,7 @@ export function restoreSettings() {
   }
 
   const ftpWatts = Number(settings?.ftpWatts);
+  if (typeof settings?.workoutErgEnabled === "boolean") state.workoutErgEnabled = settings.workoutErgEnabled;
   if (typeof settings?.workoutAutoStart === "boolean") state.workoutAutoStart = settings.workoutAutoStart;
   if (Number.isFinite(ftpWatts) && ftpWatts > 0 && ftpWatts <= 1000) {
     state.ftpWatts = Math.round(ftpWatts);
@@ -323,6 +326,11 @@ export function restoreSettings() {
 
 export function saveSettings() {
   writeJson(SETTINGS_STORAGE_KEY, {
+    riderWeightKg: state.riderWeightKg,
+    bikeWeightKg: state.bikeWeightKg,
+    inertiaEnabled: state.inertiaEnabled,
+    maxRideSpeedKph: state.maxRideSpeedKph,
+    autoCornerBraking: state.autoCornerBraking,
     cameraZoom: state.cameraZoom,
     overviewMode: state.overviewMode,
     climbFocusMode: state.climbFocusMode,
@@ -357,6 +365,7 @@ export function saveSettings() {
     maxHeartRateBpm: state.maxHeartRateBpm,
     ftpWatts: state.ftpWatts,
     workoutAutoStart: state.workoutAutoStart,
+    workoutErgEnabled: state.workoutErgEnabled,
     simulationAthlete: state.simulationAthlete,
     showMinimap: state.showMinimap,
     mapLabelsEnabled: state.mapLabelsEnabled,

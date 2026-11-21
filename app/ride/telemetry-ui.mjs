@@ -3,6 +3,8 @@
 // app does with the numbers), the HR source-of-truth resolution, calories and
 // ride-timer accessors, and the telemetry readouts in the panel + HUD.
 
+import { resetRoadMotion } from "./road-speed.mjs";
+import { updateRoadSupport } from "../settings/road-settings.mjs";
 import { latestSimulationRecording } from "../simulation/simulation-recorder.mjs";
 import { isHeartRateConnected } from "../trainer/heartrate.mjs";
 import { currentRideSpeedKph, setPedaling, updatePedalingFromSpeed } from "./movement.mjs";
@@ -20,6 +22,9 @@ export function handleTrainerTelemetry(telemetry) {
   els.trainerDot.classList.toggle("connected", Boolean(telemetry));
 
   if (!telemetry) {
+    resetRoadMotion();
+    state.trainerSpeedSampleAt = null;
+    state.trainerCadenceSampleAt = null;
     state.trainerSpeedKph = null;
     state.trainerPowerWatts = null;
     state.trainerPowerSampleAt = null;
@@ -32,12 +37,18 @@ export function handleTrainerTelemetry(telemetry) {
     return;
   }
 
-  if (telemetry.speedKph !== null) state.trainerSpeedKph = telemetry.speedKph;
+  if (Number.isFinite(telemetry.speedKph)) {
+    state.trainerSpeedKph = telemetry.speedKph;
+    if (telemetry.speedSampleFresh !== false) state.trainerSpeedSampleAt = performance.now();
+  }
   if (telemetry.powerWatts !== null) {
     state.trainerPowerWatts = telemetry.powerWatts;
     if (telemetry.powerSampleFresh !== false) state.trainerPowerSampleAt = performance.now();
   }
-  if (telemetry.cadenceRpm !== null) state.trainerCadenceRpm = telemetry.cadenceRpm;
+  if (Number.isFinite(telemetry.cadenceRpm)) {
+    state.trainerCadenceRpm = telemetry.cadenceRpm;
+    if (telemetry.cadenceSampleFresh !== false) state.trainerCadenceSampleAt = performance.now();
+  }
   if (telemetry.totalCaloriesKcal !== null) state.trainerCaloriesKcal = telemetry.totalCaloriesKcal;
   state.trainerHeartRateBpm = telemetry.heartRateBpm;
 
@@ -48,8 +59,9 @@ export function handleTrainerTelemetry(telemetry) {
 
 export function handleTrainerStatus(text, { onlyClearError = false } = {}) {
   const connected = isTrainerConnected();
+  updateRoadSupport();
   els.trainerSettingsBtn.hidden = !connected;
-  els.trainerErg.hidden = !connected || !trainerSupportsTargetPower();
+  els.trainerErg.hidden = !connected || (!trainerSupportsTargetPower() && !state.workoutErgEnabled);
   if (!connected) {
     els.trainerSettings.hidden = true;
     els.trainerSettingsBtn.setAttribute("aria-expanded", "false");
@@ -168,4 +180,13 @@ export function updateRideSpeedUi() {
   const speedText = formatSpeed(currentRideSpeedKph(), state.distanceUnits);
   if (els.speedStat.textContent !== speedText) els.speedStat.textContent = speedText;
   if (els.hudSpeedStat.textContent !== speedText) els.hudSpeedStat.textContent = speedText;
+  const phase = state.simulatorEnabled ? "coupled" : state.roadCoupling?.phase;
+  let hint = phase === "freewheel"
+    ? `Coasting. Match road speed to engage. Trainer: ${formatSpeed(state.trainerSpeedKph, state.distanceUnits)}.`
+    : phase === "engaging" ? "Engaging. Road resistance is returning gradually." : "Road speed";
+  const limited = state.simulatorEnabled ? state.simulation?.model.speedLimited : state.roadSpeedLimited;
+  if (limited) hint += " Speed is limited by the maximum speed or an upcoming bend.";
+  if (!state.simulatorEnabled && state.trainerBrakeStrength > 0) hint += " Additional trainer braking is active.";
+  els.speedStat.title = hint;
+  els.hudSpeedStat.title = hint;
 }

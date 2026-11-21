@@ -22,6 +22,7 @@ const STEP_TARGET_ICONS = [
 
 export function restoreWorkout() {
   els.workoutAutoStartInput.checked = state.workoutAutoStart;
+  els.workoutErgInput.checked = state.workoutErgEnabled;
   state.workout = readJson(WORKOUT_STORAGE_KEY);
   renderWorkout();
 }

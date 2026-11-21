@@ -5,6 +5,7 @@
 // about to add a function here, it almost certainly belongs in one of those
 // modules instead.
 
+import { updateRoadSettings } from "./settings/road-settings.mjs";
 import { deployedMapsApiKey } from "./config.mjs";
 import {
   closeCameraViewMenu,
@@ -214,6 +215,11 @@ function bindEvents() {
   els.energyUnitSelect.addEventListener("change", updateUnitsFromControls);
   els.timeFormatSelect.addEventListener("change", updateUnitsFromControls);
   els.durationFormatSelect.addEventListener("change", updateUnitsFromControls);
+  els.riderWeightInput.addEventListener("change", updateRoadSettings);
+  els.bikeWeightInput.addEventListener("change", updateRoadSettings);
+  els.inertiaInput.addEventListener("change", updateRoadSettings);
+  els.maxRideSpeedInput.addEventListener("change", updateRoadSettings);
+  els.autoCornerBrakingInput.addEventListener("change", updateRoadSettings);
   els.restingHeartRateInput.addEventListener("change", updateRiderProfileFromControls);
   els.maxHeartRateInput.addEventListener("change", updateRiderProfileFromControls);
   els.ftpInput.addEventListener("change", updateRiderProfileFromControls);
