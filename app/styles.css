@@ -1992,6 +1992,7 @@ body {
 }
 
 .sidebar-section-head > #clearWorkoutBtn,
+.sidebar-section-head > #clearWorkoutBtn[hidden] + .selection-picker,
 .sidebar-section-head > h2 + .selection-picker {
   margin-inline-start: auto;
 }
@@ -2318,10 +2319,32 @@ body {
   border-radius: 2px;
 }
 
+.profile-group {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.profile-group + .profile-group {
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.profile-group h3 {
+  margin: 0;
+  color: var(--ink-bright);
+  font: 600 14px/1.3 var(--font-ui);
+}
+
+.rider-zone-form-power {
+  align-items: center;
+}
+
 .rider-zone-form {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .rider-zone-form label {
@@ -2351,11 +2374,6 @@ body {
 .setting-number {
   width: 90px;
   flex: 0 0 90px;
-}
-
-.zone-editor {
-  display: grid;
-  gap: 12px;
 }
 
 .zone-editor-note {
@@ -2403,14 +2421,10 @@ body {
 
 .zone-help-popover {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 7px 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  gap: 12px;
+  font: 500 10px/1.25 var(--font-ui);
+  padding-top: 6px;
   color: var(--ink);
-  background: rgba(18, 22, 29, 0.96);
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.38);
 }
 
 .zone-help-popover[hidden] {
@@ -2422,18 +2436,75 @@ body {
   color: var(--ink-bright);
 }
 
-.zone-help-popover span {
-  font: 500 10px/1.35 var(--font-ui);
+.zone-help-popover p {
+  margin: 4px 0 0;
+  font: 400 11px/1.45 var(--font-ui);
   color: var(--muted);
 }
 
 .zone-summary {
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--ink);
-  background: rgba(255, 255, 255, 0.035);
-  font: 500 11px/1.45 var(--font-mono);
+  display: grid;
+  gap: 12px;
+  color: var(--muted);
+  font: 400 11px/1.45 var(--font-ui);
+}
+
+.zone-summary-scale {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+.zone-summary-segment {
+  display: grid;
+  grid-template-rows: 1.45em 8px 1.45em;
+  gap: 3px;
+  min-width: 0;
+}
+
+.zone-summary-label {
+  color: var(--zone-color);
+  font-weight: 600;
+}
+
+.zone-summary-bar {
+  background: var(--zone-color);
+}
+
+.zone-summary-segment:first-child .zone-summary-bar {
+  border-radius: 999px 0 0 999px;
+}
+
+.zone-summary-segment:last-child .zone-summary-bar {
+  border-radius: 0 999px 999px 0;
+}
+
+.zone-summary-start {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.zone-summary-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.zone-summary-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+}
+
+.zone-summary-badge {
+  align-self: start;
+  border-left: 3px solid var(--zone-color);
+  padding-left: 7px;
+  color: var(--zone-color);
+  font-weight: 600;
 }
 
 /* ---- climbs ----------------------------------------------------------------- */

@@ -67,6 +67,8 @@ Use **Start** and **Stop** for all three modes. While Simulator is on, Live Data
 
 Use **Import workout** to select a FIT Workout or a MyWhoosh XML or JSON file. Set your FTP in the rider profile to resolve percentage-based power targets. The selected workout is saved in this browser.
 
+**My profile** groups FTP and power zones separately from resting and maximum heart rate. Each group includes a color scale using the live training meter colors, with zone numbers above each band and starting values below. Use the question mark to see a color-coded list of zone names and descriptions.
+
 With a route loaded and an ERG-capable trainer connected, select **Start** in the workout HUD. You can also enable **Start workout when pedaling** in the Workout card. Both start paths show a three-second countdown. Pause, resume, or end from the HUD or the Workout card. Pausing freezes the workout timer while the ride recorder continues collecting data during pedaling.
 
 After ending the workout, use **Workout only .FIT** to export the latest recorded run, including movement while the workout was paused. **Full ride .FIT** exports the entire ride buffer. Both downloads are disabled during the countdown, active workout, and pause.

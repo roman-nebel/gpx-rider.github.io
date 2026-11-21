@@ -612,47 +612,58 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
             </summary>
             <div class="sidebar-detail-body">
-              <div class="rider-zone-form">
-                <label>
-                  <span>Resting HR</span>
-                  <input id="restingHeartRateInput" type="number" inputmode="numeric" min="30" max="140" value="60">
-                </label>
-                <label>
-                  <span>Max HR</span>
-                  <input id="maxHeartRateInput" type="number" inputmode="numeric" min="80" max="240" value="180">
-                </label>
-                <label>
-                  <span>FTP</span>
-                  <input id="ftpInput" type="number" inputmode="numeric" min="1" max="1000" placeholder="W">
-                </label>
-              </div>
-              <div class="zone-editor">
-                <p class="zone-editor-note">Heart-rate zones use Heart Rate Reserve from resting and max HR. FTP calculates power zones.</p>
-                <div class="zone-editor-section">
-                  <div class="zone-editor-title">Heart-rate zones <button id="heartRateZoneHelpBtn" type="button" class="zone-help-btn" aria-label="Heart-rate zone help" aria-expanded="false" aria-controls="heartRateZoneHelp" data-zone-help-trigger>?</button></div>
-                  <div id="heartRateZoneSummary" class="zone-summary">--</div>
-                  <div id="heartRateZoneHelp" class="zone-help-popover" hidden>
-                    <strong>Z1 Recovery</strong><span>Easy effort. Good for warmups, cooldowns, and very light rides.</span>
-                    <strong>Z2 Endurance</strong><span>Comfortable aerobic effort. You should be able to talk in full sentences.</span>
-                    <strong>Z3 Tempo</strong><span>Moderately hard. Sustainable, but talking becomes shorter.</span>
-                    <strong>Z4 Threshold</strong><span>Hard effort near your limit for longer intervals.</span>
-                    <strong>Z5 Max</strong><span>Very hard effort for short intervals.</span>
-                  </div>
+              <section class="profile-group" aria-labelledby="profilePowerTitle">
+                <h3 id="profilePowerTitle">FTP &amp; power</h3>
+                <div class="rider-zone-form rider-zone-form-power">
+                  <label>
+                    <span>FTP (W)</span>
+                    <input id="ftpInput" type="number" inputmode="numeric" min="1" max="1000" placeholder="e.g. 200">
+                  </label>
+                  <p class="zone-editor-note">Your functional threshold power sets your power zones and workout targets.</p>
                 </div>
                 <div class="zone-editor-section">
-                  <div class="zone-editor-title">Power zones <button id="powerZoneHelpBtn" type="button" class="zone-help-btn" aria-label="Power zone help" aria-expanded="false" aria-controls="powerZoneHelp" data-zone-help-trigger>?</button></div>
+                  <div class="zone-editor-title">Power zones (W) <button id="powerZoneHelpBtn" type="button" class="zone-help-btn" aria-label="Power zone help" aria-expanded="false" aria-controls="powerZoneHelp" data-zone-help-trigger>?</button></div>
                   <div id="powerZoneSummary" class="zone-summary">--</div>
                   <div id="powerZoneHelp" class="zone-help-popover" hidden>
-                    <strong>Z1 Active Recovery</strong><span>&lt; 55% FTP</span>
-                    <strong>Z2 Endurance</strong><span>56% - 75% FTP</span>
-                    <strong>Z3 Tempo</strong><span>76% - 90% FTP</span>
-                    <strong>Z4 Lactate Threshold</strong><span>91% - 105% FTP</span>
-                    <strong>Z5 VO2max</strong><span>106% - 120% FTP</span>
-                    <strong>Z6 Anaerobic Capacity</strong><span>121% - 150% FTP</span>
-                    <strong>Z7 Neuromuscular Power</strong><span>&gt; 150% FTP</span>
+                    <ul class="zone-summary-list">
+                      <li><span class="zone-summary-badge">Z1</span><div><strong>Active Recovery</strong><p>Very easy spinning for warmups, cooldowns, and recovery between efforts.</p></div></li>
+                      <li><span class="zone-summary-badge">Z2</span><div><strong>Endurance</strong><p>Comfortable, steady riding for building aerobic endurance.</p></div></li>
+                      <li><span class="zone-summary-badge">Z3</span><div><strong>Tempo</strong><p>A sustained, moderately hard effort for longer intervals.</p></div></li>
+                      <li><span class="zone-summary-badge">Z4</span><div><strong>Threshold</strong><p>Hard riding around FTP for sustained intervals.</p></div></li>
+                      <li><span class="zone-summary-badge">Z5</span><div><strong>VO2 Max</strong><p>Very hard efforts for short aerobic intervals.</p></div></li>
+                      <li><span class="zone-summary-badge">Z6</span><div><strong>Anaerobic</strong><p>High-intensity efforts for short, powerful intervals.</p></div></li>
+                      <li><span class="zone-summary-badge">Z7</span><div><strong>Neuromuscular</strong><p>Maximum-effort sprints and brief bursts of power.</p></div></li>
+                    </ul>
                   </div>
                 </div>
-              </div>
+              </section>
+              <section class="profile-group" aria-labelledby="profileHeartRateTitle">
+                <h3 id="profileHeartRateTitle">Heart rate</h3>
+                <div class="rider-zone-form">
+                  <label>
+                    <span>Resting HR (bpm)</span>
+                    <input id="restingHeartRateInput" type="number" inputmode="numeric" min="30" max="140" value="60">
+                  </label>
+                  <label>
+                    <span>Max HR (bpm)</span>
+                    <input id="maxHeartRateInput" type="number" inputmode="numeric" min="80" max="240" value="180">
+                  </label>
+                </div>
+                <p class="zone-editor-note">Zones use your heart rate reserve: the difference between resting and maximum heart rate.</p>
+                <div class="zone-editor-section">
+                  <div class="zone-editor-title">Heart-rate zones (bpm) <button id="heartRateZoneHelpBtn" type="button" class="zone-help-btn" aria-label="Heart-rate zone help" aria-expanded="false" aria-controls="heartRateZoneHelp" data-zone-help-trigger>?</button></div>
+                  <div id="heartRateZoneSummary" class="zone-summary">--</div>
+                  <div id="heartRateZoneHelp" class="zone-help-popover" hidden>
+                    <ul class="zone-summary-list">
+                      <li><span class="zone-summary-badge">Z1</span><div><strong>Recovery</strong><p>Easy effort. Good for warmups, cooldowns, and very light rides.</p></div></li>
+                      <li><span class="zone-summary-badge">Z2</span><div><strong>Endurance</strong><p>Comfortable aerobic effort. You should be able to talk in full sentences.</p></div></li>
+                      <li><span class="zone-summary-badge">Z3</span><div><strong>Tempo</strong><p>Moderately hard. Sustainable, but talking becomes shorter.</p></div></li>
+                      <li><span class="zone-summary-badge">Z4</span><div><strong>Threshold</strong><p>Hard effort near your limit for longer intervals.</p></div></li>
+                      <li><span class="zone-summary-badge">Z5</span><div><strong>Max</strong><p>Very hard effort for short intervals.</p></div></li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
             </div>
           </details>
 

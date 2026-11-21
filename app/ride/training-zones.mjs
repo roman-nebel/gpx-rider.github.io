@@ -336,17 +336,43 @@ function zoneIndexFromZones(value, zones) {
 }
 
 export function renderZoneSummaries() {
-  renderZoneSummary(els.heartRateZoneSummary, "Heart-rate zones", currentHeartRateZones());
-  renderZoneSummary(els.powerZoneSummary, "Power zones", currentPowerZones());
+  renderZoneSummary(els.heartRateZoneSummary, "Heart-rate zones", currentHeartRateZones(), HEART_RATE_ZONE_DEFINITIONS);
+  renderZoneSummary(els.powerZoneSummary, "Power zones", currentPowerZones(), POWER_ZONE_DEFINITIONS);
 }
 
-function renderZoneSummary(container, label, zones) {
+function renderZoneSummary(container, label, zones, definitions) {
   if (!container) return;
+  container.nextElementSibling?.querySelectorAll("li").forEach((row, index) => {
+    row.style.setProperty("--zone-color", definitions[index].color);
+  });
+  container.replaceChildren();
   if (!Array.isArray(zones) || !zones.length) {
     container.textContent = label === "Power zones" ? "Enter FTP to calculate zones." : "--";
     return;
   }
-  container.textContent = `${label}: ${zones.map((zone, index) => `Z${index + 1} ${zone.label}`).join(" · ")}`;
+  const scale = document.createElement("div");
+  scale.className = "zone-summary-scale";
+  scale.setAttribute("role", "list");
+  scale.setAttribute("aria-label", `${label}: starting values in ${label === "Power zones" ? "watts" : "bpm"}`);
+  zones.forEach((zone, index) => {
+    const definition = definitions[index];
+    const segment = document.createElement("div");
+    segment.className = "zone-summary-segment";
+    segment.style.setProperty("--zone-color", definition.color);
+    segment.setAttribute("role", "listitem");
+    segment.setAttribute("aria-label", `Z${index + 1} ${definition.name}${zone.min ? `: starts at ${zone.min}` : ""}`);
+    const badge = document.createElement("span");
+    badge.className = "zone-summary-label";
+    badge.textContent = `Z${index + 1}`;
+    const bar = document.createElement("span");
+    bar.className = "zone-summary-bar";
+    const start = document.createElement("span");
+    start.className = "zone-summary-start";
+    start.textContent = zone.min ? String(zone.min) : "";
+    segment.append(badge, bar, start);
+    scale.append(segment);
+  });
+  container.append(scale);
 }
 
 export function toggleZoneHelp(event) {
