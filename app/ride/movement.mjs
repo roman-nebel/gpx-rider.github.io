@@ -6,7 +6,7 @@ import { advanceSimulation, simulationSpeedKph, stopSimulation, updateSimulation
 import { persistSimulationRecording } from "../simulation/simulation-recorder.mjs";
 import {
   advanceFinishedRoadSpeed, advanceRealRoadSpeed, finishRoadMotion,
-  prepareRealRoadMotion, realCoasting, realErgPowerStep, resetRoadMotion, trainerEffort,
+  prepareRealRoadMotion, realRoadMoving, realErgPowerStep, resetRoadMotion, trainerEffort,
 } from "./road-speed.mjs";
 import { currentSpeedLimit } from "./speed-limits.mjs";
 import { recordEstimatorTick } from "./eta.mjs";
@@ -49,7 +49,7 @@ import {
 } from "../workout/workout-erg.mjs";
 
 export function isMoving() {
-  return !state.roadFinished && Boolean(state.simulation || state.pedaling || realCoasting());
+  return !state.roadFinished && Boolean(state.simulation || state.pedaling || realRoadMoving());
 }
 
 export function updatePedalingFromSpeed() {
@@ -60,19 +60,16 @@ export function updatePedalingFromSpeed() {
     setPedaling(false);
     return;
   }
+  prepareRealRoadMotion(effort);
   if (state.inertiaEnabled && effort.active !== null) {
-    prepareRealRoadMotion(effort);
     setPedaling(effort.active);
-    if (realCoasting()) ensureMovementLoop();
-    return;
+  } else {
+    const speed = effort.speed;
+    if (!Number.isFinite(speed)) setPedaling(false);
+    else if (!state.pedaling && speed >= PEDALING_START_KPH) setPedaling(true);
+    else if (state.pedaling && speed <= PEDALING_STOP_KPH) setPedaling(false);
   }
-  const speed = effort.speed;
-  if (!Number.isFinite(speed)) {
-    setPedaling(false);
-    return;
-  }
-  if (!state.pedaling && speed >= PEDALING_START_KPH) setPedaling(true);
-  else if (state.pedaling && speed <= PEDALING_STOP_KPH) setPedaling(false);
+  if (realRoadMoving() && !state.movementLoopActive) ensureMovementLoop();
 }
 
 export function setPedaling(pedaling) {
@@ -87,7 +84,7 @@ export function setPedaling(pedaling) {
     state.ergRoadSpeedKph = null;
     pauseWorkoutErg();
     updateRideSpeedUi();
-    if (!state.simulation && !realCoasting()) handleMovementStopped();
+    if (!state.simulation && !realRoadMoving()) handleMovementStopped();
   }
 }
 
@@ -282,7 +279,7 @@ export function currentRideSpeedKph() {
   let speed = 0;
   if (state.roadFinished) speed = state.roadSpeedKph ?? 0;
   else if (state.simulatorEnabled) speed = simulationSpeedKph();
-  else if (state.roadCoasting || state.ergRoadSpeedKph !== null || state.pedaling) {
+  else if (realRoadMoving() || state.ergRoadSpeedKph !== null || state.pedaling) {
     speed = state.roadSpeedKph ?? state.trainerSpeedKph;
   }
   const erg = state.simulatorEnabled ? state.simulation?.ergStep : realErgPowerStep();

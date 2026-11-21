@@ -180,7 +180,7 @@ in place).
 ## Key domain concepts
 
 - **Two movement sources.** The rider advances along the route from either
-  *pedaling* (trainer-reported speed) or *Simulation*. The Simulator controls
+  *trainer motion* (trainer-reported speed or speed-driven app coasting) or *Simulation*. The Simulator controls
   in Live Data start and stop Fixed speed, Virtual rider, or Workout mode. Workout mode plays timed power targets and uses the virtual rider
   model on free-ride steps. All modes use the selected athlete preset. Fixed
   speed uses the inverse of the road speed solver to model required power.
@@ -189,18 +189,22 @@ in place).
   ride or its recording. The Live Data export and reset controls act on the
   selected source. With inertia enabled, fresh cadence detects real pedaling;
   power is the fallback when cadence is unavailable. Without effort data or
-  with inertia disabled, speed hysteresis remains the fallback.
+  with inertia disabled, speed hysteresis remains the fallback. Pedaling state
+  controls effort/workout/ETA behavior only; real movement and source selection
+  remain active from the road/trainer speeds even without pedaling.
 - **Shared road physics.** Values live under `road_physics` in `tuning.yaml`.
   Rider and loaded bicycle mass plus `inertiaEnabled` are persisted Road
   physics settings. Coefficients are shared by trainer commands and all app
   models; simulation uses its selected athlete mass and the loaded bike setting.
-  Use trainer speed only while coupled outside active ERG power steps. On
-  confirmed zero effort (including near-zero measured power with lagging cadence),
-  app coasting opens `roadCoupling`'s freewheel. A tunable downhill coast prediction
-  can also reopen it while pedaling when gravity outruns trainer speed. Slower
-  pedaling must not overwrite road speed or add drive power until engagement.
-  `freewheel.mjs` holds a speed match before ramping road load back; larger gaps
-  can cancel the ramp, but ordinary coupled uphill slowdown cannot reopen it.
+  Outside active ERG power steps, compare trainer speed with a continuously
+  integrated zero-power coast reference on every grade. Select app coasting
+  and minimum load when calculated speed outruns trainer speed; match/hold/ramp
+  back to trainer speed when it catches up. Cadence and watts must not gate
+  either transition, including zero or missing effort data. `coastSpeedKph`
+  accumulates within `roadCoupling` to preserve small per-frame differences;
+  constrain it with the shared speed limits too. Never add measured power on
+  top of trainer speed during engagement. `freewheel.mjs` owns this comparison,
+  the hold, and the load ramp; a large gap during the ramp can cancel it.
   `trainer-road.mjs` sends the advertised FTMS minimum or FE-C basic 0% load,
   falling back to zero simulation forces without adding a watt floor. During
   reengagement all road terms ramp back, and speed blends to the trainer.

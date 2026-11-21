@@ -99,7 +99,7 @@ export const state = {
   trainerBrakeStrength: 0, // Ramped extra trainer road load outside ERG; zero while uncoupled.
   roadSpeedKph: null, // Latest app road speed, distinct from raw trainer telemetry.
   roadCoasting: false, // Road motion stays app-driven while coasting/catching up.
-  roadCoupling: null, // Freewheel phase, engagement hold, and road-load ramp fraction.
+  roadCoupling: null, // Speed-driven freewheel phase, independent coast reference, hold, and road-load ramp.
   trainerSpeedSampleAt: null, // Timestamp of the latest actual speed field.
   trainerCadenceSampleAt: null, // Timestamp of the latest actual cadence field.
   trainerSpeedKph: null,

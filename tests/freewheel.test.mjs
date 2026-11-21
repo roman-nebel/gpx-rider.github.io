@@ -46,11 +46,11 @@ test("speed noise cancels a candidate without toggling resistance", () => {
   assert.equal(lost.coupling.loadFraction, 0);
 });
 
-test("a normal uphill slowdown while coupled never reopens the freewheel", () => {
+test("a trainer that falls below calculated speed opens the freewheel on a climb too", () => {
   const result = tick(createFreewheel(), 35, { trainerSpeedKph: 15 }, 1, 10);
-  assert.equal(result.coupling.phase, "coupled");
-  assert.equal(result.coupling.loadFraction, 1);
-  assert.equal(result.speedKph, 15);
+  assert.equal(result.coupling.phase, "freewheel");
+  assert.equal(result.coupling.loadFraction, 0);
+  assert.ok(result.speedKph > 30 && result.speedKph < 35);
 });
 
 test("falling far behind while engaging returns to minimum load", () => {
@@ -66,7 +66,8 @@ test("missing speed cannot engage; downhill coasting still accelerates", () => {
 });
 
 test("a descent opens the freewheel while pedaling when gravity outruns a passive trainer", () => {
-  const result = tick(createFreewheel(), 30, { trainerSpeedKph: 30 }, 0.1, -8);
+  let result = { coupling: createFreewheel(), speedKph: 30 };
+  for (let i = 0; i < 10; i++) result = tick(result.coupling, result.speedKph, { trainerSpeedKph: 30 }, 0.1, -8);
   assert.equal(result.coupling.phase, "freewheel");
   assert.equal(result.coupling.loadFraction, 0);
   assert.ok(result.speedKph > 30);
@@ -75,7 +76,7 @@ test("a descent opens the freewheel while pedaling when gravity outruns a passiv
   assert.equal(fasterPedaling.speedKph, noPower.speedKph);
 });
 
-test("zero measured power opens the freewheel even while cadence is still positive", () => {
+test("trainer speed below calculated speed opens the freewheel at zero power too", () => {
   const result = tick(createFreewheel(), 30, { trainerSpeedKph: 20, powerWatts: 0 }, 1);
   assert.equal(result.coupling.phase, "freewheel");
   assert.ok(result.speedKph > 28);
@@ -92,4 +93,33 @@ test("a trainer already matching downhill road motion remains coupled", () => {
   const result = tick(createFreewheel(), 30, { trainerSpeedKph: 35 }, 0.1, -8);
   assert.equal(result.coupling.phase, "coupled");
   assert.equal(result.speedKph, 35);
+});
+
+for (const pedaling of [true, false, null]) {
+  test(`matched trainer speed stays coupled regardless of pedal state ${pedaling}`, () => {
+    const result = tick(createFreewheel(), 30, { trainerSpeedKph: 30, pedaling, powerWatts: 0 });
+    assert.equal(result.coupling.phase, "coupled");
+    assert.equal(result.coupling.loadFraction, 1);
+    assert.equal(result.speedKph, 30);
+  });
+  test(`trainer catch-up restores speed and load regardless of pedal state ${pedaling}`, () => {
+    let coupling = { phase: "freewheel", loadFraction: 0, holdSeconds: 0 };
+    let speedKph = 30;
+    for (let i = 0; i < 20; i++) {
+      ({ coupling, speedKph } = tick(coupling, speedKph, { trainerSpeedKph: 31, pedaling, powerWatts: 0 }));
+    }
+    assert.equal(coupling.phase, "coupled");
+    assert.equal(coupling.loadFraction, 1);
+    assert.equal(speedKph, 31);
+  });
+}
+
+test("small per-frame speed gaps accumulate against an independent coast reference", () => {
+  let coupling = createFreewheel();
+  let speedKph = 30;
+  for (let i = 1; i <= 30; i++) {
+    ({ coupling, speedKph } = tick(coupling, speedKph, { trainerSpeedKph: 30 - i * 0.1 }, 1 / 60));
+  }
+  assert.equal(coupling.phase, "freewheel");
+  assert.ok(speedKph > 29);
 });

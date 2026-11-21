@@ -102,13 +102,11 @@ road_physics:
   inertia_enabled: true
   # Maximum age of real power/cadence/speed samples before motion stops.
   telemetry_timeout_ms: 3000
-  # Effort at or below this wattage counts as coasting without cadence; also
-  # lets a virtual rider settle to zero power after smoothing a descent.
+  # Effort threshold for pedaling detection without cadence and virtual-rider
+  # power smoothing; real road/trainer speed selection uses only the speed gap.
   coasting_power_watts: 1
   # Speeds below this value count as stopped for the movement loop.
   stop_speed_kph: 0.1
-  # Look ahead this many seconds when detecting a descent that outruns trainer speed.
-  downhill_prediction_seconds: 1
   # A trainer within this many km/h of the road speed can start engagement.
   engagement_speed_tolerance_kph: 0.5
   # Fall back to freewheeling only if the trainer loses this much during the ramp.

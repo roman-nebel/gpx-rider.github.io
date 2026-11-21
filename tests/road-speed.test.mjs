@@ -179,9 +179,35 @@ test("simulation finishes coast with the simulated athlete mass and preserve har
 });
 
 
-test("speed-only telemetry keeps the coupled fallback without assuming independent coasting", () => {
+test("speed-only telemetry selects calculated coasting on a descent without effort data", () => {
   telemetry({ power: null, cadence: null, speed: 30 });
   const result = advanceRealRoadSpeed(1, -8, 1000);
-  assert.equal(result.speedKph, 30);
-  assert.equal(state.roadCoupling.phase, "coupled");
+  assert.ok(result.speedKph > 30);
+  assert.equal(state.roadCoupling.phase, "freewheel");
 });
+
+test("preparing zero-effort telemetry does not open a speed-matched freewheel", async () => {
+  telemetry({ power: 0, cadence: 0, speed: 30 });
+  const { prepareRealRoadMotion } = await import("../app/ride/road-speed.mjs");
+  prepareRealRoadMotion(trainerEffort(1000));
+  assert.equal(state.roadCoupling.phase, "coupled");
+  assert.equal(state.roadCoasting, false);
+  assert.equal(advanceRealRoadSpeed(1, 0, 1000).speedKph, 30);
+});
+
+
+for (const signals of [{ power: 500, cadence: 85 }, { power: 0, cadence: 0 }, { power: null, cadence: null }]) {
+  test(`speed catch-up is independent of power ${signals.power} and cadence ${signals.cadence}`, async () => {
+    telemetry({ ...signals, speed: 35 });
+    state.roadSpeedKph = 30;
+    state.roadCoupling = { phase: "freewheel", loadFraction: 0, holdSeconds: 0 };
+    const { prepareRealRoadMotion } = await import("../app/ride/road-speed.mjs");
+    for (let i = 0; i < 25; i++) {
+      prepareRealRoadMotion(trainerEffort(1000));
+      advanceRealRoadSpeed(0.1, 0, 1000);
+    }
+    assert.equal(state.roadSpeedKph, 35);
+    assert.equal(state.roadCoupling.phase, "coupled");
+    assert.equal(state.roadCoupling.loadFraction, 1);
+  });
+}

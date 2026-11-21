@@ -25,9 +25,10 @@ export function trainerEffort(now = performance.now()) {
   return { cadence, power, speed, active, fresh: cadence !== null || power !== null || speed !== null };
 }
 
-export function realCoasting() {
-  return !state.simulatorEnabled && state.inertiaEnabled && state.roadCoasting &&
-    state.roadSpeedKph > ROAD_PHYSICS.stop_speed_kph;
+export function realRoadMoving() {
+  if (state.simulatorEnabled || state.roadFinished) return false;
+  const effort = trainerEffort();
+  return effort.fresh && Math.max(state.roadSpeedKph ?? 0, effort.speed ?? 0) > ROAD_PHYSICS.stop_speed_kph;
 }
 
 export function realErgPowerStep() {
@@ -45,15 +46,10 @@ export function prepareRealRoadMotion(effort) {
     state.roadCoasting = state.inertiaEnabled && effort.active === false;
     if (erg) state.trainerBrakeStrength = 0;
     void setTrainerRoadLoad(1, erg ? 0 : state.trainerBrakeStrength);
-  } else if (effort.active === false) {
-    state.roadCoupling = { phase: "freewheel", loadFraction: 0, holdSeconds: 0 };
-    state.roadCoasting = true;
-    state.trainerBrakeStrength = 0;
-    void setTrainerRoadLoad(0, 0);
   } else {
     state.roadCoasting = state.roadCoupling.phase !== "coupled";
   }
-  if (effort.active && !erg && !state.roadCoasting && effort.speed !== null && state.roadSpeedKph === null) state.roadSpeedKph = effort.speed;
+  if (!erg && effort.speed !== null && state.roadSpeedKph === null) state.roadSpeedKph = effort.speed;
 }
 
 export function finishRoadMotion(simulation = null) {
@@ -101,7 +97,7 @@ export function advanceRealRoadSpeed(elapsedSeconds, grade, now) {
   let result;
   if (state.inertiaEnabled && !erg) {
     const freewheel = advanceFreewheel(state.roadCoupling ?? createFreewheel(), previous, {
-      trainerSpeedKph: effort.speed, pedaling: effort.active, powerWatts: effort.power,
+      trainerSpeedKph: effort.speed,
       elapsedSeconds, gradePercent: grade, config,
     });
     state.roadCoupling = freewheel.coupling;
@@ -119,10 +115,15 @@ export function advanceRealRoadSpeed(elapsedSeconds, grade, now) {
   const profile = erg ? null : turnSpeedProfile();
   const governed = erg ? { ...result, limited: false }
     : governMotion(state.roadSpeedLimited, previous, result, elapsedSeconds, roadMeters, profile, speedLimitConfig());
+  const limitKph = Math.min(state.maxRideSpeedKph, speedLimitAt(profile, roadMeters + governed.distanceMeters));
+  if (!erg && state.inertiaEnabled) {
+    state.roadCoupling.coastSpeedKph = governed.speedKph < result.speedKph ? governed.speedKph
+      : Math.min(state.roadCoupling.coastSpeedKph, limitKph);
+  }
   state.trainerBrakeStrength = advanceTrainerBrake(state.trainerBrakeStrength, {
     erg, pedaling: effort.active, loadFraction: state.roadCoupling?.loadFraction ?? 1,
     speedKph: governed.speedKph, previousSpeedKph: previous, trainerSpeedKph: effort.speed,
-    limitKph: Math.min(state.maxRideSpeedKph, speedLimitAt(profile, roadMeters + governed.distanceMeters)),
+    limitKph,
     limited: governed.limited, elapsedSeconds,
   }, SPEED_LIMITS);
   state.roadSpeedLimited = governed.limited;
