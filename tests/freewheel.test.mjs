@@ -64,3 +64,32 @@ test("missing speed cannot engage; downhill coasting still accelerates", () => {
   assert.equal(result.coupling.phase, "freewheel");
   assert.ok(result.speedKph > 30);
 });
+
+test("a descent opens the freewheel while pedaling when gravity outruns a passive trainer", () => {
+  const result = tick(createFreewheel(), 30, { trainerSpeedKph: 30 }, 0.1, -8);
+  assert.equal(result.coupling.phase, "freewheel");
+  assert.equal(result.coupling.loadFraction, 0);
+  assert.ok(result.speedKph > 30);
+  const fasterPedaling = tick(result.coupling, result.speedKph, { trainerSpeedKph: 25, powerWatts: 800 }, 1, -8);
+  const noPower = tick(result.coupling, result.speedKph, { trainerSpeedKph: 25, powerWatts: 0 }, 1, -8);
+  assert.equal(fasterPedaling.speedKph, noPower.speedKph);
+});
+
+test("zero measured power opens the freewheel even while cadence is still positive", () => {
+  const result = tick(createFreewheel(), 30, { trainerSpeedKph: 20, powerWatts: 0 }, 1);
+  assert.equal(result.coupling.phase, "freewheel");
+  assert.ok(result.speedKph > 28);
+});
+
+test("missing power preserves speed-only riding rather than treating absence as zero effort", () => {
+  const result = tick(createFreewheel(), 30, { trainerSpeedKph: 30, powerWatts: null }, 1);
+  assert.equal(result.coupling.phase, "coupled");
+  assert.equal(result.speedKph, 30);
+});
+
+
+test("a trainer already matching downhill road motion remains coupled", () => {
+  const result = tick(createFreewheel(), 30, { trainerSpeedKph: 35 }, 0.1, -8);
+  assert.equal(result.coupling.phase, "coupled");
+  assert.equal(result.speedKph, 35);
+});

@@ -17,14 +17,14 @@ function telemetry({ power = 200, cadence = 85, speed = 30 } = {}) {
     trainerPowerSampleAt: power === null ? null : 1000,
     trainerCadenceSampleAt: cadence === null ? null : 1000,
     trainerSpeedSampleAt: speed === null ? null : 1000,
-    inertiaEnabled: true, workoutErg: null,
+    inertiaEnabled: true, workoutErgEnabled: true, workoutErg: null,
     route: [], progressMeters: 0, maxRideSpeedKph: 72, autoCornerBraking: true,
   });
 }
 
-test("outside ERG pedaling uses the trainer's reported speed at every grade", () => {
+test("outside ERG coupled riding follows trainer speed on flats and climbs", () => {
   telemetry();
-  for (const grade of [-10, 0, 10]) assert.equal(advanceRealRoadSpeed(1, grade, 1000).speedKph, 30);
+  for (const grade of [0, 10]) assert.equal(advanceRealRoadSpeed(1, grade, 1000).speedKph, 30);
 });
 
 test("trainer speed and distance are capped even with inertia disabled", () => {
@@ -120,4 +120,68 @@ test("zero cadence is distinct from missing cadence, with power as fallback", ()
   state.trainerCadenceRpm = 0;
   state.trainerCadenceSampleAt = 1000;
   assert.equal(trainerEffort(1000).active, false);
+});
+
+test("the finish keeps integrating flat-road coast independently of telemetry and without adding distance", async () => {
+  telemetry();
+  const { finishRoadMotion, advanceFinishedRoadSpeed } = await import("../app/ride/road-speed.mjs");
+  state.roadSpeedKph = 30;
+  finishRoadMotion();
+  assert.equal(state.roadFinished, true);
+  const expected = advanceCyclingMotion(30, 0, 0, 1, { ...realRoadConfig(), max_speed_kph: Infinity });
+  state.trainerSpeedKph = 100;
+  state.trainerPowerWatts = 1000;
+  const progress = state.progressMeters;
+  advanceFinishedRoadSpeed(1);
+  assert.equal(state.roadSpeedKph, expected.speedKph);
+  assert.equal(state.progressMeters, progress);
+  for (let i = 0; i < 300; i++) advanceFinishedRoadSpeed(1);
+  assert.equal(state.roadSpeedKph, 0);
+  resetRoadMotion();
+  assert.equal(state.roadFinished, false);
+});
+
+
+test("a workout power step cannot select ERG physics while the ERG switch is off", () => {
+  telemetry();
+  state.workoutErgEnabled = false;
+  state.workoutErg = { paused: false, targetWatts: 500 };
+  const result = advanceRealRoadSpeed(1, 0, 1000);
+  assert.equal(result.speedKph, 30);
+  assert.equal(state.ergRoadSpeedKph, null);
+});
+
+test("a passive trainer's falling speed does not slow app coasting on a descent", () => {
+  telemetry({ power: 150, speed: 30 });
+  const first = advanceRealRoadSpeed(1, -8, 1000);
+  assert.ok(first.speedKph > 30);
+  state.trainerSpeedKph = 15;
+  state.trainerPowerWatts = 0;
+  // Cadence can lag behind a stopped pedal stroke.
+  const second = advanceRealRoadSpeed(1, -8, 1000);
+  assert.ok(second.speedKph > first.speedKph);
+  assert.equal(state.roadCoasting, true);
+  assert.equal(state.roadCoupling.loadFraction, 0);
+});
+
+
+test("simulation finishes coast with the simulated athlete mass and preserve hardware telemetry", async () => {
+  telemetry({ speed: 80, power: 1000 });
+  const { finishRoadMotion, advanceFinishedRoadSpeed } = await import("../app/ride/road-speed.mjs");
+  const config = { ...realRoadConfig(), rider_weight_kg: 55 };
+  finishRoadMotion({ config, model: { speedKph: 30 } });
+  const expected = advanceCyclingMotion(30, 0, 0, 1, { ...config, max_speed_kph: Infinity });
+  advanceFinishedRoadSpeed(1);
+  assert.equal(state.roadSpeedKph, expected.speedKph);
+  assert.equal(state.trainerSpeedKph, 80);
+  assert.equal(state.trainerPowerWatts, 1000);
+  resetRoadMotion();
+});
+
+
+test("speed-only telemetry keeps the coupled fallback without assuming independent coasting", () => {
+  telemetry({ power: null, cadence: null, speed: 30 });
+  const result = advanceRealRoadSpeed(1, -8, 1000);
+  assert.equal(result.speedKph, 30);
+  assert.equal(state.roadCoupling.phase, "coupled");
 });

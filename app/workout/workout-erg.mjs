@@ -1,4 +1,5 @@
 // Runs the selected timed workout and hands power targets to the trainer's ERG controller.
+import { saveSettings } from "../storage/persistence.mjs";
 import { els, state } from "../core/state.mjs";
 import { WORKOUT_ERG_POWER_TIMEOUT_MS, WORKOUT_ERG_UPDATE_MS, WORKOUT_START_COUNTDOWN_SECONDS } from "../core/tuning.mjs";
 import { realHeartRate, updateRideSpeedUi } from "../ride/telemetry-ui.mjs";
@@ -17,30 +18,49 @@ import { createWorkoutSummary, finishWorkoutSummary, sampleWorkoutSummary } from
 import { expandTimedWorkoutSteps, normalizeWorkoutStep, workoutTargetWatts } from "./workout-step.mjs";
 
 const ERG_HINT = "Let the trainer adjust resistance to match each step.";
+const ERG_OFF_HINT = "ERG off. Workout targets do not control trainer resistance.";
 
 export function toggleWorkoutErg() {
   if (state.simulatorEnabled) {
-    els.workoutErgInput.checked = Boolean(state.workoutErg || state.workoutCountdown);
+    els.workoutErgInput.checked = state.workoutErgEnabled;
     return;
   }
-  if (!els.workoutErgInput.checked) {
-    stopWorkoutErg();
+  const enabled = els.workoutErgInput.checked;
+  if (enabled && !trainerSupportsTargetPower()) {
+    els.workoutErgInput.checked = state.workoutErgEnabled;
+    setErgStatus("Connect a trainer that supports target power.");
     return;
   }
-  startWorkoutErg();
+  state.workoutErgEnabled = enabled;
+  saveSettings();
+  const session = state.workoutErg;
+  if (!enabled) {
+    if (session) session.targetWatts = null;
+    releaseTrainerTargetPower(currentGrade());
+    setErgStatus(ERG_OFF_HINT);
+  } else if (session) {
+    session.nextWriteAt = 0;
+    updateWorkoutErg(performance.now(), 0);
+  } else if (state.workout && !state.workoutCountdown) {
+    startWorkoutErg();
+  } else {
+    setErgStatus("ERG enabled. Start a workout to hold its power targets.");
+  }
+  updateWorkoutHud();
+  updateWorkoutMeterTargets();
 }
 
 function startWorkoutErg() {
   if (state.workoutCountdown || state.simulatorEnabled) return;
   if (!state.workout) {
-    rejectWorkoutStart("Select a workout to use ERG.");
+    rejectWorkoutStart("Select a workout to start.");
     return;
   }
   if (state.route.length < 2) {
     rejectWorkoutStart("Load a route before starting a workout.");
     return;
   }
-  if (!trainerSupportsTargetPower()) {
+  if (state.workoutErgEnabled && !trainerSupportsTargetPower()) {
     rejectWorkoutStart("Connect a trainer that supports target power.");
     return;
   }
@@ -48,10 +68,10 @@ function startWorkoutErg() {
     ...normalizeWorkoutStep(step), sourceIndex,
   })));
   if (!steps) {
-    rejectWorkoutStart("ERG requires timed steps and a supported number of repeats.");
+    rejectWorkoutStart("Workout playback requires timed steps and a supported number of repeats.");
     return;
   }
-  if (!steps.some((step) => workoutTargetWatts(step, state.ftpWatts, 0) > 0 ||
+  if (state.workoutErgEnabled && !steps.some((step) => workoutTargetWatts(step, state.ftpWatts, 0) > 0 ||
       workoutTargetWatts(step, state.ftpWatts, step.durationSeconds) > 0)) {
     rejectWorkoutStart("This workout needs a power target in watts or a rider FTP.");
     return;
@@ -61,7 +81,7 @@ function startWorkoutErg() {
   state.workoutAutoStartAttempted = true;
   els.workoutHudStartError.hidden = true;
   state.workoutResult = null;
-  els.workoutErgInput.checked = true;
+  els.workoutErgInput.checked = state.workoutErgEnabled;
   state.workoutCountdown = { deadline: performance.now() + WORKOUT_START_COUNTDOWN_SECONDS * 1000, steps };
   updateRecordingUi();
   updateCountdown();
@@ -70,7 +90,8 @@ function startWorkoutErg() {
 export function autoStartWorkout() {
   if (!state.workoutAutoStart || state.workoutAutoStartAttempted || !state.workout ||
       state.workoutErg || state.workoutCountdown || state.route.length < 2 ||
-      state.progressMeters >= routeTotalDistance(state.route) || !trainerSupportsTargetPower()) return;
+      state.roadFinished || state.progressMeters >= routeTotalDistance(state.route) ||
+      (state.workoutErgEnabled && !trainerSupportsTargetPower())) return;
   state.workoutAutoStartAttempted = true;
   startWorkoutErg();
 }
@@ -87,7 +108,7 @@ function updateCountdown() {
     return;
   }
   state.workoutCountdown = null;
-  if (!trainerSupportsTargetPower()) {
+  if (state.workoutErgEnabled && !trainerSupportsTargetPower()) {
     rejectWorkoutStart("Trainer disconnected.");
     return;
   }
@@ -98,14 +119,14 @@ function updateCountdown() {
     targetWatts: null, // Null during free-ride steps and automatic/manual pauses.
     summary: createWorkoutSummary(),
   };
-  els.workoutErgInput.checked = true;
+  els.workoutErgInput.checked = state.workoutErgEnabled;
   setErgStatus("Ready. Start pedaling to begin the workout.");
   updateWorkoutHud();
   updateWorkoutMeterTargets();
   if (state.pedaling && !state.movementLoopActive) ensureMovementLoop();
 }
 
-export function stopWorkoutErg(message = ERG_HINT) {
+export function stopWorkoutErg(message = state.workoutErgEnabled ? ERG_HINT : ERG_OFF_HINT) {
   els.workoutHudStartError.hidden = true;
   window.clearTimeout(state.workoutCountdown?.timer);
   state.workoutCountdown = null;
@@ -115,7 +136,7 @@ export function stopWorkoutErg(message = ERG_HINT) {
   updateRecordingUi();
   state.ergRoadSpeedKph = null;
   updateRideSpeedUi();
-  els.workoutErgInput.checked = false;
+  els.workoutErgInput.checked = state.workoutErgEnabled;
   setErgStatus(message);
   updateWorkoutHud();
   updateWorkoutMeterTargets();
@@ -209,6 +230,12 @@ export function updateWorkoutErg(now, elapsedSeconds) {
 
   if (now < session.nextWriteAt) return;
   session.nextWriteAt = now + WORKOUT_ERG_UPDATE_MS;
+  if (!state.workoutErgEnabled) {
+    session.targetWatts = null;
+    releaseTrainerTargetPower(currentGrade());
+    setErgStatus(`Step ${session.index + 1} · ERG off · Road resistance`);
+    return;
+  }
   const target = workoutTargetWatts(step, state.ftpWatts, session.elapsed);
   if (!(target > 0)) {
     session.targetWatts = null;

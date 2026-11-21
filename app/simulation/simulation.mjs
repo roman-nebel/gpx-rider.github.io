@@ -93,6 +93,7 @@ export function toggleSimulation() {
   const mode = state.simulationMode;
   const steps = mode === "workout" ? timedWorkoutSteps() : null;
   if (simulationUnavailable(mode, steps)) return;
+  resetRoadMotion();
   const config = { ...simulationAthlete(state.simulationAthlete), bike_weight_kg: state.bikeWeightKg, inertia_enabled: state.inertiaEnabled };
   const workout = steps ? { steps, index: 0, elapsed: 0, ftp: config.ftp_watts } : null;
   if (state.progressMeters >= routeTotalDistance(state.route)) state.progressMeters = 0;

@@ -1,4 +1,4 @@
-// Adapts trainer telemetry to road motion and freewheel engagement outside ERG.
+// Owns real road motion, freewheel engagement, and display-only finish rollout.
 import { state } from "../core/state.mjs";
 import { ROAD_PHYSICS, SPEED_LIMITS } from "../core/tuning.mjs";
 import { advanceCyclingMotion } from "./cycling-motion.mjs";
@@ -32,7 +32,7 @@ export function realCoasting() {
 
 export function realErgPowerStep() {
   const session = state.workoutErg;
-  if (!session || session.paused) return false;
+  if (!state.workoutErgEnabled || !session || session.paused) return false;
   const step = session.steps?.[session.index];
   return step ? workoutTargetWatts(step, state.ftpWatts, session.elapsed) > 0 : session.targetWatts > 0;
 }
@@ -56,14 +56,29 @@ export function prepareRealRoadMotion(effort) {
   if (effort.active && !erg && !state.roadCoasting && effort.speed !== null && state.roadSpeedKph === null) state.roadSpeedKph = effort.speed;
 }
 
-export function finishRealRoadMotion() {
+export function finishRoadMotion(simulation = null) {
+  state.roadFinishConfig = { ...(simulation?.config ?? realRoadConfig()), max_speed_kph: Infinity };
+  if (simulation) state.roadSpeedKph = simulation.model.speedKph;
+  state.roadFinished = true;
+  state.roadCoasting = false;
+  state.ergRoadSpeedKph = null;
   state.trainerBrakeStrength = 0;
   // Apply the finish grade and brake release together, preserving minimum
   // resistance if the rider crosses the finish while freewheeling.
-  void setTrainerRoadLoad(state.roadCoupling?.loadFraction ?? 1, 0, 0);
+  if (!simulation) void setTrainerRoadLoad(state.roadCoupling?.loadFraction ?? 1, 0, 0);
+}
+
+// Finish rollout is display-only: no route distance, activity samples, or
+// trainer power is added after the ride ends. Use level ground at the finish.
+export function advanceFinishedRoadSpeed(elapsedSeconds) {
+  const config = state.roadFinishConfig ?? { ...realRoadConfig(), max_speed_kph: Infinity };
+  const motion = advanceCyclingMotion(state.roadSpeedKph ?? 0, 0, 0, elapsedSeconds, config);
+  state.roadSpeedKph = motion.speedKph > ROAD_PHYSICS.stop_speed_kph ? motion.speedKph : 0;
 }
 
 export function resetRoadMotion() {
+  state.roadFinished = false;
+  state.roadFinishConfig = null;
   state.roadSpeedKph = null;
   state.roadCoasting = false;
   state.roadCoupling = createFreewheel();
@@ -82,11 +97,11 @@ export function advanceRealRoadSpeed(elapsedSeconds, grade, now) {
   const erg = realErgPowerStep();
   const config = realRoadConfig();
   const coasting = state.inertiaEnabled && effort.active === false;
-  const previous = state.roadSpeedKph ?? (coasting ? effort.speed ?? 0 : 0);
+  const previous = state.roadSpeedKph ?? (!erg || coasting ? effort.speed ?? 0 : 0);
   let result;
   if (state.inertiaEnabled && !erg) {
     const freewheel = advanceFreewheel(state.roadCoupling ?? createFreewheel(), previous, {
-      trainerSpeedKph: effort.speed, pedaling: effort.active, powerWatts: effort.power ?? 0,
+      trainerSpeedKph: effort.speed, pedaling: effort.active, powerWatts: effort.power,
       elapsedSeconds, gradePercent: grade, config,
     });
     state.roadCoupling = freewheel.coupling;

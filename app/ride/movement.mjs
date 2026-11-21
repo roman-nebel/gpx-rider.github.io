@@ -4,7 +4,10 @@ import { closeOverviewModeMenu, syncOverviewControls } from "../camera/camera-ui
 import { syncFocusedClimbList } from "../route/climbs-ui.mjs";
 import { advanceSimulation, simulationSpeedKph, stopSimulation, updateSimulationControls } from "../simulation/simulation.mjs";
 import { persistSimulationRecording } from "../simulation/simulation-recorder.mjs";
-import { advanceRealRoadSpeed, realCoasting, resetRoadMotion, prepareRealRoadMotion, realErgPowerStep, trainerEffort, finishRealRoadMotion } from "./road-speed.mjs";
+import {
+  advanceFinishedRoadSpeed, advanceRealRoadSpeed, finishRoadMotion,
+  prepareRealRoadMotion, realCoasting, realErgPowerStep, resetRoadMotion, trainerEffort,
+} from "./road-speed.mjs";
 import { currentSpeedLimit } from "./speed-limits.mjs";
 import { recordEstimatorTick } from "./eta.mjs";
 import { ensureCameraFlightLoop } from "../camera/follow-camera.mjs";
@@ -46,11 +49,11 @@ import {
 } from "../workout/workout-erg.mjs";
 
 export function isMoving() {
-  return Boolean(state.simulation || state.pedaling || realCoasting());
+  return !state.roadFinished && Boolean(state.simulation || state.pedaling || realCoasting());
 }
 
 export function updatePedalingFromSpeed() {
-  if (state.simulatorEnabled) return;
+  if (state.simulatorEnabled || state.roadFinished) return;
   const effort = trainerEffort();
   if (!effort.fresh) {
     resetRoadMotion();
@@ -73,7 +76,7 @@ export function updatePedalingFromSpeed() {
 }
 
 export function setPedaling(pedaling) {
-  if ((pedaling && state.simulatorEnabled) || pedaling === state.pedaling) return;
+  if ((pedaling && (state.simulatorEnabled || state.roadFinished)) || pedaling === state.pedaling) return;
   state.pedaling = pedaling;
 
   if (pedaling) {
@@ -183,6 +186,15 @@ export function resetRoutePosition({ skipTrainerGrade = false } = {}) {
 }
 
 function tick(now) {
+  if (state.roadFinished) {
+    const seconds = clamp((now - state.lastTick) / 1000, 0, MAX_TICK_SECONDS);
+    state.lastTick = now;
+    advanceFinishedRoadSpeed(seconds);
+    updateRideUi({ skipTrainerGrade: true });
+    if (state.roadSpeedKph > 0) scheduleTick();
+    else state.movementLoopActive = false;
+    return;
+  }
   if (!state.simulatorEnabled) updatePedalingFromSpeed();
   if (!isMoving() || state.route.length < 2) {
     state.movementLoopActive = false;
@@ -202,13 +214,18 @@ function tick(now) {
   else advanceRealRide(now, elapsedSeconds);
 
   if (state.progressMeters >= totalDistance) {
-    const simulated = Boolean(state.simulation);
+    const simulation = state.simulation;
+    const simulated = Boolean(simulation);
     if (!simulated && state.workoutErg) stopWorkoutErg("Route finished.");
     stopSimulation("Route finished.", { refresh: false });
     state.movementLoopActive = false;
     enterFinishOrbit();
     ensureCameraFlightLoop();
-    if (!simulated) finishRealRoadMotion();
+    finishRoadMotion(simulation);
+    if (state.roadSpeedKph > 0) {
+      state.movementLoopActive = true;
+      scheduleTick();
+    }
     updateRideUi({ force: true, skipTrainerGrade: true });
     handleMovementStopped();
     return;
@@ -263,12 +280,13 @@ function advanceRealRide(now, elapsedSeconds) {
 
 export function currentRideSpeedKph() {
   let speed = 0;
-  if (state.simulatorEnabled) speed = simulationSpeedKph();
+  if (state.roadFinished) speed = state.roadSpeedKph ?? 0;
+  else if (state.simulatorEnabled) speed = simulationSpeedKph();
   else if (state.roadCoasting || state.ergRoadSpeedKph !== null || state.pedaling) {
     speed = state.roadSpeedKph ?? state.trainerSpeedKph;
   }
   const erg = state.simulatorEnabled ? state.simulation?.ergStep : realErgPowerStep();
-  return Number.isFinite(speed) && !erg ? Math.min(speed, currentSpeedLimit()) : speed;
+  return Number.isFinite(speed) && !erg && !state.roadFinished ? Math.min(speed, currentSpeedLimit()) : speed;
 }
 
 // Jump the rider to a distance along the route (profile click, climb click).

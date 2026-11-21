@@ -61,7 +61,7 @@ export function handleTrainerStatus(text, { onlyClearError = false } = {}) {
   const connected = isTrainerConnected();
   updateRoadSupport();
   els.trainerSettingsBtn.hidden = !connected;
-  els.trainerErg.hidden = !connected || !trainerSupportsTargetPower();
+  els.trainerErg.hidden = !connected || (!trainerSupportsTargetPower() && !state.workoutErgEnabled);
   if (!connected) {
     els.trainerSettings.hidden = true;
     els.trainerSettingsBtn.setAttribute("aria-expanded", "false");

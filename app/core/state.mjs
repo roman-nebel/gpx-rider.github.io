@@ -11,6 +11,7 @@ import {
   DEFAULT_MAX_RIDE_SPEED_KPH,
   DEFAULT_AUTO_CORNER_BRAKING,
   DEFAULT_WORKOUT_AUTO_START,
+  DEFAULT_WORKOUT_ERG_ENABLED,
   DEFAULT_BEACON_COLOR,
   DEFAULT_BEACON_DIAMETER_METERS,
   DEFAULT_BEACON_ENABLED,
@@ -92,6 +93,8 @@ export const state = {
   autoCornerBraking: DEFAULT_AUTO_CORNER_BRAKING, // Persisted GPX-based automatic braking switch.
   speedLimitRoute: null, // Route identity associated with the cached corner speed envelope.
   turnSpeedProfile: null, // Cached curvature/braking profile, indexed by road distance.
+  roadFinished: false, // Finished-route rollout stays separate from route progress and recording.
+  roadFinishConfig: null, // Captured real/simulated rider physics for display-only finish rollout.
   roadSpeedLimited: false, // Recovery state after real road motion was limited.
   trainerBrakeStrength: 0, // Ramped extra trainer road load outside ERG; zero while uncoupled.
   roadSpeedKph: null, // Latest app road speed, distinct from raw trainer telemetry.
@@ -206,7 +209,8 @@ export const state = {
   restingHeartRateBpm: DEFAULT_RESTING_HEART_RATE_BPM,
   maxHeartRateBpm: DEFAULT_MAX_HEART_RATE_BPM,
   ftpWatts: null,
-  workoutErg: null, // Active, explicitly enabled ERG session for the selected workout.
+  workoutErgEnabled: DEFAULT_WORKOUT_ERG_ENABLED, // Persisted permission for hardware ERG, independent of workout playback.
+  workoutErg: null, // Active timed workout session; road mode remains active when ERG is disabled.
   workoutCountdown: null, // Pending workout start and its countdown timer.
   workoutAutoStart: DEFAULT_WORKOUT_AUTO_START,
   workoutAutoStartAttempted: false, // One automatic start per workout selection.

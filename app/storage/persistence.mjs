@@ -172,6 +172,7 @@ export function restoreSettings() {
   }
 
   const ftpWatts = Number(settings?.ftpWatts);
+  if (typeof settings?.workoutErgEnabled === "boolean") state.workoutErgEnabled = settings.workoutErgEnabled;
   if (typeof settings?.workoutAutoStart === "boolean") state.workoutAutoStart = settings.workoutAutoStart;
   if (Number.isFinite(ftpWatts) && ftpWatts > 0 && ftpWatts <= 1000) {
     state.ftpWatts = Math.round(ftpWatts);
@@ -364,6 +365,7 @@ export function saveSettings() {
     maxHeartRateBpm: state.maxHeartRateBpm,
     ftpWatts: state.ftpWatts,
     workoutAutoStart: state.workoutAutoStart,
+    workoutErgEnabled: state.workoutErgEnabled,
     simulationAthlete: state.simulationAthlete,
     showMinimap: state.showMinimap,
     mapLabelsEnabled: state.mapLabelsEnabled,

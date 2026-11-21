@@ -126,6 +126,7 @@ function updateWorkoutControls() {
   setButtonLabel(play, label);
   play.hidden = Boolean(state.simulatorEnabled);
   els.workoutErgInput.disabled = Boolean(state.simulatorEnabled);
+  els.workoutErgInput.checked = state.workoutErgEnabled;
   play.disabled = Boolean(countdown);
   els.workoutHudCountdown.hidden = !countdown;
   if (countdown) setText(els.workoutHudCountdown, String(countdown.seconds));

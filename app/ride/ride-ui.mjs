@@ -60,7 +60,7 @@ export function updateRideUi(options = {}) {
   // Per-frame work ends here. DOM stats, the profile canvas, and the trainer
   // grade only need a few updates per second while riding.
   const now = performance.now();
-  if (!options.force && isMoving() && now - state.lastSlowUiAt < SLOW_UI_INTERVAL_MS) return;
+  if (!options.force && (isMoving() || state.roadFinished) && now - state.lastSlowUiAt < SLOW_UI_INTERVAL_MS) return;
   state.lastSlowUiAt = now;
   updateWorkoutHud();
   updateTelemetryUi();
