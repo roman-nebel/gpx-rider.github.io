@@ -210,7 +210,11 @@ export function updateRideSpeedUi() {
     if (!state.roadFinished && state.trainerLoadFraction > 0 && state.trainerLoadFraction < 1) {
       hint += " Physical road resistance is returning gradually.";
     }
-    hint += ` Raw trainer speed: ${formatSpeed(state.trainerSpeedKph, state.distanceUnits)} (telemetry only).`;
+    if (!state.roadFinished && !state.roadCoasting && state.inertiaEnabled && state.trainerLoadFraction === 0 && trainerEffort().power !== null) {
+      hint += " Minimum resistance until fresh trainer speed catches up.";
+    }
+    if (!state.roadFinished && state.trainerUphillGradePercent > 0) hint += " Uphill speed compensation is active.";
+    hint += ` Raw trainer speed: ${formatSpeed(state.trainerSpeedKph, state.distanceUnits)} (hardware load control only).`;
   }
   const limited = !state.roadFinished && (state.simulatorEnabled ? state.simulation?.model.speedLimited : state.roadSpeedLimited);
   if (limited) hint += " Speed is limited by the maximum speed or an upcoming bend.";

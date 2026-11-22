@@ -49,7 +49,8 @@ export function prepareRealRoadMotion(effort) {
   if (erg || !state.inertiaEnabled || state.roadCoasting) {
     state.trainerLoadFraction = erg || !state.roadCoasting ? 1 : 0;
     if (erg || state.roadCoasting) state.trainerBrakeStrength = 0;
-    void setTrainerRoadLoad(state.trainerLoadFraction, state.trainerBrakeStrength);
+    state.trainerUphillGradePercent = 0;
+    void setTrainerRoadLoad(state.trainerLoadFraction, state.trainerBrakeStrength, undefined, 0);
   }
 }
 
@@ -59,7 +60,8 @@ export function finishRoadMotion(simulation = null) {
   state.roadFinished = true;
   state.roadCoasting = false;
   state.trainerBrakeStrength = 0;
-  if (!simulation) void setTrainerRoadLoad(state.trainerLoadFraction, 0, 0);
+  state.trainerUphillGradePercent = 0;
+  if (!simulation) void setTrainerRoadLoad(state.trainerLoadFraction, 0, 0, 0);
 }
 
 // Rollout is display-only: no route distance, activity samples, or pedal power
@@ -78,7 +80,8 @@ export function resetRoadMotion({ loadFraction = 1 } = {}) {
   state.trainerLoadFraction = loadFraction;
   state.roadSpeedLimited = false;
   state.trainerBrakeStrength = 0;
-  void setTrainerRoadLoad(loadFraction, 0);
+  state.trainerUphillGradePercent = 0;
+  void setTrainerRoadLoad(loadFraction, 0, undefined, 0);
 }
 
 export function advanceRealRoadSpeed(elapsedSeconds, grade, now) {
@@ -103,9 +106,19 @@ export function advanceRealRoadSpeed(elapsedSeconds, grade, now) {
   const governed = erg ? { ...motion, limited: false }
     : governMotion(state.roadSpeedLimited, previous, motion, elapsedSeconds, roadMeters, profile, speedLimitConfig());
   state.roadCoasting = power <= ROAD_PHYSICS.coasting_power_watts;
-  if (erg) state.trainerLoadFraction = 1;
-  else if (!state.inertiaEnabled) state.trainerLoadFraction = state.roadCoasting ? 0 : 1;
-  else state.trainerLoadFraction = advanceRoadLoad(state.trainerLoadFraction, power, elapsedSeconds, config);
+  if (erg || !state.inertiaEnabled) {
+    state.trainerLoadFraction = erg || !state.roadCoasting ? 1 : 0;
+    state.trainerUphillGradePercent = 0;
+  } else {
+    const speedFresh = Number.isFinite(state.trainerSpeedSampleAt) &&
+      (now ?? performance.now()) - state.trainerSpeedSampleAt <= config.telemetry_timeout_ms;
+    const load = advanceRoadLoad({ fraction: state.trainerLoadFraction, uphillGradePercent: state.trainerUphillGradePercent }, {
+      powerWatts: power, trainerSpeedKph: speedFresh ? state.trainerSpeedKph : null,
+      roadSpeedKph: governed.speedKph, gradePercent: grade,
+    }, elapsedSeconds, config);
+    state.trainerLoadFraction = load.fraction;
+    state.trainerUphillGradePercent = load.uphillGradePercent;
+  }
   state.trainerBrakeStrength = advanceTrainerBrake(state.trainerBrakeStrength, {
     erg, driving: !state.roadCoasting, loadFraction: state.trainerLoadFraction,
     speedKph: governed.speedKph, previousSpeedKph: previous, unlimitedSpeedKph: motion.speedKph,
@@ -114,6 +127,6 @@ export function advanceRealRoadSpeed(elapsedSeconds, grade, now) {
   }, SPEED_LIMITS);
   state.roadSpeedLimited = governed.limited;
   state.roadSpeedKph = governed.speedKph;
-  void setTrainerRoadLoad(state.trainerLoadFraction, state.trainerBrakeStrength);
+  void setTrainerRoadLoad(state.trainerLoadFraction, state.trainerBrakeStrength, undefined, state.trainerUphillGradePercent);
   return { speedKph: governed.speedKph, distanceMeters: governed.distanceMeters };
 }

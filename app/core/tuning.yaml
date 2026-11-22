@@ -99,8 +99,20 @@ road_physics:
   coasting_power_watts: 1
   # Speeds below this value count as stopped for the movement loop.
   stop_speed_kph: 0.1
-  # Restore physical road load over this many seconds after measured power resumes.
+  # Restore physical road load over this many seconds after flywheel speed catches up.
   trainer_load_ramp_seconds: 1.5
+  # Allow road-load engagement when the flywheel is within this speed gap, in km/h.
+  trainer_catchup_engage_kph: 0.5
+  # Release road load when the road speed exceeds flywheel speed by this gap, in km/h.
+  trainer_catchup_release_kph: 1.5
+  # Uphill speed-error correction timescale; extra acceleration demand = speed gap / seconds.
+  trainer_uphill_correction_seconds: 3
+  # Ignore this much flywheel overspeed when computing uphill compensation, in km/h.
+  trainer_uphill_deadband_kph: 0.5
+  # Maximum additional uphill resistance expressed as percentage points of grade.
+  trainer_uphill_max_grade_percent: 10
+  # Maximum uphill compensation change in grade percentage points per second.
+  trainer_uphill_grade_rate_per_second: 3
   # Minimum interval between intermediate ramp commands; endpoints apply immediately.
   trainer_load_interval_ms: 150
 

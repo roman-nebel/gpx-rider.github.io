@@ -1,4 +1,4 @@
-// Applies minimum or scaled physical road load without competing with ERG.
+// Applies speed-coupled physical road resistance without competing with ERG.
 import { encodeSimulationParameters, encodeTargetResistance } from "./ftms.mjs";
 import { GRADE_MIN_PERCENT, GRADE_MAX_PERCENT, SPEED_LIMITS } from "../core/tuning.mjs";
 
@@ -7,6 +7,7 @@ export class TrainerRoad {
     this.config = { trainer_brake_grade_percent: SPEED_LIMITS.trainer_brake_grade_percent, ...config };
     this.fraction = 1;
     this.brakeStrength = 0;
+    this.uphillGradePercent = 0;
     this.grade = 0;
     this.connection = null;
     this.flight = null;
@@ -27,6 +28,7 @@ export class TrainerRoad {
     this.lastKey = null;
     this.minimumRejected = false;
     this.brakeStrength = 0;
+    this.uphillGradePercent = 0;
     this.dirty = false;
     this.lastRampAt = -Infinity;
     this.revision++;
@@ -42,13 +44,16 @@ export class TrainerRoad {
     this.revision++;
   }
 
-  setLoad(fraction, brakeStrength = this.brakeStrength, grade = this.grade) {
+  setLoad(fraction, brakeStrength = this.brakeStrength, grade = this.grade, uphillGradePercent = 0) {
     if (!Number.isFinite(fraction)) return Promise.resolve(false);
     const value = Math.min(1, Math.max(0, fraction));
     const brake = value === 0 || !Number.isFinite(brakeStrength) ? 0 : Math.min(1, Math.max(0, brakeStrength));
-    if (this.fraction === value && this.brakeStrength === brake && this.grade === grade) return Promise.resolve(false);
+    const uphill = value === 0 || !Number.isFinite(uphillGradePercent) ? 0
+      : Math.min(this.config.trainer_uphill_max_grade_percent, Math.max(0, uphillGradePercent));
+    if (this.fraction === value && this.brakeStrength === brake && this.grade === grade && this.uphillGradePercent === uphill) return Promise.resolve(false);
     this.fraction = value;
     this.brakeStrength = brake;
+    this.uphillGradePercent = uphill;
     this.revision++;
     return this.sendGrade(grade);
   }
@@ -63,7 +68,7 @@ export class TrainerRoad {
     }
     const fraction = this.fraction;
     const brake = this.brakeStrength;
-    const partial = fraction > 0 && fraction < 1 || brake > 0 && brake < 1;
+    const partial = fraction > 0 && fraction < 1 || brake > 0 && brake < 1 || this.uphillGradePercent > 0;
     const now = this.now();
     if (partial && !force && now - this.lastRampAt < this.config.trainer_load_interval_ms) return false;
     const config = { ...this.config,
@@ -76,7 +81,7 @@ export class TrainerRoad {
     // downhill assistance, then adds the configured positive grade. The
     // route/HUD grade stays unchanged, and normal grade bounds still apply.
     const effectiveGrade = Math.min(GRADE_MAX_PERCENT, Math.max(GRADE_MIN_PERCENT,
-      roadGrade + brake * fraction * (Math.max(0, -roadGrade) + this.config.trainer_brake_grade_percent)));
+      roadGrade + this.uphillGradePercent * fraction + brake * fraction * (Math.max(0, -roadGrade) + this.config.trainer_brake_grade_percent)));
     let bytes;
     if (connection.kind === "ftms") {
       if (connection.simulation === false) {
@@ -103,7 +108,7 @@ export class TrainerRoad {
     this.dirty = false;
     flight.promise = (async () => {
       try {
-        console.debug(`[trainer] road load ${fraction.toFixed(2)}, brake ${brake.toFixed(2)}, effective grade ${effectiveGrade.toFixed(1)}%`);
+        console.debug(`[trainer] road load ${fraction.toFixed(2)}, brake ${brake.toFixed(2)}, uphill ${this.uphillGradePercent.toFixed(1)}%, effective grade ${effectiveGrade.toFixed(1)}%`);
         const sent = bytes ? await connection.send(bytes, valid)
           : await connection.sendFec(effectiveGrade, config, minimum, valid, allowContinue);
         if (sent && connection === this.connection) {

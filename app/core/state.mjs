@@ -99,7 +99,8 @@ export const state = {
   trainerBrakeStrength: 0, // Ramped extra trainer road load outside ERG; zero while physically unloaded.
   roadSpeedKph: null, // Latest app road speed, distinct from raw trainer telemetry.
   roadCoasting: false, // Near-zero measured power; road speed always uses the physical model.
-  trainerLoadFraction: 1, // Physical road-load ramp only; never controls modeled speed or drive power.
+  trainerLoadFraction: 1, // Speed-coupled hardware load only; never controls modeled speed or drive power.
+  trainerUphillGradePercent: 0, // Extra hardware-only uphill resistance from flywheel overspeed.
   trainerSpeedSampleAt: null, // Timestamp of the latest actual speed field.
   trainerCadenceSampleAt: null, // Timestamp of the latest actual cadence field.
   trainerSpeedKph: null,

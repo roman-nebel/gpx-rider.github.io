@@ -94,7 +94,7 @@ test("steady modeled speed is shared outside ERG and in ERG when inertia is disa
 });
 
 test("the user ceiling caps modeled speed and distance outside ERG", () => {
-  const now = telemetry({ power: 5000, speed: 0, start: 40 });
+  const now = telemetry({ power: 5000, speed: 40, start: 40 });
   state.maxRideSpeedKph = 32;
   const result = advanceRealRoadSpeed(1, 0, now);
   assert.equal(result.speedKph, 32);
@@ -103,9 +103,9 @@ test("the user ceiling caps modeled speed and distance outside ERG", () => {
   assert.ok(state.trainerBrakeStrength > 0);
 });
 
-test("raw speed cannot alter physical braking based on a modeled speed limit", () => {
+test("modeled braking is independent of raw overspeed once the trainer is engaged", () => {
   const brakes = [];
-  for (const speed of [0, 100, null]) {
+  for (const speed of [32, 50, 100]) {
     const now = telemetry({ power: 5000, speed, start: 32 });
     state.maxRideSpeedKph = 32;
     advanceRealRoadSpeed(1, 0, now);
@@ -129,7 +129,7 @@ test("the road-load ramp does not attenuate measured power or change modeled mot
   prepareRealRoadMotion(trainerEffort(now));
   assert.equal(state.trainerLoadFraction, 0);
   state.trainerPowerWatts = 200;
-  state.trainerSpeedKph = null;
+  state.trainerSpeedKph = 30;
   const expected = advanceCyclingMotion(30, 200, 0, 0.5, { ...realRoadConfig(), max_speed_kph: Infinity });
   assert.deepEqual(advanceRealRoadSpeed(0.5, 0, now), expected);
   assert.ok(state.trainerLoadFraction > 0 && state.trainerLoadFraction < 1);
@@ -223,5 +223,41 @@ test("virtual, ERG, and ordinary rides agree over time at matched power, mass, g
       assert.equal(state.roadSpeedKph, virtual.speedKph);
       assert.equal(actualDistance, virtualDistance);
     }
+  }
+});
+
+test("descent catch-up stays unloaded until fresh trainer speed matches road speed", () => {
+  const now = telemetry({ power: 200, speed: 20, start: 60 });
+  advanceRealRoadSpeed(1, -15, now);
+  assert.equal(state.trainerLoadFraction, 0);
+  state.trainerSpeedKph = 65;
+  advanceRealRoadSpeed(0.5, -15, now);
+  assert.ok(state.trainerLoadFraction > 0);
+});
+
+test("uphill road-speed loss adds hardware compensation without adding virtual forces", () => {
+  const now = telemetry({ power: 200, speed: 30, start: 20 });
+  const expected = advanceCyclingMotion(20, 200, 15, 1, realRoadConfig());
+  assert.deepEqual(advanceRealRoadSpeed(1, 15, now), expected);
+  assert.ok(state.trainerUphillGradePercent > 0);
+});
+
+
+test("stale trainer speed unloads hardware while fresh power keeps road motion valid", () => {
+  const now = telemetry({ power: 200, speed: 30, start: 20 });
+  state.trainerSpeedSampleAt = now - ROAD_PHYSICS.telemetry_timeout_ms - 1;
+  const expected = advanceCyclingMotion(20, 200, 15, 1, realRoadConfig());
+  assert.deepEqual(advanceRealRoadSpeed(1, 15, now), expected);
+  assert.equal(state.trainerLoadFraction, 0);
+  assert.equal(state.trainerUphillGradePercent, 0);
+});
+
+test("ERG and disabled inertia never add uphill speed compensation", () => {
+  for (const options of [{ erg: true }, { inertia: false }]) {
+    const now = telemetry({ power: 200, speed: 100, start: 20, ...options });
+    state.trainerUphillGradePercent = 5;
+    advanceRealRoadSpeed(1, 15, now);
+    assert.equal(state.trainerUphillGradePercent, 0);
+    assert.equal(state.trainerLoadFraction, 1);
   }
 });

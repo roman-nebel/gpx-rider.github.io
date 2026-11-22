@@ -172,3 +172,47 @@ test("finishing clears extra braking and sends flat road load as one target", as
   assert.deepEqual(writes, [[17, 0, 0, 0, 0, 50, 29]]);
   assert.equal(controller.brakeStrength, 0);
 });
+
+test("uphill compensation reaches FTMS as extra grade and clears at minimum load", async () => {
+  const { controller, writes } = fixture();
+  await controller.setLoad(1, 0, 12, 3);
+  const grade = () => new DataView(Uint8Array.from(writes.at(-1)).buffer).getInt16(3, true) / 100;
+  assert.equal(grade(), 15);
+  assert.equal(writes.at(-1)[5], 50);
+  await controller.setLoad(0, 0, 12, 3);
+  assert.deepEqual(writes.at(-1), [4, 20, 0]);
+  assert.equal(controller.uphillGradePercent, 0);
+  await controller.setLoad(1, 0, 12, 0);
+  assert.equal(grade(), 12);
+});
+
+test("uphill feedback is bounded, rate-limited, and cannot override ERG", async () => {
+  const { controller, writes, setErg } = fixture();
+  let now = 0;
+  controller.now = () => now;
+  await controller.setLoad(1, 0, 10, 100);
+  assert.equal(controller.uphillGradePercent, ROAD_PHYSICS.trainer_uphill_max_grade_percent);
+  const count = writes.length;
+  now = 1;
+  await controller.setLoad(1, 0, 10, 8);
+  assert.equal(writes.length, count);
+  now = ROAD_PHYSICS.trainer_load_interval_ms;
+  await controller.sendGrade(10);
+  assert.equal(writes.length, count + 1);
+  setErg(true);
+  await controller.setLoad(1, 0, 10, 5);
+  assert.equal(writes.length, count + 1);
+});
+
+test("FE-C carries uphill compensation as track grade without an ERG target", async () => {
+  const calls = [];
+  const { controller } = fixture({ kind: "fec", sendFec: async (grade, config, minimum, valid) => {
+    if (!valid()) return false;
+    calls.push({ grade, minimum });
+    return true;
+  } });
+  await controller.setLoad(1, 0, 15, 4);
+  assert.deepEqual(calls.at(-1), { grade: 19, minimum: false });
+  await controller.setLoad(1, 0, 0, 0);
+  assert.deepEqual(calls.at(-1), { grade: 0, minimum: false });
+});

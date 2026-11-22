@@ -343,8 +343,8 @@ export function sendTrainerGrade(gradePercent, options = {}) {
   return trainer.road.sendGrade(gradePercent, options);
 }
 
-export function setTrainerRoadLoad(fraction, brakeStrength, grade) {
-  return trainer.road.setLoad(fraction, brakeStrength, grade);
+export function setTrainerRoadLoad(fraction, brakeStrength, grade, uphillGradePercent = 0) {
+  return trainer.road.setLoad(fraction, brakeStrength, grade, uphillGradePercent);
 }
 
 export function trainerSupportsTargetPower() {
