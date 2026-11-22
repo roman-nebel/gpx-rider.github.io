@@ -113,7 +113,6 @@ function updateCountdown() {
     return;
   }
   if (state.progressMeters >= routeTotalDistance(state.route)) resetRide();
-  state.ergRoadSpeedKph = null;
   state.workoutErg = {
     steps: countdown.steps, index: 0, elapsed: 0, paused: false, nextWriteAt: 0, startedAtMs: Date.now(),
     targetWatts: null, // Null during free-ride steps and automatic/manual pauses.
@@ -134,7 +133,6 @@ export function stopWorkoutErg(message = state.workoutErgEnabled ? ERG_HINT : ER
   if (state.workoutErg) releaseTrainerTargetPower(currentGrade());
   state.workoutErg = null;
   updateRecordingUi();
-  state.ergRoadSpeedKph = null;
   updateRideSpeedUi();
   els.workoutErgInput.checked = state.workoutErgEnabled;
   setErgStatus(message);
@@ -155,7 +153,6 @@ export function toggleWorkoutPause() {
   recordWorkoutPause(session);
   if (session.paused) {
     pauseWorkoutErg();
-    state.ergRoadSpeedKph = null;
     updateRideSpeedUi();
   } else {
     setErgStatus("Workout resumed. Pedal to continue.");

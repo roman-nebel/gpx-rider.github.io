@@ -4,7 +4,7 @@ import { ROAD_PHYSICS, SPEED_LIMITS, DEFAULT_MAX_RIDE_SPEED_KPH } from "../core/
 import { clamp } from "../core/geo.mjs";
 import { configureTrainerRoad, trainerRoadSupport } from "../trainer/trainer.mjs";
 import { realRoadConfig, resetRoadMotion } from "../ride/road-speed.mjs";
-import { updatePedalingFromSpeed } from "../ride/movement.mjs";
+import { updatePedalingFromTelemetry } from "../ride/movement.mjs";
 import { saveSettings } from "../storage/persistence.mjs";
 import { updateRideUi } from "../ride/ride-ui.mjs";
 
@@ -36,7 +36,7 @@ export function updateRoadSettings() {
   const currentPhysics = [state.riderWeightKg, state.bikeWeightKg, state.inertiaEnabled];
   if (previousPhysics.some((value, i) => value !== currentPhysics[i])) resetRoadMotion();
   applyRoadSettings();
-  updatePedalingFromSpeed();
+  updatePedalingFromTelemetry();
   saveSettings();
   if (state.route.length) updateRideUi({ force: true });
 }

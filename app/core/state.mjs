@@ -96,16 +96,16 @@ export const state = {
   roadFinished: false, // Finished-route rollout stays separate from route progress and recording.
   roadFinishConfig: null, // Captured real/simulated rider physics for display-only finish rollout.
   roadSpeedLimited: false, // Recovery state after real road motion was limited.
-  trainerBrakeStrength: 0, // Ramped extra trainer road load outside ERG; zero while uncoupled.
+  trainerBrakeStrength: 0, // Ramped extra trainer road load outside ERG; zero while physically unloaded.
   roadSpeedKph: null, // Latest app road speed, distinct from raw trainer telemetry.
-  roadCoasting: false, // Road motion stays app-driven while coasting/catching up.
-  roadCoupling: null, // Speed-driven freewheel phase, independent coast reference, hold, and road-load ramp.
+  roadCoasting: false, // Near-zero measured power; road speed always uses the physical model.
+  trainerLoadFraction: 1, // Physical road-load ramp only; never controls modeled speed or drive power.
   trainerSpeedSampleAt: null, // Timestamp of the latest actual speed field.
   trainerCadenceSampleAt: null, // Timestamp of the latest actual cadence field.
   trainerSpeedKph: null,
-  ergRoadSpeedKph: null, // Modeled map speed while pedaling in an ERG workout.
   trainerPowerWatts: null,
   trainerPowerSampleAt: null, // Timestamp of the most recent actual trainer power sample.
+  trainerPowerExpiryTimer: null, // Refresh power availability even when a stationary trainer stops notifying.
   trainerCadenceRpm: null,
   trainerCaloriesKcal: null,
   powerCaloriesKcal: 0,

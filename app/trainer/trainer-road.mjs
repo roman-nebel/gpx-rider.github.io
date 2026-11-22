@@ -1,4 +1,4 @@
-// Applies minimum freewheel load and scaled road load without competing with ERG.
+// Applies minimum or scaled physical road load without competing with ERG.
 import { encodeSimulationParameters, encodeTargetResistance } from "./ftms.mjs";
 import { GRADE_MIN_PERCENT, GRADE_MAX_PERCENT, SPEED_LIMITS } from "../core/tuning.mjs";
 

@@ -45,9 +45,9 @@ pages, `styles.css`, `gallery.json`, and `assets/` stay at the app root.
 | `app/map/` | Map rendering | `map-init.mjs` (Maps API key resolution/saving, Google Maps JS loader, 3D map + minimap creation), `route-render.mjs` (elevated 3D route lines, rider dot mesh + fallback ring, rider beacon, minimap route/marker — see the rider-dot notes below), `route-style.mjs` (pure route segment styling), `screenshot.mjs` (viewport JPG via tab capture — the 3D canvas sits in a closed shadow root and cannot be read directly), `terrain-tiles-math.mjs` (pure Web Mercator tile coords + Terrarium elevation decode; tested), `terrain-tiles.mjs` (fetches/decodes/LRU-caches online Mapzen Terrarium elevation tiles — see "Online terrain elevation" below) |
 | `app/camera/` | Camera behavior | `camera.mjs` (pure follow-camera math; tested), `flyover.mjs` (pure orbit math; tested), `flyby.mjs` (pure ellipse/figure-eight flight math; tested), `follow-camera.mjs` (follow/first-person targets, chase flight, terrain avoidance, manual-drag capture), `overview-camera.mjs` (overview state machine: static/satellite framing, animated orbit/fly-by/fly-over, finish orbit, return-to-rider), `camera-ui.mjs` (map action-bar camera controls + menus, camera settings sliders, first-person preset, reset button state), `camera-debug.mjs` (debug overlay readout + red travel-path debug line), `transition-arc.mjs` (pure overview ↔ chase transition-arc math: Hermite/Bezier eye + look-at flight, duration solver against scale-aware physical limits; tested), `transition-camera.mjs` (app-side transition driver: captures pose + driver velocity, predicts the dock state, flies the arc into whichever target is in `arc_into_modes` — the follow camera (overview-off, movement-start, profile-seek teleport) or the fly-by/fly-over pattern; static/orbit/satellite overviews are never arced into) |
 | `app/route/` | Route processing | `route.mjs` (GPX parsing, enrichment, interpolation, grade; tested), `climb-signal.mjs` (pure resample/smooth/rolling-grade elevation-signal helpers behind climb detection; tested), `climbs.mjs` (sustained-climb detection — the fatigue-pressure state machine built on `climb-signal.mjs`; tested), `difficulty.mjs` (classification from distance + gain; tested), `route-load.mjs` (GPX file/URL intake, `applyGpxText` route-swap sequence, once-per-load route overview), `climbs-ui.mjs` (climb/segment focus, live climb status, the HUD climb/segment banner), `profile.mjs` (elevation profile canvas drawing + hit-testing), `profile-ui.mjs` (profile rendering + hover/seek/drag-select wiring), `speed-profile.mjs` (pure smoothed curvature and backward braking envelope; tested) |
-| `app/ride/` | Ride execution & telemetry | `movement.mjs` (the movement loop `tick`, real pedaling hysteresis, reset, seek), `cycling-speed.mjs` (pure steady speed/power solver), `cycling-motion.mjs` (pure road forces and inertial motion integration; tested), `freewheel.mjs` (pure speed-catch/hold/load-ramp state machine; tested), `speed-governor.mjs` (pure maximum/corner speed and distance limits; tested), `trainer-braking.mjs` (pure ramped brake-strength requests outside ERG; tested), `speed-limits.mjs` (shared limit configuration and per-route corner-envelope cache), `road-speed.mjs` (real trainer speed/ERG/freewheel adapter, sample freshness, and shared finish rollout), `eta.mjs` (flat-equivalent pace ETA model; tested), `ride-ui.mjs` (`updateRideUi`, the per-tick UI driver), `telemetry-ui.mjs` (trainer/HR callbacks, HR source resolution, calories/timer, telemetry readouts), `training-zones.mjs` (HR/power zones, fullscreen zone meters, zone summaries), `recorder.mjs` (ride sample bucket), `recording-ui.mjs` (FIT card, download, clear), `workout-fit-slice.mjs` (workout-only FIT boundaries and totals; tested), `fit.mjs` (FIT encoder — must stay sport=cycling, sub_sport=virtual_activity; tested) |
+| `app/ride/` | Ride execution & telemetry | `movement.mjs` (the movement loop `tick`, real effort detection, reset, seek), `cycling-speed.mjs` (pure steady speed/power solver), `cycling-motion.mjs` (pure road forces and inertial motion integration; tested), `speed-governor.mjs` (pure maximum/corner speed and distance limits; tested), `trainer-braking.mjs` (pure ramped brake-strength requests outside ERG; tested), `speed-limits.mjs` (shared limit configuration and per-route corner-envelope cache), `road-speed.mjs` (unified measured-power real motion, power freshness, physical load coordination, and shared finish rollout), `eta.mjs` (flat-equivalent pace ETA model; tested), `ride-ui.mjs` (`updateRideUi`, the per-tick UI driver), `telemetry-ui.mjs` (trainer/HR callbacks, HR source resolution, calories/timer, telemetry readouts), `training-zones.mjs` (HR/power zones, fullscreen zone meters, zone summaries), `recorder.mjs` (ride sample bucket), `recording-ui.mjs` (FIT card, download, clear), `workout-fit-slice.mjs` (workout-only FIT boundaries and totals; tested), `fit.mjs` (FIT encoder — must stay sport=cycling, sub_sport=virtual_activity; tested) |
 | `app/workout/` | Workout import | `fit-workout.mjs` (FIT Workout decoder), `mywhoosh-workout.mjs` (XML/JSON workout import), `workout-step.mjs` (normalized step model), `workout-preview.mjs` (step descriptions and FTP fallback), `workout-profile.mjs` (chart data), `workout-chart.mjs` (sidebar SVG profile), `workout-erg.mjs` (timed workout execution and trainer ERG control), `workout-summary.mjs` (time-weighted workout averages and power-target adherence; tested), `workout-hud.mjs` (workout timeline, live step, and completion summary), `workout-ui.mjs` (file picker, persisted selection, and sidebar preview) |
-| `app/trainer/` | Hardware | `trainer.mjs` (trainer pairing, protocol detection, road configuration, and ERG targets), `trainer-road.mjs` (minimum/ramped road-load control, coalescing, and ERG exclusion), `ftms.mjs` (pure FTMS command/feature/telemetry codec; tested), `ftms-control.mjs` (FTMS procedure queue, result indications, and cancellation; tested), `trainer-fec.mjs` (Tacx FE-C over BLE backend: telemetry notifications, Track Resistance grade, and ERG targets on service 6e40fec1), `fec.mjs` (pure ANT+ FE-C codec: ANT framing + page 16/25/49/50/51/55 encode/decode — tested), `heartrate.mjs` (BLE heart-rate strap, service 0x180D) |
+| `app/trainer/` | Hardware | `trainer.mjs` (trainer pairing, protocol detection, road configuration, and ERG targets), `trainer-road.mjs` (minimum/ramped road-load control, coalescing, and ERG exclusion), `load-ramp.mjs` (pure measured-effort physical load envelope; tested), `ftms.mjs` (pure FTMS command/feature/telemetry codec; tested), `ftms-control.mjs` (FTMS procedure queue, result indications, and cancellation; tested), `trainer-fec.mjs` (Tacx FE-C over BLE backend: telemetry notifications, Track Resistance grade, and ERG targets on service 6e40fec1), `fec.mjs` (pure ANT+ FE-C codec: ANT framing + page 16/25/49/50/51/55 encode/decode — tested), `heartrate.mjs` (BLE heart-rate strap, service 0x180D) |
 | `app/settings/` | Settings | `settings-ui.mjs` (settings dialog shell, units, rider profile, display, rendering, screenshots), `road-settings.mjs` (road physics panel, mass/inertia settings, trainer road-support readout) |
 | `app/storage/` | Storage & persistence | `storage.mjs` (IndexedDB behind a sync cache, localStorage fallback + migration; tested), `persistence.mjs` (`restoreSettings`/`saveSettings`, `restoreSavedRide`/`saveRide` — the one deliberately cross-cutting module) |
 | `app/hud/` | Shared HUD layout | `screen-manager.mjs` (**the central HUD layout manager** — see "Map HUD layout" below), `map-hud.mjs` (clock chip, HUD tile order/visibility + drag-reorder, tile layout, dock collapse, fullscreen enter/exit, map screenshot action), `theater-mode.mjs` (exact-size recording viewport) |
@@ -179,61 +179,47 @@ in place).
 
 ## Key domain concepts
 
-- **Two movement sources.** The rider advances along the route from either
-  *trainer motion* (trainer-reported speed or speed-driven app coasting) or *Simulation*. The Simulator controls
-  in Live Data start and stop Fixed speed, Virtual rider, or Workout mode. Workout mode plays timed power targets and uses the virtual rider
-  model on free-ride steps. All modes use the selected athlete preset. Fixed
-  speed uses the inverse of the road speed solver to model required power.
-  Virtual telemetry stays separate from hardware telemetry and the real ETA
-  estimator. While Simulator is enabled, device telemetry cannot drive the
-  ride or its recording. The Live Data export and reset controls act on the
-  selected source. With inertia enabled, fresh cadence detects real pedaling;
-  power is the fallback when cadence is unavailable. Without effort data or
-  with inertia disabled, speed hysteresis remains the fallback. Pedaling state
-  controls effort/workout/ETA behavior only; real movement and source selection
-  remain active from the road/trainer speeds even without pedaling.
-- **Shared road physics.** Values live under `road_physics` in `tuning.yaml`.
-  Rider and loaded bicycle mass plus `inertiaEnabled` are persisted Road
-  physics settings. Coefficients are shared by trainer commands and all app
-  models; simulation uses its selected athlete mass and the loaded bike setting.
-  Outside active ERG power steps, compare trainer speed with a continuously
-  integrated zero-power coast reference on every grade. Select app coasting
-  and minimum load when calculated speed outruns trainer speed; match/hold/ramp
-  back to trainer speed when it catches up. Cadence and watts must not gate
-  either transition, including zero or missing effort data. `coastSpeedKph`
-  accumulates within `roadCoupling` to preserve small per-frame differences;
-  constrain it with the shared speed limits too. Never add measured power on
-  top of trainer speed during engagement. `freewheel.mjs` owns this comparison,
-  the hold, and the load ramp; a large gap during the ramp can cancel it.
-  `trainer-road.mjs` sends the advertised FTMS minimum or FE-C basic 0% load,
-  falling back to zero simulation forces without adding a watt floor. During
-  reengagement all road terms ramp back, and speed blends to the trainer.
-  Keep raw effort in the recording, but exclude uncoupled motion from ETA.
-  ERG uses
-  measured power with the same `cycling-motion.mjs` integrator as virtual riding;
-  inertia off selects steady speed. Fixed speed follows an external target
-  subject to the same road-speed limits. Never add road resistance twice or send a fabricated hardware inertia
-  command. FTMS simulation cannot carry mass; FE-C pages 50/55 carry wind/mass.
-  Missing telemetry is not zero: retain independent timestamps and stop using
-  stale samples. Reset motion on disconnect, route load, reset, seek, and source
-  changes. FTMS procedures must wait for matching result indications, and queued
-  terrain writes must yield when ERG takes control. `workoutErg.targetWatts` is
-  null on free-ride steps/pauses and while ERG is off. The persisted
-  `workoutErgEnabled` preference is independent of timed workout playback;
-  loading, starting, or automatically starting a workout must never enable it.
-  Switching it off releases target power while keeping the workout running.
-  `realErgPowerStep()` requires this preference and resolves the timed step's
-  target even while automatically paused, so freewheel commands cannot steal
-  ERG control on restart. Road writes are coalesced and validated at send time.
-  TrainerRoad alone deduplicates road targets; FE-C caches only mass/wind setup
-  payloads. A started FE-C packet may finish across ordinary ramp revisions,
-  but disconnect, ERG, or a minimum-load transition cancels remaining pages.
-  Finishing a real ride clears extra braking and applies zero grade atomically,
-  preserving minimum resistance when freewheeling. Real and simulated finishes
-  then use a continuous, display-only flat-road rollout with captured athlete
-  mass and zero power. `roadFinished` prevents telemetry from restarting movement;
-  progress, recording, and finish orbit remain frozen while speed decays. Reset,
-  seek, route changes, and source changes clear this finish state.
+- **Two movement sources.** Real rides use fresh measured trainer power;
+  Simulation uses its virtual athlete or fixed-speed target. Real road speed
+  always comes from the physical model; raw trainer speed is telemetry only.
+  Simulation data stays separate from hardware telemetry and the real ETA.
+  While Simulator is enabled, hardware cannot advance or record the ride.
+  Cadence/power detect effort for workout and ETA behavior, but raw speed
+  cannot start movement or keep it alive without fresh power.
+- **Shared road physics.** Parameters live under `road_physics` in tuning.yaml.
+  Real rides (including ERG) and the virtual rider use the same measured/model
+  power integrator with total rider/bike mass, grade, rolling resistance, and
+  air drag. Always start modeled real velocity at zero; never seed, replace,
+  clamp, or blend it with raw trainer speed. Full measured power drives the
+  model even during a physical load ramp and regardless of cadence. Near-zero
+  power marks coasting for UI/ETA/load control, but the integrator receives
+  actual nonnegative watts. Fresh 0 W is valid: coasting decelerates uphill to
+  rest without reversing and can accelerate downhill. Missing/stale power is
+  not 0 W: stop motion/recording and show unavailable speed, with no raw-speed
+  fallback. Keep raw speed available only for diagnostics.
+  Physical load is separate. `trainer/load-ramp.mjs` releases road load at
+  near-zero effort and restores it over `trainer_load_ramp_seconds` after
+  effort resumes. With inertia off, use steady modeled speed and immediate
+  road load. ERG always retains target-power ownership and excludes minimum,
+  ramp, and brake commands; its speed still uses measured watts. `workoutErgEnabled`
+  is a persisted preference independent of workout playback: importing,
+  starting, or automatically starting a workout must never enable it.
+  Turning ERG off releases target power without ending the timed workout.
+  `realErgPowerStep()` checks the preference and timed step, including automatic
+  pauses. Free-ride steps retain modeled speed and restore road resistance.
+  Raw speed must not affect physical load or braking either. Do not double
+  count road forces or invent an inertia command. FTMS simulation has no mass
+  field; FE-C setup pages carry mass/wind. Device inertia remains firmware-owned.
+  Road writes are coalesced and validate ownership; FtmsControl waits for result
+  indications. TrainerRoad alone deduplicates road targets; FE-C caches only
+  setup payloads. A started FE-C packet can finish across ordinary load ramps,
+  but disconnect, ERG, and minimum-load transitions cancel remaining pages.
+  Finish clears extra braking and applies zero grade atomically, preserving
+  unloaded road control. Real/simulated display-only finish rollout uses level
+  ground, captured rider mass, and zero power without extending the recording.
+  `roadFinished` protects it from telemetry restarts. Reset, seek, route load,
+  disconnect, and source changes clear motion. Inertia off uses the shared
+  steady-power solver; Fixed speed remains an external simulation target.
 - **Shared speed limits.** `maxRideSpeedKph` and `autoCornerBraking` are persisted
   Road physics settings. Free riding, coasting, and Fixed speed honor both speed
   AND traveled-distance limits regardless of inertia. Real and simulated ERG
@@ -248,16 +234,17 @@ in place).
   real/simulation motion state; never integrate distance from an uncapped speed
   or return the Fixed speed slider as actual telemetry. Raw telemetry and ERG
   targets stay unchanged. `trainer-braking.mjs` requests additional load only
-  outside ERG while engaged at the active envelope; recovery alone must not
-  trigger braking. `trainer-road.mjs` combines its strength with the freewheel
-  ramp, cancels downhill assistance, adds a bounded positive equivalent grade,
-  and keeps the route/HUD grade untouched. Open freewheeling, stale telemetry,
+  outside ERG while measured effort and physical road load are present at the
+  active envelope; recovery alone must not trigger braking. Use unconstrained modeled speed and removed acceleration,
+  never raw trainer speed, to drive physical brake strength. `trainer-road.mjs`
+  combines its strength with the physical load ramp, cancels downhill assistance, adds a bounded positive equivalent grade,
+  and keeps the route/HUD grade untouched. Near-zero effort, stale power,
   resets, and ERG clear this request. Rate-limit intermediate brake commands and
   reject queued writes when ERG takes ownership. Never send an extra ERG power
   target to emulate a brake.
   Keep `speed_limits` geometry/recovery parameters in tuning.yaml; the default
   hard ceiling is `road_physics.max_speed_kph`. Changing only the limit settings
-  must not reset freewheel engagement. Fixed-speed power uses limited speed.
+  must not reset the physical road-load ramp. Fixed-speed power uses limited speed.
 - **The movement loop** (`tick` in `movement.mjs`) runs on requestAnimationFrame
   while the tab is visible and falls back to `setTimeout` when hidden, so
   rides keep advancing and recording in background tabs. Per-tick elapsed

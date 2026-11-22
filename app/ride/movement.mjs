@@ -1,4 +1,4 @@
-// Advances the ride from real pedaling or the active simulation.
+// Advances measured-power road motion or the active simulation.
 
 import { closeOverviewModeMenu, syncOverviewControls } from "../camera/camera-ui.mjs";
 import { syncFocusedClimbList } from "../route/climbs-ui.mjs";
@@ -39,8 +39,6 @@ import { sendTrainerGrade } from "../trainer/trainer.mjs";
 import {
   CYCLING_GROSS_EFFICIENCY,
   MAX_TICK_SECONDS,
-  PEDALING_START_KPH,
-  PEDALING_STOP_KPH,
 } from "../core/tuning.mjs";
 import { activeCaloriesFromPower } from "../core/units.mjs";
 
@@ -49,26 +47,14 @@ import {
 } from "../workout/workout-erg.mjs";
 
 export function isMoving() {
-  return !state.roadFinished && Boolean(state.simulation || state.pedaling || realRoadMoving());
+  return !state.roadFinished && Boolean(state.simulation || realRoadMoving());
 }
 
-export function updatePedalingFromSpeed() {
+export function updatePedalingFromTelemetry() {
   if (state.simulatorEnabled || state.roadFinished) return;
   const effort = trainerEffort();
-  if (!effort.fresh) {
-    resetRoadMotion();
-    setPedaling(false);
-    return;
-  }
   prepareRealRoadMotion(effort);
-  if (state.inertiaEnabled && effort.active !== null) {
-    setPedaling(effort.active);
-  } else {
-    const speed = effort.speed;
-    if (!Number.isFinite(speed)) setPedaling(false);
-    else if (!state.pedaling && speed >= PEDALING_START_KPH) setPedaling(true);
-    else if (state.pedaling && speed <= PEDALING_STOP_KPH) setPedaling(false);
-  }
+  setPedaling(effort.power !== null && effort.active === true);
   if (realRoadMoving() && !state.movementLoopActive) ensureMovementLoop();
 }
 
@@ -79,9 +65,8 @@ export function setPedaling(pedaling) {
   if (pedaling) {
     state.lastTick = performance.now();
     autoStartWorkout();
-    ensureMovementLoop();
+    if (realRoadMoving()) ensureMovementLoop();
   } else {
-    state.ergRoadSpeedKph = null;
     pauseWorkoutErg();
     updateRideSpeedUi();
     if (!state.simulation && !realRoadMoving()) handleMovementStopped();
@@ -192,10 +177,10 @@ function tick(now) {
     else state.movementLoopActive = false;
     return;
   }
-  if (!state.simulatorEnabled) updatePedalingFromSpeed();
+  if (!state.simulatorEnabled) updatePedalingFromTelemetry();
   if (!isMoving() || state.route.length < 2) {
     state.movementLoopActive = false;
-    if (!state.simulation) resetRoadMotion();
+    if (!state.simulation) resetRoadMotion({ loadFraction: realErgPowerStep() ? 1 : 0 });
     // The movement loop was driving the camera flight; let the flight loop
     // finish any move still in progress.
     ensureCameraFlightLoop();
@@ -279,9 +264,7 @@ export function currentRideSpeedKph() {
   let speed = 0;
   if (state.roadFinished) speed = state.roadSpeedKph ?? 0;
   else if (state.simulatorEnabled) speed = simulationSpeedKph();
-  else if (realRoadMoving() || state.ergRoadSpeedKph !== null || state.pedaling) {
-    speed = state.roadSpeedKph ?? state.trainerSpeedKph;
-  }
+  else speed = trainerEffort().power === null ? null : state.roadSpeedKph ?? 0;
   const erg = state.simulatorEnabled ? state.simulation?.ergStep : realErgPowerStep();
   return Number.isFinite(speed) && !erg && !state.roadFinished ? Math.min(speed, currentSpeedLimit()) : speed;
 }
@@ -293,7 +276,6 @@ export function seekToMeters(meters) {
   stopSimulation("Simulation stopped before seeking.", { refresh: false });
   resetRoadMotion();
   state.progressMeters = clamp(meters, 0, routeTotalDistance(state.route));
-  state.ergRoadSpeedKph = null;
   state.lastTick = performance.now();
   // A teleport while parked in the rider camera (clicking the elevation
   // profile) flies the transition arc from the old camera pose to the new

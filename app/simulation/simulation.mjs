@@ -7,7 +7,7 @@ import { WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 import { advanceDemoRide, createDemoRideModel, normalizeSimulationAthlete, simulationAthlete } from "../demo/demo.mjs";
 import { registerHudComponent } from "../hud/screen-manager.mjs";
 import { createSimulationRecording, persistSimulationRecording, recordSimulationTick, recordSimulationWorkoutBoundary, finishSimulationWorkout } from "./simulation-recorder.mjs";
-import { ensureMovementLoop, setPedaling, updatePedalingFromSpeed } from "../ride/movement.mjs";
+import { ensureMovementLoop, setPedaling, updatePedalingFromTelemetry } from "../ride/movement.mjs";
 import { updateRecordingUi } from "../ride/recording-ui.mjs";
 import { updateRideUi } from "../ride/ride-ui.mjs";
 import { updateSpeedOutput } from "../settings/settings-ui.mjs";
@@ -41,7 +41,7 @@ export function updateSimulatorFromControl() {
       state.progressMeters = state.trainerProgressBeforeSimulation;
       state.trainerProgressBeforeSimulation = null;
     }
-    updatePedalingFromSpeed();
+    updatePedalingFromTelemetry();
     saveRide();
   }
   state.simulationNotice = "";

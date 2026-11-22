@@ -72,14 +72,15 @@ export function advanceDemoRide(model, {
   const previousPower = model.powerWatts;
   if (fixedSpeedKph !== null) fixedSpeedKph = Math.min(config.max_speed_kph, Math.max(0, fixedSpeedKph));
   if (fixedSpeedKph !== null) targetPowerWatts = cyclingPowerForSpeed(fixedSpeedKph, gradePercent, config);
+  const physics = { ...config, max_speed_kph: Infinity };
   const motionAt = (seconds) => {
     let power = targetPowerWatts ?? smoothToward(previousPower, freeRidePower, seconds, config.power_smoothing_tau_seconds);
     if (targetPowerWatts === null && freeRidePower === 0 && power <= config.coasting_power_watts) power = 0;
     let proposed;
     if (fixedSpeedKph !== null) proposed = { speedKph: fixedSpeedKph, distanceMeters: fixedSpeedKph / 3.6 * seconds };
-    else if (config.inertia_enabled) proposed = advanceCyclingMotion(model.speedKph, power, gradePercent, seconds, config);
+    else if (config.inertia_enabled) proposed = advanceCyclingMotion(model.speedKph, power, gradePercent, seconds, physics);
     else {
-      const speedKph = demoSpeedForPower(power, gradePercent, config);
+      const speedKph = demoSpeedForPower(power, gradePercent, physics);
       proposed = { speedKph, distanceMeters: speedKph / 3.6 * seconds };
     }
     const motion = speedLimits === false ? { ...proposed, limited: false } : governMotion(Boolean(model.speedLimited), model.speedKph, proposed, seconds,

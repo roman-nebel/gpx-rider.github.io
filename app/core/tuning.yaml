@@ -39,14 +39,6 @@ app:
 
 # --- Movement & pedaling -----------------------------------------------------
 movement:
-  # Fallback detection without effort data or with inertia off: movement starts
-  # once the trainer reports at least start_kph, and stops only after speed
-  # falls to stop_kph. The gap keeps a spinning-down flywheel from flapping
-  # the movement source on/off around a single threshold.
-  pedaling:
-    start_kph: 3
-    stop_kph: 1
-
   # Simulation speed slider: the artificial speed used to auto-ride a route
   # with no trainer. default_kph is where the slider starts; min/max bound both
   # the slider and any saved value. These drive the range input's attributes
@@ -100,21 +92,15 @@ road_physics:
   launch_speed_mps: 0.5
   # Default for the persisted Inertia and coasting switch.
   inertia_enabled: true
-  # Maximum age of real power/cadence/speed samples before motion stops.
+  # Maximum age of measured power before motion stops; also bounds cadence freshness.
   telemetry_timeout_ms: 3000
-  # Effort threshold for pedaling detection without cadence and virtual-rider
-  # power smoothing; real road/trainer speed selection uses only the speed gap.
+  # Near-zero effort threshold for physical load release, workout/ETA effort
+  # detection, and virtual-rider power smoothing; road motion uses measured watts.
   coasting_power_watts: 1
   # Speeds below this value count as stopped for the movement loop.
   stop_speed_kph: 0.1
-  # A trainer within this many km/h of the road speed can start engagement.
-  engagement_speed_tolerance_kph: 0.5
-  # Fall back to freewheeling only if the trainer loses this much during the ramp.
-  engagement_release_gap_kph: 2
-  # Matching speed must persist this long before road load begins to return.
-  engagement_hold_seconds: 0.3
-  # Restore full road load over this many seconds after the speed catch.
-  engagement_ramp_seconds: 1.5
+  # Restore physical road load over this many seconds after measured power resumes.
+  trainer_load_ramp_seconds: 1.5
   # Minimum interval between intermediate ramp commands; endpoints apply immediately.
   trainer_load_interval_ms: 150
 

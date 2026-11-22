@@ -53,8 +53,6 @@ export const SPEED_LIMITS = req("speed_limits");
 export const DEFAULT_AUTO_CORNER_BRAKING = req("speed_limits", "auto_corner_braking");
 
 // Movement & pedaling
-export const PEDALING_START_KPH = req("movement", "pedaling", "start_kph");
-export const PEDALING_STOP_KPH = req("movement", "pedaling", "stop_kph");
 export const SIMULATION_SPEED_MIN_KPH = req("movement", "simulation_speed", "min_kph");
 export const SIMULATION_SPEED_MAX_KPH = req("movement", "simulation_speed", "max_kph");
 export const DEFAULT_SIMULATION_SPEED_KPH = req("movement", "simulation_speed", "default_kph");
