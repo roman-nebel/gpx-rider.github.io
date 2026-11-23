@@ -99,6 +99,12 @@ export const state = {
   trainerBrakeStrength: 0, // Ramped extra trainer road load outside ERG; zero while physically unloaded.
   roadSpeedKph: null, // Latest app road speed, distinct from raw trainer telemetry.
   roadCoasting: false, // Near-zero measured power; road speed always uses the physical model.
+  debugRouteRef: undefined, // Last route captured in the independent diagnostic journal.
+  debugWorkoutRef: undefined, // Last selected workout captured in diagnostics.
+  debugWorkoutSessionRef: undefined, // Last expanded real workout session captured in diagnostics.
+  debugSimulationWorkoutRef: undefined, // Expanded simulated workout captured in diagnostics.
+  debugTurnProfileRef: undefined, // Cached corner envelope captured in diagnostics.
+  debugSettingsSignature: null, // Prevent repeating unchanged diagnostic context every frame.
   trainerLoadFraction: 1, // Speed-coupled hardware load only; never controls modeled speed or drive power.
   trainerUphillGradePercent: 0, // Extra hardware-only uphill resistance from flywheel overspeed.
   trainerSpeedSampleAt: null, // Timestamp of the latest actual speed field.
@@ -527,6 +533,9 @@ export const els = {
   recPointsStat: document.querySelector("#recPointsStat"),
   recHeartRateStat: document.querySelector("#recHeartRateStat"),
   recCaloriesStat: document.querySelector("#recCaloriesStat"),
+  downloadRideDebugBtn: document.querySelector("#downloadRideDebugBtn"),
+  clearRideDebugBtn: document.querySelector("#clearRideDebugBtn"),
+  rideDebugStatus: document.querySelector("#rideDebugStatus"),
   downloadFitBtn: document.querySelector("#downloadFitBtn"),
   downloadWorkoutFitBtn: document.querySelector("#downloadWorkoutFitBtn"),
 };

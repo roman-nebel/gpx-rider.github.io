@@ -1,4 +1,6 @@
 // Serializes FTMS procedures through their result indications, including disconnect and mode changes.
+import { recordDebugEvent } from "../ride/debug-log.mjs";
+
 const RESPONSE_TIMEOUT_MS = 2000; // BLE procedure safety timeout, matching target-power handling.
 const RESULT_TEXT = { 1: "Success", 2: "Op code not supported", 3: "Invalid parameter", 4: "Operation failed", 5: "Control not permitted" };
 
@@ -32,6 +34,7 @@ export class FtmsControl {
   handleResponse(event) {
     if (event.target !== this.characteristic) return;
     const data = event.target.value;
+    recordDebugEvent("trainer.ftms.response", { bytes: data, requestId: data.byteLength >= 2 && data.getUint8(1) === this.pending?.opcode ? this.pending.requestId : null });
     if (data.byteLength < 3 || data.getUint8(0) !== 0x80) return;
     const opcode = data.getUint8(1);
     const result = data.getUint8(2);
@@ -45,17 +48,22 @@ export class FtmsControl {
   }
 
   send(bytes, isCurrent = () => true) {
+    const requestId = recordDebugEvent("trainer.ftms.queued", { bytes });
     const characteristic = this.characteristic;
     const operation = this.queue.then(async () => {
       if (!characteristic || characteristic !== this.characteristic) throw new Error("Trainer connection changed.");
-      if (!isCurrent()) return false;
+      if (!isCurrent()) {
+        recordDebugEvent("trainer.ftms.skipped", { requestId });
+        return false;
+      }
       let timeout;
       let pending;
       const response = this.receivesResponses ? new Promise((resolve, reject) => {
-        pending = { opcode: bytes[0], resolve, reject };
+        pending = { opcode: bytes[0], requestId, resolve, reject };
         this.pending = pending;
         timeout = setTimeout(() => reject(new Error("No control point response from the trainer.")), RESPONSE_TIMEOUT_MS);
       }) : Promise.resolve();
+      recordDebugEvent("trainer.ftms.write", { requestId, bytes, expectsProcedureResponse: this.receivesResponses });
       const write = this.write(characteristic, bytes).catch((error) => {
         pending?.reject(error);
         throw error;
@@ -64,13 +72,14 @@ export class FtmsControl {
         const results = await Promise.allSettled([write, response]);
         const failure = results.find((result) => result.status === "rejected");
         if (failure) throw failure.reason;
+        recordDebugEvent("trainer.ftms.completed", { requestId, procedureVerified: this.receivesResponses });
         return true;
       } finally {
         clearTimeout(timeout);
         if (this.pending === pending) this.pending = null;
       }
     });
-    this.queue = operation.catch(() => {});
+    this.queue = operation.catch(error => { recordDebugEvent("trainer.ftms.failed", { requestId, error }); });
     return operation;
   }
 

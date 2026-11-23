@@ -2,6 +2,8 @@
 // and the once-per-load route overview (selected name, difficulty classification,
 // climbs list).
 
+import { recordDebugEvent } from "../ride/debug-log.mjs";
+import { captureRideDebug } from "../ride/debug-ui.mjs";
 import { resetRoadMotion } from "../ride/road-speed.mjs";
 import { stopWorkoutErg } from "../workout/workout-erg.mjs";
 import { detectClimbs } from "./climbs.mjs";
@@ -64,6 +66,7 @@ function filenameToRouteName(filename) {
 }
 
 function applyGpxText(text, { overrideName = null, fallbackName = null, galleryMetadata = null } = {}) {
+  recordDebugEvent("route.import", { text, overrideName, fallbackName });
   const { points: route, name: gpxName } = parseGpx(text);
 
   if (route.length < 2) {
@@ -106,6 +109,7 @@ function applyGpxText(text, { overrideName = null, fallbackName = null, galleryM
   renderRoute();
   renderProfile();
   updateRouteOverview();
+  captureRideDebug("route.loaded");
   updateRideUi({ force: true });
   saveRide();
 

@@ -2,6 +2,7 @@
 // reconnect, control-point commands, grade (Set Simulation Parameters)
 // writes, and Indoor Bike Data telemetry parsing.
 
+import { recordDebugEvent } from "../ride/debug-log.mjs";
 import { TrainerRoad } from "./trainer-road.mjs";
 import { FtmsControl } from "./ftms-control.mjs";
 import { decodeFtmsFeatures, decodeIndoorBikeData, decodeResistanceRange } from "./ftms.mjs";
@@ -95,6 +96,7 @@ export async function connectTrainer() {
     await connectTrainerDevice(device);
   } catch (error) {
     console.error(error);
+    recordDebugEvent("trainer.connection-failed", { error });
     callbacks.onStatus("Failed");
     callbacks.onMessage(connectionErrorMessage(error, "trainer"));
   }
@@ -120,6 +122,7 @@ export async function reconnectSavedTrainer() {
 
     await connectTrainerDevice(device);
   } catch (error) {
+    recordDebugEvent("trainer.reconnect-failed", { error });
     console.warn("Could not reconnect saved trainer.", error);
     callbacks.onStatus(savedTrainer.name || "Saved");
   }
@@ -180,13 +183,16 @@ async function connectTrainerDevice(device) {
     onApplied: clearTrainerErrorStatus,
     onError: () => callbacks.onStatus("BLE error"),
   });
+  recordDebugEvent("trainer.connected", { name: device.name, protocol: trainer.protocol, features: trainer.features, controlResponsesAvailable: trainer.control?.receivesResponses ?? false, powerRange: trainer.powerRange, resistanceRange: trainer.resistanceRange });
   callbacks.onStatus(device.name || "Connected");
 }
 
 async function connectFtms(service) {
   try {
     const feature = await service.getCharacteristic(0x2acc);
-    trainer.features = decodeFtmsFeatures(await feature.readValue());
+    const featureData = await feature.readValue();
+    recordDebugEvent("trainer.ftms.features", { bytes: featureData });
+    trainer.features = decodeFtmsFeatures(featureData);
     console.debug("[trainer] FTMS features", trainer.features);
   } catch {
     console.debug("[trainer] FTMS features unavailable; support is unverified.");
@@ -219,6 +225,7 @@ async function connectFtms(service) {
 
   try {
     const status = await service.getCharacteristic(FTMS_STATUS);
+    status.addEventListener("characteristicvaluechanged", event => recordDebugEvent("trainer.ftms.status", { bytes: event.target.value }));
     await status.startNotifications();
   } catch {
     // Some trainers expose indications only on the control point.
@@ -243,6 +250,7 @@ function resetTrainerConnection() {
 }
 
 function handleTrainerDisconnected() {
+  recordDebugEvent("trainer.disconnected", { protocol: trainer.protocol });
   resetTrainerConnection();
   callbacks.onTelemetry(null);
   callbacks.onStatus("Disconnected");
@@ -312,6 +320,7 @@ async function subscribeToBikeData(service) {
 
 function handleBikeData(event) {
   if (event.target !== trainer.bikeData) return;
+  recordDebugEvent("trainer.ftms.bike-data", { bytes: event.target.value });
   const telemetry = decodeIndoorBikeData(event.target.value);
   if (telemetry) callbacks.onTelemetry(telemetry);
 }

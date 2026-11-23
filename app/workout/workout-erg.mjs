@@ -1,4 +1,5 @@
 // Runs the selected timed workout and hands power targets to the trainer's ERG controller.
+import { captureRideDebug } from "../ride/debug-ui.mjs";
 import { saveSettings } from "../storage/persistence.mjs";
 import { els, state } from "../core/state.mjs";
 import { WORKOUT_ERG_POWER_TIMEOUT_MS, WORKOUT_ERG_UPDATE_MS, WORKOUT_START_COUNTDOWN_SECONDS } from "../core/tuning.mjs";
@@ -119,6 +120,7 @@ function updateCountdown() {
     summary: createWorkoutSummary(),
   };
   els.workoutErgInput.checked = state.workoutErgEnabled;
+  captureRideDebug("workout.start");
   setErgStatus("Ready. Start pedaling to begin the workout.");
   updateWorkoutHud();
   updateWorkoutMeterTargets();
@@ -126,6 +128,7 @@ function updateCountdown() {
 }
 
 export function stopWorkoutErg(message = state.workoutErgEnabled ? ERG_HINT : ERG_OFF_HINT) {
+  if (state.workoutErg || state.workoutCountdown) captureRideDebug("workout.stop", { message, summary: state.workoutErg?.summary ?? null });
   els.workoutHudStartError.hidden = true;
   window.clearTimeout(state.workoutCountdown?.timer);
   state.workoutCountdown = null;

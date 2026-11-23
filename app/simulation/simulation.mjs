@@ -1,5 +1,6 @@
 // Runs the selected simulation in the ride's movement loop and owns its controls.
 
+import { captureRideDebug } from "../ride/debug-ui.mjs";
 import { speedLimitConfig, turnSpeedProfile } from "../ride/speed-limits.mjs";
 import { resetRoadMotion } from "../ride/road-speed.mjs";
 import { els, state } from "../core/state.mjs";
@@ -116,6 +117,7 @@ export function stopSimulation(message = "", { refresh = true } = {}) {
   if (!simulation) return;
   recordSimulationPosition(simulation, 0, true);
   persistSimulationRecording();
+  captureRideDebug("simulation.stop", { message, model: simulation.model, summary: simulation.recording.summary });
   state.simulation = null;
   updateSimulationControls(message);
   if (refresh) {
@@ -246,6 +248,7 @@ function advanceVirtualRider(simulation, seconds, grade, maxDistanceMeters = Inf
   const target = step ? workoutTargetWatts(step, workout.ftp, workout.elapsed + seconds / 2) : null;
   simulation.ergStep = simulation.mode === "workout" && target > 0;
   simulation.config.max_speed_kph = simulation.ergStep ? Infinity : state.maxRideSpeedKph;
+  const previousModel = { ...simulation.model };
   simulation.telemetry = advanceDemoRide(simulation.model, {
     elapsedSeconds: seconds,
     gradePercent: grade,
@@ -255,4 +258,7 @@ function advanceVirtualRider(simulation, seconds, grade, maxDistanceMeters = Inf
     speedLimits: simulation.ergStep ? false : { config: speedLimitConfig(), profile: turnSpeedProfile(), roadMeters: roadDistanceAt(state.route, state.progressMeters) },
     config: simulation.config,
   });
+  captureRideDebug("physics.simulation", { elapsedSeconds: seconds, gradePercent: grade, targetPowerWatts: target,
+    fixedSpeedKph: simulation.mode === "fixed" ? Number(els.speedInput.value) : null,
+    maxDistanceMeters, previousModel, model: simulation.model, telemetry: simulation.telemetry });
 }

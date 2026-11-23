@@ -1,4 +1,5 @@
 // Applies speed-coupled physical road resistance without competing with ERG.
+import { recordDebugEvent } from "../ride/debug-log.mjs";
 import { encodeSimulationParameters, encodeTargetResistance } from "./ftms.mjs";
 import { GRADE_MIN_PERCENT, GRADE_MAX_PERCENT, SPEED_LIMITS } from "../core/tuning.mjs";
 
@@ -94,6 +95,10 @@ export class TrainerRoad {
         bytes = encodeSimulationParameters(effectiveGrade, config);
       }
     }
+    recordDebugEvent("trainer.road-target", { protocol: connection.kind, gradePercent: grade, fraction, brakeStrength: brake,
+      uphillGradePercent: this.uphillGradePercent, effectiveGradePercent: effectiveGrade, minimum,
+      rollingResistanceCoefficient: config.rolling_resistance_coefficient, dragAreaSquareMeters: config.drag_area_square_meters,
+      windSpeedMps: config.wind_speed_mps, force, revision: this.revision });
     const key = bytes ? JSON.stringify([...bytes]) : JSON.stringify([minimum, effectiveGrade, config]);
     if (!force && key === this.lastKey) return true;
     if (partial) this.lastRampAt = now;

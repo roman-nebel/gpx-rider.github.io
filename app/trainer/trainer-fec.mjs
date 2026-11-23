@@ -10,6 +10,7 @@
 // notification merging, a one-write-at-a-time queue, and adapting to whether a
 // given device wraps its pages in ANT framing or sends them bare.
 
+import { recordDebugEvent } from "../ride/debug-log.mjs";
 import {
   ANT_ACKNOWLEDGED_DATA,
   ANT_BROADCAST_DATA,
@@ -86,6 +87,7 @@ export function resetFec() {
 function handleFecNotification(event) {
   const view = event.target.value;
   const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+  recordDebugEvent("trainer.fec.notification", { bytes });
 
   // Devices differ on whether they present bare FE-C pages or full ANT frames;
   // learn the framing (and ANT channel) from the first frame that parses.
@@ -177,23 +179,33 @@ export function sendFecTargetPower(watts, allowWrite = () => true) {
 
 function queueFecWrite(bytes, allowWrite = () => true) {
   // The device only allows one outstanding GATT operation at a time.
+  const requestId = recordDebugEvent("trainer.fec.queued", { bytes });
   const characteristic = fec.write;
   const task = fec.writeQueue.then(() => {
     if (characteristic !== fec.write) throw new Error("Trainer connection changed.");
-    if (!allowWrite()) return false;
-    return writeFecBytes(characteristic, bytes).then(() => true);
+    if (!allowWrite()) {
+      recordDebugEvent("trainer.fec.skipped", { requestId });
+      return false;
+    }
+    recordDebugEvent("trainer.fec.write", { requestId, bytes });
+    return writeFecBytes(characteristic, bytes, requestId).then(() => {
+      recordDebugEvent("trainer.fec.completed", { requestId, procedureVerified: false });
+      return true;
+    });
   });
-  fec.writeQueue = task.catch(() => {});
+  fec.writeQueue = task.catch(error => { recordDebugEvent("trainer.fec.failed", { requestId, error }); });
   return task;
 }
 
-async function writeFecBytes(characteristic, bytes) {
+async function writeFecBytes(characteristic, bytes, requestId) {
   const payload = bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes);
   // FE-C control is an acknowledged transaction; prefer a Write Request and
   // only fall back to Write Without Response for peripherals that reject it.
   try {
+    recordDebugEvent("trainer.fec.write-attempt", { requestId, method: "writeValue", bytes: payload });
     await characteristic.writeValue(payload);
-  } catch {
+  } catch (error) {
+    recordDebugEvent("trainer.fec.write-fallback", { requestId, method: "writeValueWithoutResponse", bytes: payload, error });
     await characteristic.writeValueWithoutResponse(payload);
   }
 }

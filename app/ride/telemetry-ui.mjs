@@ -3,6 +3,8 @@
 // app does with the numbers), the HR source-of-truth resolution, calories and
 // ride-timer accessors, and the telemetry readouts in the panel + HUD.
 
+import { captureRideDebug } from "./debug-ui.mjs";
+import { recordDebugEvent } from "./debug-log.mjs";
 import { resetRoadMotion, trainerEffort } from "./road-speed.mjs";
 import { updateRoadSupport } from "../settings/road-settings.mjs";
 import { latestSimulationRecording } from "../simulation/simulation-recorder.mjs";
@@ -18,6 +20,7 @@ import { HEART_RATE_REFRESH_MS, ROAD_PHYSICS } from "../core/tuning.mjs";
 import { formatEnergy, formatSpeed } from "../core/units.mjs";
 
 export function handleTrainerTelemetry(telemetry) {
+  recordDebugEvent("trainer.telemetry", telemetry);
   // Live telemetry is the one dependable "actually connected" signal.
   els.trainerDot.classList.toggle("connected", Boolean(telemetry));
 
@@ -58,6 +61,7 @@ export function handleTrainerTelemetry(telemetry) {
   state.trainerHeartRateBpm = telemetry.heartRateBpm;
 
   updatePedalingFromTelemetry();
+  captureRideDebug("telemetry.applied");
   updateTelemetryUi();
   updateTrainingMeters(state.route.length ? gradeAt(state.route, state.progressMeters) : NaN);
 }
@@ -75,11 +79,13 @@ function expireTrainerPower() {
     return;
   }
   updatePedalingFromTelemetry();
+  captureRideDebug("telemetry.power-expired");
   updateTelemetryUi();
   updateTrainingMeters(state.route.length ? gradeAt(state.route, state.progressMeters) : NaN);
 }
 
 export function handleTrainerStatus(text, { onlyClearError = false } = {}) {
+  recordDebugEvent("trainer.status", { text, onlyClearError });
   const connected = isTrainerConnected();
   updateRoadSupport();
   els.trainerSettingsBtn.hidden = !connected;
@@ -93,6 +99,7 @@ export function handleTrainerStatus(text, { onlyClearError = false } = {}) {
 }
 
 export function handleStrapHeartRate(bpm) {
+  recordDebugEvent("heartrate.telemetry", { bpm });
   state.strapHeartRateBpm = Number.isFinite(bpm) ? bpm : null;
   refreshRideTelemetry();
   syncHeartRateRefreshLoop();

@@ -5,6 +5,7 @@
 // about to add a function here, it almost certainly belongs in one of those
 // modules instead.
 
+import { initializeRideDebug, downloadRideDebug, clearRideDebug, flushRideDebug, handleDebugControl, handleDebugError } from "./ride/debug-ui.mjs";
 import { updateRoadSettings } from "./settings/road-settings.mjs";
 import { deployedMapsApiKey } from "./config.mjs";
 import {
@@ -154,6 +155,7 @@ async function startApp() {
   // A deployment with its own baked-in key has no need for visitors to see
   // or manage one — hide the whole control instead of just leaving it empty.
   els.apiKeySection.hidden = Boolean(deployedMapsApiKey());
+  await initializeRideDebug();
   await initMap();
   bindEvents();
   initializeMapHud();
@@ -179,6 +181,14 @@ async function startApp() {
 }
 
 function bindEvents() {
+  els.downloadRideDebugBtn.addEventListener("click", downloadRideDebug);
+  els.clearRideDebugBtn.addEventListener("click", clearRideDebug);
+  document.addEventListener("change", handleDebugControl);
+  document.addEventListener("click", handleDebugControl);
+  document.addEventListener("visibilitychange", flushRideDebug);
+  window.addEventListener("pagehide", flushRideDebug);
+  window.addEventListener("error", handleDebugError);
+  window.addEventListener("unhandledrejection", handleDebugError);
   els.settingsBtn.addEventListener("click", () => openSettings());
   els.mapSettingsShortcutBtn?.addEventListener("click", () => openSettings());
   els.settingsCloseBtn.addEventListener("click", () => els.settingsDialog.close());

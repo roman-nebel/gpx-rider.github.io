@@ -1,7 +1,8 @@
 // Owns measured-power road motion, physical trainer load, and display-only finish rollout.
+import { captureRideDebug } from "./debug-ui.mjs";
 import { state } from "../core/state.mjs";
 import { ROAD_PHYSICS, SPEED_LIMITS } from "../core/tuning.mjs";
-import { advanceCyclingMotion } from "./cycling-motion.mjs";
+import { advanceCyclingMotion, cyclingForces } from "./cycling-motion.mjs";
 import { cyclingSpeedForPower } from "./cycling-speed.mjs";
 import { advanceRoadLoad } from "../trainer/load-ramp.mjs";
 import { setTrainerRoadLoad } from "../trainer/trainer.mjs";
@@ -62,17 +63,21 @@ export function finishRoadMotion(simulation = null) {
   state.trainerBrakeStrength = 0;
   state.trainerUphillGradePercent = 0;
   if (!simulation) void setTrainerRoadLoad(state.trainerLoadFraction, 0, 0, 0);
+  captureRideDebug("ride.finish", { config: state.roadFinishConfig });
 }
 
 // Rollout is display-only: no route distance, activity samples, or pedal power
 // are added after the ride ends. Use level ground with the captured rider mass.
 export function advanceFinishedRoadSpeed(elapsedSeconds) {
   const config = state.roadFinishConfig ?? realRoadConfig();
-  const motion = advanceCyclingMotion(state.roadSpeedKph ?? 0, 0, 0, elapsedSeconds, config);
+  const previousSpeedKph = state.roadSpeedKph ?? 0;
+  const motion = advanceCyclingMotion(previousSpeedKph, 0, 0, elapsedSeconds, config);
   state.roadSpeedKph = motion.speedKph > ROAD_PHYSICS.stop_speed_kph ? motion.speedKph : 0;
+  captureRideDebug("physics.finish", { elapsedSeconds, previousSpeedKph, config, motion });
 }
 
 export function resetRoadMotion({ loadFraction = 1 } = {}) {
+  captureRideDebug("ride.reset", { requestedLoadFraction: loadFraction, phase: "before-reset" });
   state.roadFinished = false;
   state.roadFinishConfig = null;
   state.roadSpeedKph = null;
@@ -103,8 +108,10 @@ export function advanceRealRoadSpeed(elapsedSeconds, grade, now) {
   }
   const roadMeters = roadDistanceAt(state.route, state.progressMeters);
   const profile = erg ? null : turnSpeedProfile();
+  const wasLimited = state.roadSpeedLimited;
+  const controllerBefore = { fraction: state.trainerLoadFraction, uphillGradePercent: state.trainerUphillGradePercent, brakeStrength: state.trainerBrakeStrength };
   const governed = erg ? { ...motion, limited: false }
-    : governMotion(state.roadSpeedLimited, previous, motion, elapsedSeconds, roadMeters, profile, speedLimitConfig());
+    : governMotion(wasLimited, previous, motion, elapsedSeconds, roadMeters, profile, speedLimitConfig());
   state.roadCoasting = power <= ROAD_PHYSICS.coasting_power_watts;
   if (erg || !state.inertiaEnabled) {
     state.trainerLoadFraction = erg || !state.roadCoasting ? 1 : 0;
@@ -128,5 +135,9 @@ export function advanceRealRoadSpeed(elapsedSeconds, grade, now) {
   state.roadSpeedLimited = governed.limited;
   state.roadSpeedKph = governed.speedKph;
   void setTrainerRoadLoad(state.trainerLoadFraction, state.trainerBrakeStrength, undefined, state.trainerUphillGradePercent);
+  captureRideDebug("physics.real", { elapsedSeconds, sampleNow: now, gradePercent: grade, powerWatts: power, erg,
+    previousSpeedKph: previous, wasLimited, controllerBefore, roadMeters, proposed: motion, governed,
+    forcesBefore: cyclingForces(previous, grade, config), forcesAfter: cyclingForces(governed.speedKph, grade, config),
+    speedLimitKph: erg ? null : Math.min(state.maxRideSpeedKph, speedLimitAt(profile, roadMeters + governed.distanceMeters)) });
   return { speedKph: governed.speedKph, distanceMeters: governed.distanceMeters };
 }

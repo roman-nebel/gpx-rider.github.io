@@ -1,4 +1,6 @@
 // Handles the local workout file picker, selected workout, and its sidebar card.
+import { recordDebugEvent } from "../ride/debug-log.mjs";
+import { captureRideDebug } from "../ride/debug-ui.mjs";
 import { WORKOUT_PREVIEW_STEP_LIMIT, WORKOUT_PROFILE_STEP_LIMIT } from "../core/tuning.mjs";
 import { els, state } from "../core/state.mjs";
 import { readJson, removeStored, writeJsonCommitted } from "../storage/storage.mjs";
@@ -59,6 +61,7 @@ export async function importWorkout(event) {
     handleSimulationWorkoutChange();
     state.workoutAutoStartAttempted = false;
     renderWorkout();
+    captureRideDebug("workout.imported");
     els.workoutGalleryDialog.close();
     els.workoutCard.scrollIntoView({ block: "nearest" });
   } catch (error) {
@@ -72,10 +75,12 @@ export async function importWorkout(event) {
 
 async function readWorkoutFile(file) {
   const extension = file.name.split(".").at(-1).toLowerCase();
+  const bytes = await file.arrayBuffer();
+  recordDebugEvent("workout.import", { name: file.name, bytes });
   switch (extension) {
-    case "fit": return decodeFitWorkout(await file.arrayBuffer());
-    case "xml": return decodeMyWhooshXml(await file.text());
-    case "json": return decodeMyWhooshJson(await file.text());
+    case "fit": return decodeFitWorkout(bytes);
+    case "xml": return decodeMyWhooshXml(new TextDecoder().decode(bytes));
+    case "json": return decodeMyWhooshJson(new TextDecoder().decode(bytes));
     default: throw new Error("Choose a FIT, XML, or JSON workout file.");
   }
 }

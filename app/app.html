@@ -705,6 +705,16 @@
             </div>
           </section>
 
+          <section class="panel-card sidebar-section">
+            <div class="panel-card-head"><span class="panel-card-title">Ride diagnostics</span></div>
+            <p class="panel-card-hint">Full trainer packets, control commands, road calculations, route, and workout data. Includes location and health data. Saved locally; download to share for debugging.</p>
+            <div class="button-row">
+              <button id="downloadRideDebugBtn" type="button" class="btn btn-ghost">Export debug data</button>
+              <button id="clearRideDebugBtn" type="button" class="btn btn-ghost btn-sm">Clear debug data</button>
+            </div>
+            <p id="rideDebugStatus" class="panel-card-hint" role="status">Starting diagnostic recording…</p>
+          </section>
+
           <p id="terrainAttribution" class="panel-credits" hidden></p>
         </aside>
       </div>

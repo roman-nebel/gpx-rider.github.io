@@ -158,6 +158,49 @@ speed_limits:
   # Time to remove full trainer braking after the limit releases, in seconds.
   trainer_brake_release_seconds: 1
 
+# --- Ride diagnostics -------------------------------------------------------
+ride_debug:
+  # Persist pending diagnostic events at least this often while the page is active.
+  flush_interval_ms: 1000
+  # Maximum number of events in one stored JSONL chunk.
+  batch_events: 128
+  # Bound pending events if browser storage stalls; report all losses in the export.
+  pending_limit_events: 20000
+  # Bound memory-only fallback when persistent storage fails; report truncation.
+  memory_limit_events: 20000
+  # Keep the download object URL alive long enough for large exports.
+  download_url_lifetime_ms: 60000
+  # Snapshot these loaded calculation sources for reproducible offline analysis.
+  source_paths:
+    - core/tuning.yaml
+    - ride/cycling-motion.mjs
+    - ride/cycling-speed.mjs
+    - ride/road-speed.mjs
+    - ride/movement.mjs
+    - ride/speed-governor.mjs
+    - ride/speed-limits.mjs
+    - ride/trainer-braking.mjs
+    - route/route.mjs
+    - route/speed-profile.mjs
+    - trainer/load-ramp.mjs
+    - trainer/trainer-road.mjs
+    - trainer/trainer.mjs
+    - trainer/trainer-fec.mjs
+    - trainer/ftms-control.mjs
+    - ride/telemetry-ui.mjs
+    - ride/debug-log.mjs
+    - ride/debug-ui.mjs
+    - ride/recorder.mjs
+    - ride/eta.mjs
+    - simulation/simulation-recorder.mjs
+    - workout/workout-summary.mjs
+    - trainer/ftms.mjs
+    - trainer/fec.mjs
+    - workout/workout-erg.mjs
+    - workout/workout-step.mjs
+    - demo/demo.mjs
+    - simulation/simulation.mjs
+
 # --- Trainer grade updates ---------------------------------------------------
 trainer:
   # How often the averaged route grade is written to the trainer, in seconds.

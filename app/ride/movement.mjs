@@ -1,5 +1,6 @@
 // Advances measured-power road motion or the active simulation.
 
+import { captureRideDebug } from "./debug-ui.mjs";
 import { closeOverviewModeMenu, syncOverviewControls } from "../camera/camera-ui.mjs";
 import { syncFocusedClimbList } from "../route/climbs-ui.mjs";
 import { advanceSimulation, simulationSpeedKph, stopSimulation, updateSimulationControls } from "../simulation/simulation.mjs";
@@ -258,6 +259,7 @@ function advanceRealRide(now, elapsedSeconds) {
     workoutPaused: Boolean(state.workoutErg && !recordingWorkoutSession(now)),
   });
   updateWorkoutErg(now, elapsedSeconds);
+  captureRideDebug("ride.tick", { elapsedSeconds, previousProgress, metersAdvanced, speedKph });
 }
 
 export function currentRideSpeedKph() {

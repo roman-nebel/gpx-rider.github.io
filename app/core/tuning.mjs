@@ -46,6 +46,7 @@ function req(...path) {
 }
 
 export const APP_NAME = req("app", "name");
+export const RIDE_DEBUG = req("ride_debug");
 export const ROAD_PHYSICS = req("road_physics");
 export const DEFAULT_INERTIA_ENABLED = req("road_physics", "inertia_enabled");
 export const DEFAULT_MAX_RIDE_SPEED_KPH = req("road_physics", "max_speed_kph");
