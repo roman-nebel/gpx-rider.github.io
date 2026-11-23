@@ -86,6 +86,26 @@ export function encodeTargetPowerPage(watts) {
   return Uint8Array.of(0x31, 0xff, 0xff, 0xff, 0xff, 0xff, raw & 0xff, raw >> 8);
 }
 
+export function encodeMinimumResistancePage() {
+  // FE-C page 48 basic resistance, 0%: no extra road or arbitrary watt load.
+  return Uint8Array.of(48, 255, 255, 255, 255, 255, 255, 0);
+}
+
+// FE-C pages 50 and 55. Unknown wheel geometry and gearing are left invalid;
+// this updates mass without inventing a tire size or transmission ratio.
+export function encodeWindResistancePage(coefficient, windMps) {
+  return Uint8Array.of(50, 255, 255, 255, 255,
+    clamp(Math.round(coefficient * 100), 0, 254),
+    clamp(Math.round(windMps * 3.6) + 127, 0, 254), 100);
+}
+
+export function encodeUserConfigurationPage(riderKg, bikeKg) {
+  const user = clamp(Math.round(riderKg * 100), 0, 65534);
+  const bike = clamp(Math.round(bikeKg / 0.05), 0, 1000);
+  return Uint8Array.of(55, user & 255, user >> 8, 255,
+    ((bike & 15) << 4) | 15, bike >> 4, 255, 0);
+}
+
 // Encode FE-C page 51 (Track Resistance): the terrain grade the trainer should
 // simulate, plus a rolling-resistance coefficient. Grade is clamped to the
 // FE-C range so one bad elevation point can't send an out-of-range command.

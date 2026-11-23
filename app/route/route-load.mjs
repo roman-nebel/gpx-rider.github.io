@@ -2,6 +2,9 @@
 // and the once-per-load route overview (selected name, difficulty classification,
 // climbs list).
 
+import { recordDebugEvent } from "../ride/debug-log.mjs";
+import { captureRideDebug } from "../ride/debug-ui.mjs";
+import { resetRoadMotion } from "../ride/road-speed.mjs";
 import { stopWorkoutErg } from "../workout/workout-erg.mjs";
 import { detectClimbs } from "./climbs.mjs";
 import { focusClimb, syncFocusedClimbList } from "./climbs-ui.mjs";
@@ -63,6 +66,7 @@ function filenameToRouteName(filename) {
 }
 
 function applyGpxText(text, { overrideName = null, fallbackName = null, galleryMetadata = null } = {}) {
+  recordDebugEvent("route.import", { text, overrideName, fallbackName });
   const { points: route, name: gpxName } = parseGpx(text);
 
   if (route.length < 2) {
@@ -72,6 +76,7 @@ function applyGpxText(text, { overrideName = null, fallbackName = null, galleryM
 
   if (state.workoutErg || state.workoutCountdown) stopWorkoutErg();
   stopSimulation("", { refresh: false });
+  resetRoadMotion();
   state.route = enrichRoute(route);
   // Warm the online-terrain cache around the start, middle and end of the
   // route so the follow camera has real ground under it from the first frame,
@@ -104,6 +109,7 @@ function applyGpxText(text, { overrideName = null, fallbackName = null, galleryM
   renderRoute();
   renderProfile();
   updateRouteOverview();
+  captureRideDebug("route.loaded");
   updateRideUi({ force: true });
   saveRide();
 

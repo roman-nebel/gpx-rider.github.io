@@ -1,7 +1,9 @@
 // Models a virtual rider's power, speed, cadence, heart rate, and energy use.
 import { clamp } from "../core/geo.mjs";
-import { CYCLING_GROSS_EFFICIENCY, DEFAULT_SIMULATION_ATHLETE, DEMO_RIDE, SIMULATION_ATHLETE_PRESETS } from "../core/tuning.mjs";
+import { CYCLING_GROSS_EFFICIENCY, DEFAULT_SIMULATION_ATHLETE, DEMO_RIDE, SPEED_LIMITS, SIMULATION_ATHLETE_PRESETS } from "../core/tuning.mjs";
 import { cyclingPowerForSpeed, cyclingSpeedForPower } from "../ride/cycling-speed.mjs";
+import { governMotion } from "../ride/speed-governor.mjs";
+import { advanceCyclingMotion } from "../ride/cycling-motion.mjs";
 import { activeCaloriesFromPower } from "../core/units.mjs";
 
 export function normalizeSimulationAthlete(id) {
@@ -61,35 +63,65 @@ export function advanceDemoRide(model, {
   gradePercent,
   targetPowerWatts = null,
   fixedSpeedKph = null,
+  maxDistanceMeters = Infinity,
+  speedLimits = null,
   config = DEMO_RIDE,
 }) {
-  const dt = Math.max(0, elapsedSeconds);
-  model.elapsedSeconds += dt;
-
+  let dt = Math.max(0, elapsedSeconds);
   const freeRidePower = demoTargetPowerWatts(gradePercent, config);
   const previousPower = model.powerWatts;
+  if (fixedSpeedKph !== null) fixedSpeedKph = Math.min(config.max_speed_kph, Math.max(0, fixedSpeedKph));
   if (fixedSpeedKph !== null) targetPowerWatts = cyclingPowerForSpeed(fixedSpeedKph, gradePercent, config);
-  model.powerWatts = targetPowerWatts ?? smoothToward(
-    previousPower, freeRidePower, dt, config.power_smoothing_tau_seconds,
-  );
-
-  const targetSpeedKph = fixedSpeedKph ?? demoSpeedForPower(model.powerWatts, gradePercent, config);
-  model.speedKph = fixedSpeedKph ?? smoothToward(
-    model.speedKph || targetSpeedKph, targetSpeedKph, dt, config.speed_smoothing_tau_seconds,
-  );
+  const physics = { ...config, max_speed_kph: Infinity };
+  const motionAt = (seconds) => {
+    let power = targetPowerWatts ?? smoothToward(previousPower, freeRidePower, seconds, config.power_smoothing_tau_seconds);
+    if (targetPowerWatts === null && freeRidePower === 0 && power <= config.coasting_power_watts) power = 0;
+    let proposed;
+    if (fixedSpeedKph !== null) proposed = { speedKph: fixedSpeedKph, distanceMeters: fixedSpeedKph / 3.6 * seconds };
+    else if (config.inertia_enabled) proposed = advanceCyclingMotion(model.speedKph, power, gradePercent, seconds, physics);
+    else {
+      const speedKph = demoSpeedForPower(power, gradePercent, physics);
+      proposed = { speedKph, distanceMeters: speedKph / 3.6 * seconds };
+    }
+    const motion = speedLimits === false ? { ...proposed, limited: false } : governMotion(Boolean(model.speedLimited), model.speedKph, proposed, seconds,
+      speedLimits?.roadMeters ?? 0, speedLimits?.profile ?? null,
+      speedLimits?.config ?? { ...SPEED_LIMITS, max_speed_kph: config.max_speed_kph });
+    if (fixedSpeedKph !== null) power = cyclingPowerForSpeed(motion.speedKph, gradePercent, config);
+    return { power, ...motion };
+  };
+  let motion = motionAt(dt);
+  if (motion.distanceMeters > maxDistanceMeters) {
+    let low = 0;
+    let high = dt;
+    for (let i = 0; i < 36; i++) {
+      const middle = (low + high) / 2;
+      if (motionAt(middle).distanceMeters > maxDistanceMeters) high = middle;
+      else low = middle;
+    }
+    dt = (low + high) / 2;
+    motion = motionAt(dt);
+    motion.distanceMeters = maxDistanceMeters;
+  }
+  model.elapsedSeconds += dt;
+  model.elapsedSecondsAdvanced = dt;
+  model.powerWatts = motion.power;
+  model.speedKph = motion.speedKph;
+  model.speedLimited = motion.limited;
+  model.distanceMetersAdvanced = motion.distanceMeters;
 
   let targetCadenceRpm = demoTargetCadenceRpm(gradePercent, config);
-  if (targetPowerWatts !== null) {
+  if (model.powerWatts === 0) targetCadenceRpm = 0;
+  else if (targetPowerWatts !== null && freeRidePower > 0) {
     targetCadenceRpm *= Math.pow(model.powerWatts / freeRidePower, config.cadence_power_exponent);
   }
   model.cadenceRpm = smoothToward(model.cadenceRpm, targetCadenceRpm, dt, config.cadence_smoothing_tau_seconds);
   model.cadenceNoiseRpm = (Math.random() * 2 - 1) * config.cadence_noise_rpm;
-  const energyPower = targetPowerWatts ?? (previousPower + model.powerWatts) / 2;
+  const energyPower = fixedSpeedKph !== null ? model.powerWatts : targetPowerWatts ?? (previousPower + model.powerWatts) / 2;
   model.caloriesKcal += activeCaloriesFromPower(energyPower, dt, CYCLING_GROSS_EFFICIENCY);
   updateDemoHeartRate(model, dt, config);
 
   return {
-    speedKph: Math.round(model.speedKph * 10) / 10,
+    speedKph: Math.min(config.max_speed_kph, Math.round(model.speedKph * 10) / 10),
     powerWatts: Math.round(model.powerWatts),
     cadenceRpm: model.powerWatts === 0 ? 0 : Math.round(clamp(
       model.cadenceRpm + model.cadenceNoiseRpm, config.min_cadence_rpm, config.max_cadence_rpm,

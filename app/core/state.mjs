@@ -6,7 +6,12 @@
 
 import { createRideEstimator } from "../ride/eta.mjs";
 import {
+  ROAD_PHYSICS,
+  DEFAULT_INERTIA_ENABLED,
+  DEFAULT_MAX_RIDE_SPEED_KPH,
+  DEFAULT_AUTO_CORNER_BRAKING,
   DEFAULT_WORKOUT_AUTO_START,
+  DEFAULT_WORKOUT_ERG_ENABLED,
   DEFAULT_BEACON_COLOR,
   DEFAULT_BEACON_DIAMETER_METERS,
   DEFAULT_BEACON_ENABLED,
@@ -67,7 +72,7 @@ export const state = {
   simulationMode: "fixed", // Selected mode for the next simulation start.
   simulationNotice: "", // Most recent simulation transition shown in the sidebar.
   simulation: null, // Active simulation, with its own virtual telemetry and workout clock.
-  pedaling: false, // Real trainer motion detected by speed hysteresis.
+  pedaling: false, // Fresh cadence/power effort; speed hysteresis is the legacy fallback.
   movementLoopActive: false,
   tickRaf: null,
   tickTimeout: null,
@@ -81,10 +86,33 @@ export const state = {
   minimapMap: null,
   minimapPaths: [],
   minimapMarker: null,
+  riderWeightKg: ROAD_PHYSICS.rider_weight_kg, // Persisted real rider mass.
+  bikeWeightKg: ROAD_PHYSICS.bike_weight_kg, // Persisted loaded bike mass, shared with simulation.
+  inertiaEnabled: DEFAULT_INERTIA_ENABLED, // Persisted app motion/coasting switch; never a hardware inertia command.
+  maxRideSpeedKph: DEFAULT_MAX_RIDE_SPEED_KPH, // Persisted hard speed ceiling outside ERG power steps.
+  autoCornerBraking: DEFAULT_AUTO_CORNER_BRAKING, // Persisted GPX-based automatic braking switch.
+  speedLimitRoute: null, // Route identity associated with the cached corner speed envelope.
+  turnSpeedProfile: null, // Cached curvature/braking profile, indexed by road distance.
+  roadFinished: false, // Finished-route rollout stays separate from route progress and recording.
+  roadFinishConfig: null, // Captured real/simulated rider physics for display-only finish rollout.
+  roadSpeedLimited: false, // Recovery state after real road motion was limited.
+  trainerBrakeStrength: 0, // Ramped extra trainer road load outside ERG; zero while physically unloaded.
+  roadSpeedKph: null, // Latest app road speed, distinct from raw trainer telemetry.
+  roadCoasting: false, // Near-zero measured power; road speed always uses the physical model.
+  debugRouteRef: undefined, // Last route captured in the independent diagnostic journal.
+  debugWorkoutRef: undefined, // Last selected workout captured in diagnostics.
+  debugWorkoutSessionRef: undefined, // Last expanded real workout session captured in diagnostics.
+  debugSimulationWorkoutRef: undefined, // Expanded simulated workout captured in diagnostics.
+  debugTurnProfileRef: undefined, // Cached corner envelope captured in diagnostics.
+  debugSettingsSignature: null, // Prevent repeating unchanged diagnostic context every frame.
+  trainerLoadFraction: 1, // Speed-coupled hardware load only; never controls modeled speed or drive power.
+  trainerUphillGradePercent: 0, // Extra hardware-only uphill resistance from flywheel overspeed.
+  trainerSpeedSampleAt: null, // Timestamp of the latest actual speed field.
+  trainerCadenceSampleAt: null, // Timestamp of the latest actual cadence field.
   trainerSpeedKph: null,
-  ergRoadSpeedKph: null, // Modeled map speed while pedaling in an ERG workout.
   trainerPowerWatts: null,
   trainerPowerSampleAt: null, // Timestamp of the most recent actual trainer power sample.
+  trainerPowerExpiryTimer: null, // Refresh power availability even when a stationary trainer stops notifying.
   trainerCadenceRpm: null,
   trainerCaloriesKcal: null,
   powerCaloriesKcal: 0,
@@ -188,7 +216,8 @@ export const state = {
   restingHeartRateBpm: DEFAULT_RESTING_HEART_RATE_BPM,
   maxHeartRateBpm: DEFAULT_MAX_HEART_RATE_BPM,
   ftpWatts: null,
-  workoutErg: null, // Active, explicitly enabled ERG session for the selected workout.
+  workoutErgEnabled: DEFAULT_WORKOUT_ERG_ENABLED, // Persisted permission for hardware ERG, independent of workout playback.
+  workoutErg: null, // Active timed workout session; road mode remains active when ERG is disabled.
   workoutCountdown: null, // Pending workout start and its countdown timer.
   workoutAutoStart: DEFAULT_WORKOUT_AUTO_START,
   workoutAutoStartAttempted: false, // One automatic start per workout selection.
@@ -331,6 +360,12 @@ export const els = {
   theaterHideControlsInput: document.querySelector("#theaterHideControlsInput"),
   theaterHideMinimapInput: document.querySelector("#theaterHideMinimapInput"),
   simulationBanner: document.querySelector("#simulationBanner"),
+  riderWeightInput: document.querySelector("#riderWeightInput"),
+  bikeWeightInput: document.querySelector("#bikeWeightInput"),
+  inertiaInput: document.querySelector("#inertiaInput"),
+  maxRideSpeedInput: document.querySelector("#maxRideSpeedInput"),
+  autoCornerBrakingInput: document.querySelector("#autoCornerBrakingInput"),
+  trainerRoadSupport: document.querySelector("#trainerRoadSupport"),
   restingHeartRateInput: document.querySelector("#restingHeartRateInput"),
   maxHeartRateInput: document.querySelector("#maxHeartRateInput"),
   ftpInput: document.querySelector("#ftpInput"),
@@ -498,6 +533,9 @@ export const els = {
   recPointsStat: document.querySelector("#recPointsStat"),
   recHeartRateStat: document.querySelector("#recHeartRateStat"),
   recCaloriesStat: document.querySelector("#recCaloriesStat"),
+  downloadRideDebugBtn: document.querySelector("#downloadRideDebugBtn"),
+  clearRideDebugBtn: document.querySelector("#clearRideDebugBtn"),
+  rideDebugStatus: document.querySelector("#rideDebugStatus"),
   downloadFitBtn: document.querySelector("#downloadFitBtn"),
   downloadWorkoutFitBtn: document.querySelector("#downloadWorkoutFitBtn"),
 };

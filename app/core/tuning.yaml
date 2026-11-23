@@ -39,14 +39,6 @@ app:
 
 # --- Movement & pedaling -----------------------------------------------------
 movement:
-  # Pedaling detection with hysteresis: the rider counts as "pedaling" once the
-  # trainer reports at least start_kph, and stops counting only after speed
-  # falls to stop_kph. The gap keeps a spinning-down flywheel from flapping
-  # the movement source on/off around a single threshold.
-  pedaling:
-    start_kph: 3
-    stop_kph: 1
-
   # Simulation speed slider: the artificial speed used to auto-ride a route
   # with no trainer. default_kph is where the slider starts; min/max bound both
   # the slider and any saved value. These drive the range input's attributes
@@ -71,6 +63,144 @@ movement:
   # while moving. Lower = less progress lost on a crash, more storage churn.
   ride_save_throttle_ms: 1500
 
+# --- Shared road physics -----------------------------------------------------
+road_physics:
+  # Default real rider mass in kg, overridden by the Road physics settings.
+  rider_weight_kg: 85
+  # Ready-to-ride bicycle mass, including bottles and luggage, in kg.
+  bike_weight_kg: 10
+  # Input bounds for rider and loaded bicycle masses in kg.
+  rider_weight_limits: { min: 20, max: 300 }
+  bike_weight_limits: { min: 1, max: 50 }
+  # Dry asphalt road-tire coefficient; shared by hardware commands and models.
+  rolling_resistance_coefficient: 0.005
+  # Rounded hoods-position mean CdA = 0.477 m², Tengattini & Bigazzi (2018),
+  # Table 4: https://doi.org/10.1080/02640414.2018.1458587
+  drag_area_square_meters: 0.48
+  # Standard sea-level air density in kg/m³; no weather model yet.
+  air_density_kg_per_cubic_meter: 1.225
+  # Still air: positive values would represent a headwind in m/s.
+  wind_speed_mps: 0
+  # Fraction of measured crank power delivered to the road.
+  drivetrain_efficiency: 0.96
+  # Let the modeled rider stop, with a descent speed ceiling in km/h.
+  min_speed_kph: 0
+  max_speed_kph: 72
+  # Maximum internal motion integration step; independent of screen refresh.
+  integration_step_seconds: 0.02
+  # Minimum effective speed in P/v to bound drive force when starting.
+  launch_speed_mps: 0.5
+  # Default for the persisted Inertia and coasting switch.
+  inertia_enabled: true
+  # Maximum age of measured power before motion stops; also bounds cadence freshness.
+  telemetry_timeout_ms: 3000
+  # Near-zero effort threshold for physical load release, workout/ETA effort
+  # detection, and virtual-rider power smoothing; road motion uses measured watts.
+  coasting_power_watts: 1
+  # Speeds below this value count as stopped for the movement loop.
+  stop_speed_kph: 0.1
+  # Restore physical road load over this many seconds after flywheel speed catches up.
+  trainer_load_ramp_seconds: 1.5
+  # Allow road-load engagement when the flywheel is within this speed gap, in km/h.
+  trainer_catchup_engage_kph: 0.5
+  # Release road load when the road speed exceeds flywheel speed by this gap, in km/h.
+  trainer_catchup_release_kph: 1.5
+  # Uphill speed-error correction timescale; extra acceleration demand = speed gap / seconds.
+  trainer_uphill_correction_seconds: 3
+  # Ignore this much flywheel overspeed when computing uphill compensation, in km/h.
+  trainer_uphill_deadband_kph: 0.5
+  # Maximum additional uphill resistance expressed as percentage points of grade.
+  trainer_uphill_max_grade_percent: 10
+  # Maximum uphill compensation change in grade percentage points per second.
+  trainer_uphill_grade_rate_per_second: 3
+  # Minimum interval between intermediate ramp commands; endpoints apply immediately.
+  trainer_load_interval_ms: 150
+
+# --- Virtual road-speed limits ----------------------------------------------
+speed_limits:
+  # Bounds for the user-adjustable road-speed ceiling; the default is road_physics.max_speed_kph.
+  max_speed_limits_kph: { min: 10, max: 120 }
+  # Default for automatic advance braking from GPX curvature, persisted in settings.
+  auto_corner_braking: true
+  # Comfortable modeled lean angle: a_lateral = g*tan(angle), v = sqrt(a_lateral*R).
+  # Bicycle geometry reference: https://www.txdot.gov/manuals/des/rdw/chapter-18-bicycle-facilities-/18-4-bikeway-types.html
+  max_lean_degrees: 20
+  # Net virtual deceleration used to plan braking distance before each curve, in m/s².
+  braking_deceleration_mps2: 2
+  # Maximum speed recovery after a limit releases, in m/s²; prevents an exit jump.
+  recovery_acceleration_mps2: 1.2
+  # Resample horizontal route geometry every this many meters, regardless of GPX density.
+  sample_step_meters: 5
+  # Average positions within this radius in meters to reject small GPS zigzags.
+  smoothing_radius_meters: 10
+  # Distance on each side of a sample used to estimate its turning radius, in meters.
+  curvature_span_meters: 15
+  # Ignore smaller changes in direction as nearly straight or GPS noise, in degrees.
+  minimum_turn_angle_degrees: 5
+  # Smallest modeled radius for sparse or reversing track points, in meters.
+  minimum_turn_radius_meters: 3
+  # Bound the geometry cache size; longer routes use a coarser sample spacing.
+  max_samples: 100000
+  # Maximum limiter time step, including movement in hidden browser tabs, in seconds.
+  integration_step_seconds: 0.05
+  # Positive equivalent grade at full trainer braking; descent assistance is canceled first.
+  trainer_brake_grade_percent: 6
+  # Overspeed above the deadband that requests full trainer braking, in km/h.
+  trainer_brake_full_overspeed_kph: 10
+  # Ignore smaller overspeed errors to avoid noise-driven brake changes, in km/h.
+  trainer_brake_speed_deadband_kph: 0.5
+  # Keep applied braking near the limit until trainer speed falls this far below it, in km/h.
+  trainer_brake_release_gap_kph: 1.5
+  # Braking applies only this close to the active speed envelope, in km/h; recovery is unbraked.
+  trainer_brake_speed_band_kph: 0.5
+  # Time to ramp trainer braking from zero to full strength, in seconds.
+  trainer_brake_engage_seconds: 1.5
+  # Time to remove full trainer braking after the limit releases, in seconds.
+  trainer_brake_release_seconds: 1
+
+# --- Ride diagnostics -------------------------------------------------------
+ride_debug:
+  # Persist pending diagnostic events at least this often while the page is active.
+  flush_interval_ms: 1000
+  # Maximum number of events in one stored JSONL chunk.
+  batch_events: 128
+  # Bound pending events if browser storage stalls; report all losses in the export.
+  pending_limit_events: 20000
+  # Bound memory-only fallback when persistent storage fails; report truncation.
+  memory_limit_events: 20000
+  # Keep the download object URL alive long enough for large exports.
+  download_url_lifetime_ms: 60000
+  # Snapshot these loaded calculation sources for reproducible offline analysis.
+  source_paths:
+    - core/tuning.yaml
+    - ride/cycling-motion.mjs
+    - ride/cycling-speed.mjs
+    - ride/road-speed.mjs
+    - ride/movement.mjs
+    - ride/speed-governor.mjs
+    - ride/speed-limits.mjs
+    - ride/trainer-braking.mjs
+    - route/route.mjs
+    - route/speed-profile.mjs
+    - trainer/load-ramp.mjs
+    - trainer/trainer-road.mjs
+    - trainer/trainer.mjs
+    - trainer/trainer-fec.mjs
+    - trainer/ftms-control.mjs
+    - ride/telemetry-ui.mjs
+    - ride/debug-log.mjs
+    - ride/debug-ui.mjs
+    - ride/recorder.mjs
+    - ride/eta.mjs
+    - simulation/simulation-recorder.mjs
+    - workout/workout-summary.mjs
+    - trainer/ftms.mjs
+    - trainer/fec.mjs
+    - workout/workout-erg.mjs
+    - workout/workout-step.mjs
+    - demo/demo.mjs
+    - simulation/simulation.mjs
+
 # --- Trainer grade updates ---------------------------------------------------
 trainer:
   # How often the averaged route grade is written to the trainer, in seconds.
@@ -81,13 +211,6 @@ trainer:
     default_seconds: 2
     min_seconds: 1
     max_seconds: 5
-  # Rolling-resistance coefficient sent with every Track Resistance (grade)
-  # command to a Tacx FE-C trainer (the wheel-on Flow/Vortex/Bushido/Genius,
-  # which speak ANT+ FE-C over BLE instead of FTMS). 0.004 is a typical
-  # asphalt value; raise it for a heavier simulated surface. Ignored by FTMS
-  # trainers, whose Set Simulation Parameters carries its own rolling term.
-  fec_default_crr: 0.004
-
 # --- Route math (grade, ascent/descent) --------------------------------------
 route_math:
   # The live grade is measured over a window this many meters behind and ahead
@@ -816,6 +939,8 @@ training_zones:
   workout_start_countdown_seconds: 3
   # Start the selected workout on the first pedal movement when enabled.
   workout_auto_start: false
+  # Default permission to send workout power targets; independent of starting a workout.
+  workout_erg_enabled: false
   power_zone_definitions:
     - { name: "Active Recovery", color: "#8b949e" }
     - { name: "Endurance", color: "#4f9bff" }
@@ -1058,10 +1183,9 @@ climb_detection:
 #
 # Base profile for the modeled athlete. The Advanced preset uses these values.
 demo_ride:
-  # Fixed showcase rider values. ftp_watts and max_heart_rate_bpm drive the
-  # training meters; the weights drive the grade-to-speed physics model.
+  # Showcase athlete values. Mass drives the shared road model; FTP and max
+  # heart rate drive effort and training meters. Bike mass is shared settings.
   rider_weight_kg: 100
-  bike_weight_kg: 9
   ftp_watts: 270
   max_heart_rate_bpm: 180
   resting_heart_rate_bpm: 86
@@ -1072,7 +1196,7 @@ demo_ride:
   flat_power_watts: 205
   climb_watts_per_grade_percent: 13.5
   descent_watts_per_grade_percent: 24
-  min_power_watts: 85
+  min_power_watts: 0
   max_power_watts: 360
   power_smoothing_tau_seconds: 7
 
@@ -1092,17 +1216,6 @@ demo_ride:
   cadence_smoothing_tau_seconds: 5
   cadence_noise_rpm: 2
 
-  # Cycling physics inputs for solving speed from power and road grade.
-  # drag_area is intentionally upright/hoods-ish so the demo feels like a
-  # rider, not a velodrome time trial.
-  rolling_resistance_coefficient: 0.005
-  drag_area_square_meters: 0.48
-  air_density_kg_per_cubic_meter: 1.225
-  drivetrain_efficiency: 0.96
-  min_speed_kph: 5
-  max_speed_kph: 72
-  speed_smoothing_tau_seconds: 5
-
   # HR follows effort slowly. It rises after sustained power, waits before
   # dropping, and after two low-effort minutes eases back toward resting HR.
   heart_rate_update_interval_seconds: 1
@@ -1116,31 +1229,14 @@ demo_ride:
 simulation_athlete:
   # Preset selected when there is no saved preference.
   default: advanced
-  # Each preset overrides the base mass, FTP, cadence, heart-rate response and
-  # aerodynamic drag. Free-ride power scales with the preset FTP.
+  # Each preset overrides the base mass, FTP, cadence, and heart-rate response.
+  # Road coefficients stay shared. Free-ride power scales with the preset FTP.
   presets:
-    untrained: { rider_weight_kg: 90, ftp_watts: 105, flat_cadence_rpm: 68, resting_heart_rate_bpm: 82, threshold_heart_rate_bpm: 163, drag_area_square_meters: 0.58 }
-    beginner: { rider_weight_kg: 82, ftp_watts: 165, flat_cadence_rpm: 77, resting_heart_rate_bpm: 74, threshold_heart_rate_bpm: 160, drag_area_square_meters: 0.52 }
+    untrained: { rider_weight_kg: 90, ftp_watts: 105, flat_cadence_rpm: 68, resting_heart_rate_bpm: 82, threshold_heart_rate_bpm: 163 }
+    beginner: { rider_weight_kg: 82, ftp_watts: 165, flat_cadence_rpm: 77, resting_heart_rate_bpm: 74, threshold_heart_rate_bpm: 160 }
     advanced: {}
-    professional: { rider_weight_kg: 74, ftp_watts: 350, flat_cadence_rpm: 94, resting_heart_rate_bpm: 53, threshold_heart_rate_bpm: 162, drag_area_square_meters: 0.36 }
-    tour: { rider_weight_kg: 68, ftp_watts: 410, flat_cadence_rpm: 99, resting_heart_rate_bpm: 45, threshold_heart_rate_bpm: 165, drag_area_square_meters: 0.32 }
-
-# --- Virtual road speed during ERG -------------------------------------------
-erg_road_speed:
-  # Assumed rider and bike masses when converting measured power into road speed.
-  rider_weight_kg: 85
-  bike_weight_kg: 10
-  # Road tire rolling resistance and upright riding drag area.
-  rolling_resistance_coefficient: 0.005
-  drag_area_square_meters: 0.48
-  # Air density at sea level and fraction of pedal power reaching the wheel.
-  air_density_kg_per_cubic_meter: 1.225
-  drivetrain_efficiency: 0.96
-  # Allow a rider to stall uphill and limit modeled speeds on steep descents.
-  min_speed_kph: 0
-  max_speed_kph: 72
-  # Smooth changes in measured effort and route grade over several seconds.
-  speed_smoothing_tau_seconds: 3
+    professional: { rider_weight_kg: 74, ftp_watts: 350, flat_cadence_rpm: 94, resting_heart_rate_bpm: 53, threshold_heart_rate_bpm: 162 }
+    tour: { rider_weight_kg: 68, ftp_watts: 410, flat_cadence_rpm: 99, resting_heart_rate_bpm: 45, threshold_heart_rate_bpm: 165 }
 
 # --- Ride recording ----------------------------------------------------------
 #

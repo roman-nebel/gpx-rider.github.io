@@ -46,10 +46,14 @@ function req(...path) {
 }
 
 export const APP_NAME = req("app", "name");
+export const RIDE_DEBUG = req("ride_debug");
+export const ROAD_PHYSICS = req("road_physics");
+export const DEFAULT_INERTIA_ENABLED = req("road_physics", "inertia_enabled");
+export const DEFAULT_MAX_RIDE_SPEED_KPH = req("road_physics", "max_speed_kph");
+export const SPEED_LIMITS = req("speed_limits");
+export const DEFAULT_AUTO_CORNER_BRAKING = req("speed_limits", "auto_corner_braking");
 
 // Movement & pedaling
-export const PEDALING_START_KPH = req("movement", "pedaling", "start_kph");
-export const PEDALING_STOP_KPH = req("movement", "pedaling", "stop_kph");
 export const SIMULATION_SPEED_MIN_KPH = req("movement", "simulation_speed", "min_kph");
 export const SIMULATION_SPEED_MAX_KPH = req("movement", "simulation_speed", "max_kph");
 export const DEFAULT_SIMULATION_SPEED_KPH = req("movement", "simulation_speed", "default_kph");
@@ -61,7 +65,6 @@ export const RIDE_SAVE_THROTTLE_MS = req("movement", "ride_save_throttle_ms");
 export const DEFAULT_GRADE_INTERVAL_SECONDS = req("trainer", "grade_interval", "default_seconds");
 export const GRADE_INTERVAL_MIN_SECONDS = req("trainer", "grade_interval", "min_seconds");
 export const GRADE_INTERVAL_MAX_SECONDS = req("trainer", "grade_interval", "max_seconds");
-export const TACX_FEC_DEFAULT_CRR = req("trainer", "fec_default_crr");
 
 // Route math
 export const GRADE_LOOKAROUND_METERS = req("route_math", "grade_lookaround_meters");
@@ -246,8 +249,8 @@ export const WORKOUT_PREVIEW_STEP_LIMIT = req("training_zones", "workout_preview
 export const WORKOUT_HUD_TARGET_TOLERANCE = req("training_zones", "workout_hud_target_tolerance");
 export const WORKOUT_HUD_NEXT_STEP_SECONDS = req("training_zones", "workout_hud_next_step_seconds");
 export const WORKOUT_START_COUNTDOWN_SECONDS = req("training_zones", "workout_start_countdown_seconds");
+export const DEFAULT_WORKOUT_ERG_ENABLED = req("training_zones", "workout_erg_enabled");
 export const DEFAULT_WORKOUT_AUTO_START = req("training_zones", "workout_auto_start");
-export const ERG_ROAD_SPEED = req("erg_road_speed");
 export const WORKOUT_ERG_UPDATE_MS = req("training_zones", "workout_erg_update_ms");
 export const WORKOUT_ERG_POWER_TIMEOUT_MS = req("training_zones", "workout_erg_power_timeout_ms");
 export const WORKOUT_PROFILE_FTP_CEILING = req("training_zones", "workout_profile_ftp_ceiling");
@@ -306,7 +309,7 @@ export const CLIMB_MERGE_MAX_DROP_METERS = req("climb_detection", "merge_max_dro
 export const CLIMB_MIN_AVERAGE_GRADE_FOR_LENGTH = req("climb_detection", "min_average_grade_for_length");
 
 // Virtual rider
-export const DEMO_RIDE = req("demo_ride");
+export const DEMO_RIDE = { ...ROAD_PHYSICS, ...req("demo_ride") };
 export const DEFAULT_SIMULATION_ATHLETE = req("simulation_athlete", "default");
 export const SIMULATION_ATHLETE_PRESETS = req("simulation_athlete", "presets");
 

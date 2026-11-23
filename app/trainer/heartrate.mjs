@@ -2,6 +2,7 @@
 // Any strap that broadcasts Heart Rate Measurement notifications works —
 // Polar, Garmin, Wahoo TICKR, etc.
 
+import { recordDebugEvent } from "../ride/debug-log.mjs";
 import { readJson, writeJson } from "../storage/storage.mjs";
 
 const HEART_RATE_SERVICE = 0x180d;
@@ -133,6 +134,7 @@ function delay(ms) {
 
 function handleHeartRateMeasurement(event) {
   const data = event.target.value;
+  recordDebugEvent("heartrate.notification", { bytes: data });
   if (data.byteLength < 2) return;
 
   // Flags bit 0 selects an 8- or 16-bit heart rate value.

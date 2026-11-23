@@ -2,10 +2,14 @@
 // reconnect, control-point commands, grade (Set Simulation Parameters)
 // writes, and Indoor Bike Data telemetry parsing.
 
+import { recordDebugEvent } from "../ride/debug-log.mjs";
+import { TrainerRoad } from "./trainer-road.mjs";
+import { FtmsControl } from "./ftms-control.mjs";
+import { decodeFtmsFeatures, decodeIndoorBikeData, decodeResistanceRange } from "./ftms.mjs";
 import { clamp } from "../core/geo.mjs";
 import { readJson, writeJson } from "../storage/storage.mjs";
-import { GRADE_INTERVAL_MAX_SECONDS, GRADE_INTERVAL_MIN_SECONDS } from "../core/tuning.mjs";
-import { connectFec, isFecConnected, resetFec, sendFecGrade, sendFecTargetPower, TACX_FEC_SERVICE } from "./trainer-fec.mjs";
+import { GRADE_INTERVAL_MAX_SECONDS, GRADE_INTERVAL_MIN_SECONDS, ROAD_PHYSICS } from "../core/tuning.mjs";
+import { connectFec, isFecConnected, resetFec, sendFecGrade, sendFecMinimumResistance, sendFecTargetPower, TACX_FEC_SERVICE } from "./trainer-fec.mjs";
 
 const FTMS_SERVICE = 0x1826;
 const FTMS_INDOOR_BIKE_DATA = 0x2ad2;
@@ -13,7 +17,6 @@ const FTMS_POWER_RANGE = 0x2ad8;
 const FTMS_CONTROL_POINT = 0x2ad9;
 const FTMS_STATUS = 0x2ada;
 const GATT_RECONNECT_DELAY_MS = 350;
-const FTMS_TARGET_RESPONSE_TIMEOUT_MS = 2000;
 
 export const OP_REQUEST_CONTROL = 0x00;
 export const OP_RESET = 0x01;
@@ -23,14 +26,6 @@ export const OP_SET_SIMULATION = 0x11;
 
 const OP_SET_TARGET_POWER = 0x05;
 
-const FTMS_RESPONSE_CODE = 0x80;
-const FTMS_RESULT_TEXT = {
-  0x01: "Success",
-  0x02: "Op code not supported",
-  0x03: "Invalid parameter",
-  0x04: "Operation failed",
-  0x05: "Control not permitted",
-};
 const FTMS_OPCODE_NAMES = {
   [OP_REQUEST_CONTROL]: "Request Control",
   [OP_RESET]: "Reset",
@@ -44,18 +39,20 @@ const TRAINER_STORAGE_KEY = "gpx-rider:last-trainer";
 
 const trainer = {
   device: null,
+  ready: false, // Hardware writes start only after the control handshake.
   protocol: null, // "ftms" | "fec" — which backend owns the connected device
   controlPoint: null,
   powerRange: null,
+  features: null,
+  roadResult: null,
+  road: new TrainerRoad(ROAD_PHYSICS),
+  resistanceRange: null,
   powerSession: null,
-  pendingTargetResponse: null,
+  control: null,
   bikeData: null,
-  writeQueue: Promise.resolve(),
   gradeSampleSum: 0,
   gradeSampleCount: 0,
   lastGradeAttemptAt: 0,
-  lastGradeSentRaw: null,
-  gradeWriteInFlight: false,
 };
 
 let callbacks = {
@@ -99,6 +96,7 @@ export async function connectTrainer() {
     await connectTrainerDevice(device);
   } catch (error) {
     console.error(error);
+    recordDebugEvent("trainer.connection-failed", { error });
     callbacks.onStatus("Failed");
     callbacks.onMessage(connectionErrorMessage(error, "trainer"));
   }
@@ -124,6 +122,7 @@ export async function reconnectSavedTrainer() {
 
     await connectTrainerDevice(device);
   } catch (error) {
+    recordDebugEvent("trainer.reconnect-failed", { error });
     console.warn("Could not reconnect saved trainer.", error);
     callbacks.onStatus(savedTrainer.name || "Saved");
   }
@@ -161,21 +160,57 @@ async function connectTrainerDevice(device) {
   });
 
   if (trainer.protocol === "ftms") {
-    await sendTrainerCommand(OP_REQUEST_CONTROL);
-
-    // Clears any stale ERG/resistance target left over from a previous
-    // session (Zwift, TrainerRoad, etc.) — some trainers keep enforcing that
-    // target and silently ignore Set Simulation Parameters until reset.
-    await sendTrainerCommand(OP_RESET);
+    try {
+      await sendTrainerCommand(OP_REQUEST_CONTROL, [], { throwOnError: true });
+      // Clear a power target left by another app before enabling road mode.
+      await sendTrainerCommand(OP_RESET, [], { throwOnError: true });
+    } catch (error) {
+      resetTrainerConnection();
+      throw error;
+    }
   }
   // FE-C trainers accept Track Resistance directly — no control handshake.
 
+  trainer.ready = true;
+  trainer.road.attach({
+    kind: trainer.protocol,
+    simulation: trainer.features?.simulation,
+    minimumResistance: trainer.features?.resistance ? trainer.resistanceRange?.min ?? null : null,
+    isErg: () => Boolean(trainer.powerSession),
+    send: (bytes, valid) => trainer.control.send(bytes, valid),
+    sendFec: (grade, config, minimum, allowWrite, allowContinue) => minimum ? sendFecMinimumResistance(allowWrite)
+      : sendFecGrade(grade, { config, allowWrite, allowContinue }),
+    onApplied: clearTrainerErrorStatus,
+    onError: () => callbacks.onStatus("BLE error"),
+  });
+  recordDebugEvent("trainer.connected", { name: device.name, protocol: trainer.protocol, features: trainer.features, controlResponsesAvailable: trainer.control?.receivesResponses ?? false, powerRange: trainer.powerRange, resistanceRange: trainer.resistanceRange });
   callbacks.onStatus(device.name || "Connected");
 }
 
 async function connectFtms(service) {
+  try {
+    const feature = await service.getCharacteristic(0x2acc);
+    const featureData = await feature.readValue();
+    recordDebugEvent("trainer.ftms.features", { bytes: featureData });
+    trainer.features = decodeFtmsFeatures(featureData);
+    console.debug("[trainer] FTMS features", trainer.features);
+  } catch {
+    console.debug("[trainer] FTMS features unavailable; support is unverified.");
+  }
+  if (trainer.features?.resistance) {
+    try {
+      const range = await service.getCharacteristic(0x2ad6);
+      trainer.resistanceRange = decodeResistanceRange(await range.readValue());
+    } catch {
+      // Without an advertised minimum, use zero simulation load instead.
+    }
+  }
   trainer.controlPoint = await service.getCharacteristic(FTMS_CONTROL_POINT);
-  const receivesResponses = await subscribeToControlPointResponses();
+  trainer.control = new FtmsControl(trainer.controlPoint, (opcode, result, text) => {
+    if (opcode === OP_SET_SIMULATION || opcode === 4) trainer.roadResult = result === 1 ? "Last road command accepted." : `Road command rejected: ${text}.`;
+    if (result !== 1 && opcode !== OP_SET_SIMULATION && opcode !== 4) callbacks.onStatus(text);
+  });
+  const receivesResponses = await trainer.control.subscribe();
   await subscribeToBikeData(service);
   try {
     const characteristic = await service.getCharacteristic(FTMS_POWER_RANGE);
@@ -183,13 +218,14 @@ async function connectFtms(service) {
     const min = Math.max(0, range.getInt16(0, true));
     const max = range.getInt16(2, true);
     const step = range.getUint16(4, true) || 1;
-    if (receivesResponses && max >= min) trainer.powerRange = { min, max, step };
+    if (receivesResponses && trainer.features?.targetPower !== false && max >= min) trainer.powerRange = { min, max, step };
   } catch {
     // Target power is optional. The route can still drive simulation grade.
   }
 
   try {
     const status = await service.getCharacteristic(FTMS_STATUS);
+    status.addEventListener("characteristicvaluechanged", event => recordDebugEvent("trainer.ftms.status", { bytes: event.target.value }));
     await status.startNotifications();
   } catch {
     // Some trainers expose indications only on the control point.
@@ -197,20 +233,24 @@ async function connectFtms(service) {
 }
 
 function resetTrainerConnection() {
+  trainer.ready = false;
   trainer.device = null;
   trainer.protocol = null;
-  trainer.pendingTargetResponse?.reject(new Error("Trainer disconnected."));
+  trainer.control?.reset();
+  trainer.control = null;
   trainer.controlPoint = null;
   trainer.powerRange = null;
+  trainer.features = null;
+  trainer.roadResult = null;
+  trainer.resistanceRange = null;
+  trainer.road.detach();
   trainer.powerSession = null;
-  trainer.lastGradeSentRaw = null;
-  trainer.gradeWriteInFlight = false;
   trainer.bikeData = null;
-  trainer.writeQueue = Promise.resolve();
   resetFec();
 }
 
 function handleTrainerDisconnected() {
+  recordDebugEvent("trainer.disconnected", { protocol: trainer.protocol });
   resetTrainerConnection();
   callbacks.onTelemetry(null);
   callbacks.onStatus("Disconnected");
@@ -268,36 +308,6 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function subscribeToControlPointResponses() {
-  try {
-    trainer.controlPoint.addEventListener("characteristicvaluechanged", handleControlPointResponse);
-    await trainer.controlPoint.startNotifications();
-    return true;
-  } catch (error) {
-    console.warn("Control point responses are not available.", error);
-    return false;
-  }
-}
-
-function handleControlPointResponse(event) {
-  if (event.target !== trainer.controlPoint) return;
-  const data = event.target.value;
-  if (data.byteLength < 3 || data.getUint8(0) !== FTMS_RESPONSE_CODE) return;
-
-  const requestOpcode = data.getUint8(1);
-  const resultCode = data.getUint8(2);
-  const resultText = FTMS_RESULT_TEXT[resultCode] || `Error ${resultCode}`;
-  const opcodeName = FTMS_OPCODE_NAMES[requestOpcode] || `0x${requestOpcode.toString(16)}`;
-
-  console.debug(`[trainer] response: ${opcodeName} -> ${resultText}`);
-
-  if (requestOpcode === OP_SET_TARGET_POWER && trainer.pendingTargetResponse) {
-    if (resultCode === 0x01) trainer.pendingTargetResponse.resolve();
-    else trainer.pendingTargetResponse.reject(new Error(resultText));
-  }
-  if (resultCode !== 0x01) callbacks.onStatus(resultText);
-}
-
 async function subscribeToBikeData(service) {
   try {
     trainer.bikeData = await service.getCharacteristic(FTMS_INDOOR_BIKE_DATA);
@@ -309,58 +319,10 @@ async function subscribeToBikeData(service) {
 }
 
 function handleBikeData(event) {
-  const data = event.target.value;
-  const flags = data.getUint16(0, true);
-  let index = 2;
-  const telemetry = {
-    speedKph: null,
-    powerWatts: null,
-    cadenceRpm: null,
-    totalCaloriesKcal: null,
-    heartRateBpm: null,
-  };
-
-  // FTMS Indoor Bike Data flag bits, in field order. Bit 0 is "More Data":
-  // when it is CLEAR the instantaneous speed field is present.
-  if ((flags & 0x0001) === 0 && index + 2 <= data.byteLength) {
-    telemetry.speedKph = data.getUint16(index, true) / 100;
-    index += 2;
-  }
-
-  if (flags & 0x0002) index += 2; // average speed
-
-  if ((flags & 0x0004) && index + 2 <= data.byteLength) {
-    // Instantaneous cadence: uint16 in units of 0.5 rpm.
-    telemetry.cadenceRpm = data.getUint16(index, true) / 2;
-    index += 2;
-  }
-  if (flags & 0x0008) index += 2; // average cadence
-  if (flags & 0x0010) index += 3; // total distance (uint24)
-  if (flags & 0x0020) index += 2; // resistance level
-
-  if ((flags & 0x0040) && index + 2 <= data.byteLength) {
-    telemetry.powerWatts = data.getInt16(index, true);
-    index += 2;
-  }
-
-  if (flags & 0x0080) index += 2; // average power
-
-  if (flags & 0x0100) {
-    // Expended energy: total (uint16 kcal), per hour (uint16), per minute (uint8).
-    if (index + 2 <= data.byteLength) {
-      const totalKcal = data.getUint16(index, true);
-      if (totalKcal !== 0xffff) telemetry.totalCaloriesKcal = totalKcal;
-    }
-    index += 5;
-  }
-
-  if ((flags & 0x0200) && index + 1 <= data.byteLength) {
-    const bpm = data.getUint8(index);
-    if (bpm > 0) telemetry.heartRateBpm = bpm;
-    index += 1;
-  }
-
-  callbacks.onTelemetry(telemetry);
+  if (event.target !== trainer.bikeData) return;
+  recordDebugEvent("trainer.ftms.bike-data", { bytes: event.target.value });
+  const telemetry = decodeIndoorBikeData(event.target.value);
+  if (telemetry) callbacks.onTelemetry(telemetry);
 }
 
 // Averages every grade sample seen since the last send instead of firing the
@@ -385,53 +347,17 @@ export function queueTrainerGradeSample(gradePercent, { force = false, intervalS
   void sendTrainerGrade(averageGrade);
 }
 
-export async function sendTrainerGrade(gradePercent, { force = false } = {}) {
-  if (trainer.powerSession) return;
-  // Tacx FE-C trainers take the grade as a Track Resistance page instead of an
-  // FTMS Set Simulation write; the FE-C backend owns its own dedupe/queue.
-  if (trainer.protocol === "fec") {
-    await sendFecGrade(gradePercent, { force });
-    return;
-  }
-  if (!trainer.controlPoint) return;
+export function sendTrainerGrade(gradePercent, options = {}) {
+  if (!trainer.ready) return Promise.resolve(false);
+  return trainer.road.sendGrade(gradePercent, options);
+}
 
-  // Never let a slow write build a backlog: if one is still in flight, skip
-  // this attempt entirely rather than queueing another. The next window
-  // picks up wherever the rider actually is by then.
-  if (trainer.gradeWriteInFlight && !force) {
-    console.debug(`[trainer] grade ${gradePercent.toFixed(1)}% dropped, previous write still in flight`);
-    return;
-  }
-
-  const grade = Math.round(gradePercent * 100);
-  if (!force && grade === trainer.lastGradeSentRaw) return;
-
-  const payload = [
-    OP_SET_SIMULATION,
-    0x00, 0x00,
-    grade & 0xff, (grade >> 8) & 0xff,
-    0x40,
-    0x51,
-  ];
-
-  console.debug(`[trainer] sending grade ${gradePercent.toFixed(1)}% (raw int16 ${grade})`);
-  trainer.gradeWriteInFlight = true;
-
-  try {
-    await sendBytes(payload);
-    trainer.lastGradeSentRaw = grade;
-    clearTrainerErrorStatus();
-    console.debug(`[trainer] grade ${gradePercent.toFixed(1)}% write acknowledged`);
-  } catch (error) {
-    console.error(`[trainer] grade ${gradePercent.toFixed(1)}% write failed`, error);
-    callbacks.onStatus("BLE error");
-  } finally {
-    trainer.gradeWriteInFlight = false;
-  }
+export function setTrainerRoadLoad(fraction, brakeStrength, grade, uphillGradePercent = 0) {
+  return trainer.road.setLoad(fraction, brakeStrength, grade, uphillGradePercent);
 }
 
 export function trainerSupportsTargetPower() {
-  return trainer.protocol === "fec" ? isFecConnected() : Boolean(trainer.protocol === "ftms" && trainer.powerRange);
+  return trainer.ready && (trainer.protocol === "fec" ? isFecConnected() : Boolean(trainer.protocol === "ftms" && trainer.powerRange));
 }
 
 export function queueTrainerTargetPower(targetWatts) {
@@ -444,7 +370,8 @@ export function queueTrainerTargetPower(targetWatts) {
   if (watts === session.watts) return watts;
 
   session.inFlight = true;
-  const write = trainer.protocol === "fec" ? sendFecTargetPower(watts) :
+  trainer.road.invalidate();
+  const write = trainer.protocol === "fec" ? sendFecTargetPower(watts, () => trainer.powerSession === session) :
     sendBytes([OP_SET_TARGET_POWER, watts & 0xff, watts >> 8], session);
   write.then(() => {
     session.watts = watts;
@@ -465,7 +392,7 @@ export function releaseTrainerTargetPower(grade) {
   void sendTrainerGrade(grade, { force: true });
 }
 
-export async function sendTrainerCommand(opcode, payload = []) {
+export async function sendTrainerCommand(opcode, payload = [], { throwOnError = false } = {}) {
   if (!trainer.controlPoint) return;
   const opcodeName = FTMS_OPCODE_NAMES[opcode] || `0x${opcode.toString(16)}`;
   console.debug(`[trainer] sending command ${opcodeName}`);
@@ -476,6 +403,7 @@ export async function sendTrainerCommand(opcode, payload = []) {
   } catch (error) {
     console.error(`[trainer] command ${opcodeName} failed`, error);
     callbacks.onStatus("BLE error");
+    if (throwOnError) throw error;
   }
 }
 
@@ -484,56 +412,18 @@ function clearTrainerErrorStatus() {
 }
 
 function sendBytes(bytes, powerSession = null) {
-  // The device only allows one outstanding GATT operation at a time.
-  // Grade writes fire independently of Start/Pause/Reset commands, so
-  // without a queue two overlapping writes throw "GATT operation already
-  // in progress" and the losing write is simply never applied.
-  const characteristic = trainer.controlPoint;
-  const task = trainer.writeQueue.then(() => {
-    if (characteristic !== trainer.controlPoint) throw new Error("Trainer connection changed.");
-    if (!powerSession) return writeBytesNow(characteristic, bytes);
-    if (trainer.powerSession !== powerSession) return;
-    return writeTargetPower(characteristic, bytes);
-  });
-  trainer.writeQueue = task.catch(() => {});
-  return task;
+  return trainer.control.send(bytes, () => powerSession
+    ? trainer.powerSession === powerSession
+    : bytes[0] !== OP_SET_SIMULATION || !trainer.powerSession);
 }
 
-async function writeTargetPower(characteristic, bytes) {
-  // An ATT write acknowledgment only confirms receipt. Keep subsequent
-  // terrain writes queued until the trainer accepts or rejects this procedure.
-  let timeout;
-  let pending;
-  const response = new Promise((resolve, reject) => {
-    pending = { resolve, reject };
-    trainer.pendingTargetResponse = pending;
-    timeout = setTimeout(() => reject(new Error("No target power response from the trainer.")),
-      FTMS_TARGET_RESPONSE_TIMEOUT_MS);
-  });
-  try {
-    const write = writeBytesNow(characteristic, bytes).catch((error) => {
-      pending.reject(error);
-      throw error;
-    });
-    const results = await Promise.allSettled([write, response]);
-    const failure = results.find((result) => result.status === "rejected");
-    if (failure) throw failure.reason;
-  } finally {
-    clearTimeout(timeout);
-    if (trainer.pendingTargetResponse === pending) trainer.pendingTargetResponse = null;
-  }
+export function configureTrainerRoad(config) {
+  trainer.road.configure(config);
 }
 
-async function writeBytesNow(characteristic, bytes) {
-  // FTMS requires the Control Point to be written with a Write Request
-  // (writeValue) so the machine treats it as a real control transaction and
-  // sends back a Response Code indication. Write Without Response is a
-  // fire-and-forget command some machines silently accept without ever
-  // applying it. Only fall back to it for non-compliant peripherals that
-  // don't support Write Request at all.
-  try {
-    await characteristic.writeValue(new Uint8Array(bytes));
-  } catch {
-    await characteristic.writeValueWithoutResponse(new Uint8Array(bytes));
-  }
+export function trainerRoadSupport() {
+  if (!isTrainerConnected()) return "Connect a trainer to check road control. Mass is always used for app calculations.";
+  if (trainer.protocol === "fec") return "FE-C: grade, rolling resistance, wind, and mass are sent. Device acceptance is unverified.";
+  if (trainer.features?.simulation === false) return "This trainer does not advertise road simulation support.";
+  return `${trainer.roadResult ?? "Road command acceptance not yet verified."} ${trainer.control?.receivesResponses ? "" : "Device acceptance cannot be verified. "}${trainer.features?.simulation ? "FTMS road simulation supported." : "FTMS road simulation support is unverified."} Mass cannot be set through FTMS simulation; configure it in the manufacturer's app.`;
 }

@@ -369,7 +369,7 @@
                 </button>
               </div>
               <div id="simulationSpeedControl" class="simulation-control">
-                <label for="speedInput" class="speed-label">Speed</label>
+                <label for="speedInput" class="speed-label">Target speed</label>
                 <input id="speedInput" type="range" min="8" max="100" step="1" value="24">
                 <output id="speedOutput" for="speedInput">24 km/h</output>
               </div>
@@ -574,7 +574,7 @@
                 <div id="trainerErg" class="setting-row" hidden>
                   <div class="setting-row-text">
                     <span id="workoutErgLabel" class="setting-row-label">Hold target power (ERG)</span>
-                    <span id="workoutErgStatus" class="setting-row-hint" role="status">Let the trainer adjust resistance to match each step.</span>
+                    <span id="workoutErgStatus" class="setting-row-hint" role="status">Off by default. Starting a workout does not enable ERG.</span>
                   </div>
                   <label class="switch">
                     <input id="workoutErgInput" type="checkbox" aria-labelledby="workoutErgLabel" aria-describedby="workoutErgStatus">
@@ -705,6 +705,16 @@
             </div>
           </section>
 
+          <section class="panel-card sidebar-section">
+            <div class="panel-card-head"><span class="panel-card-title">Ride diagnostics</span></div>
+            <p class="panel-card-hint">Full trainer packets, control commands, road calculations, route, and workout data. Includes location and health data. Saved locally; download to share for debugging.</p>
+            <div class="button-row">
+              <button id="downloadRideDebugBtn" type="button" class="btn btn-ghost">Export debug data</button>
+              <button id="clearRideDebugBtn" type="button" class="btn btn-ghost btn-sm">Clear debug data</button>
+            </div>
+            <p id="rideDebugStatus" class="panel-card-hint" role="status">Starting diagnostic recording…</p>
+          </section>
+
           <p id="terrainAttribution" class="panel-credits" hidden></p>
         </aside>
       </div>
@@ -728,6 +738,10 @@
             data-panel-title="HUD &amp; data fields" data-panel-subtitle="Choose which metrics appear on the map.">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
             <span>HUD &amp; data fields</span>
+          </button>
+          <button type="button" class="settings-tab" data-settings-tab="road"
+            data-panel-title="Road physics" data-panel-subtitle="Shared road load, rider mass, and coasting.">
+            <span>Road physics</span>
           </button>
           <button type="button" class="settings-tab" data-settings-tab="units"
             data-panel-title="Units" data-panel-subtitle="Display units — internal values always stay metric.">
@@ -962,6 +976,31 @@
                 <span class="switch-track"><span class="switch-knob"></span></span>
               </label>
             </div>
+          </section>
+
+          <section class="settings-panel" data-settings-panel="road" hidden>
+            <div class="setting-row">
+              <label class="setting-row-text" for="riderWeightInput"><span class="setting-row-label">Rider mass (kg)</span></label>
+              <input id="riderWeightInput" class="setting-number" type="number" step="0.1" inputmode="decimal">
+            </div>
+            <div class="setting-row">
+              <label class="setting-row-text" for="bikeWeightInput"><span class="setting-row-label">Loaded bicycle mass (kg)</span><span class="setting-row-hint">Include bottles, luggage, and equipment.</span></label>
+              <input id="bikeWeightInput" class="setting-number" type="number" step="0.1" inputmode="decimal">
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-text"><span class="setting-row-label">Inertia and coasting</span><span class="setting-row-hint">Calculate speed from measured power, mass, and grade in every mode. Disable for immediate steady-speed estimates. Fresh trainer power is required. Trainer speed controls physical catch-up and uphill resistance, not road speed.</span></div>
+              <label class="switch"><input id="inertiaInput" type="checkbox" aria-label="Inertia and coasting"><span class="switch-track"><span class="switch-knob"></span></span></label>
+            </div>
+            <div class="setting-row">
+              <label class="setting-row-text" for="maxRideSpeedInput"><span class="setting-row-label">Maximum speed outside ERG (km/h)</span><span class="setting-row-hint">Applies to free riding and simulation, including Fixed speed. ERG power steps are exempt.</span></label>
+              <input id="maxRideSpeedInput" class="setting-number" type="number" step="1" inputmode="decimal">
+            </div>
+            <div class="setting-row">
+              <div class="setting-row-text"><span class="setting-row-label">Automatic corner braking</span><span class="setting-row-hint">Outside ERG, slow down before bends and add gradual trainer braking while engaged. Regain speed gradually after the bend.</span></div>
+              <label class="switch"><input id="autoCornerBrakingInput" type="checkbox" aria-label="Automatic corner braking"><span class="switch-track"><span class="switch-knob"></span></span></label>
+            </div>
+            <p class="panel-card-hint">Road load uses total rider and bicycle mass, asphalt rolling resistance, and quadratic air resistance. Simulation uses its selected athlete's mass and the same loaded bicycle mass. Fixed speed follows its selected target within the road-speed limits.</p>
+            <p id="trainerRoadSupport" class="panel-card-hint" role="status"></p>
           </section>
 
           <section class="settings-panel" data-settings-panel="units" hidden>
